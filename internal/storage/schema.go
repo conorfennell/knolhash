@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS cards (
 CREATE TABLE IF NOT EXISTS sources (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     path TEXT NOT NULL UNIQUE,
+    type TEXT NOT NULL, -- 'local' or 'git'
     last_scanned DATETIME
 );
 `

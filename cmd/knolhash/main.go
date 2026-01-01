@@ -1,48 +1,88 @@
 package main
 
 import (
-	"database/sql" // Added for sql.NullTime
 	"flag"
 	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
+	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/conorfennell/knolhash/internal/domain"
-	"github.com/conorfennell/knolhash/internal/knol" // Import knol for hashing
+	"github.com/conorfennell/knolhash/internal/gitsource"
+	"github.com/conorfennell/knolhash/internal/knol"
 	"github.com/conorfennell/knolhash/internal/parser"
 	"github.com/conorfennell/knolhash/internal/storage"
 	"github.com/conorfennell/knolhash/internal/web"
 )
 
-
 func main() {
-	// 1. Define and parse command-line flags
-	dir := flag.String("dir", ".", "The directory to scan for markdown files")
+	// 1. Define flags
 	dbPath := flag.String("db", "knolhash.db", "Path to the SQLite database file")
-	showDue := flag.Bool("show-due", false, "If set, show cards that are due for review and exit")
-	serve := flag.Bool("serve", false, "If set, start the web server")
+	addSource := flag.String("add-source", "", "The path or Git URL of a source to add")
+	showDue := flag.Bool("show-due", false, "Show cards that are due for review and exit")
+	serve := flag.Bool("serve", false, "Start the web server")
 	listenAddr := flag.String("listen-addr", ":8080", "The address for the web server to listen on")
 	flag.Parse()
 
-	// 2. Open the database
+	// 2. Open DB
 	db, err := storage.Open(*dbPath)
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
 	defer db.Close()
 
-	// 3. Decide execution mode based on flags
+	// 3. Dispatch based on flags
+	if *addSource != "" {
+		if err := addNewSource(db, *addSource); err != nil {
+			log.Fatalf("Failed to add source: %v", err)
+		}
+		return
+	}
 	if *serve {
 		runWebServer(db, *listenAddr)
-	} else if *showDue {
-		showDueCards(db)
-	} else {
-		runReconciliation(db, *dir)
+		return
 	}
+	if *showDue {
+		showDueCards(db)
+		return
+	}
+	
+	// Default action is to sync
+	runSync(db)
+}
+
+// addNewSource adds a new source to the database, determining its type.
+func addNewSource(db *storage.DB, path string) error {
+	sourceType := "local"
+	if strings.HasSuffix(path, ".git") || strings.HasPrefix(path, "git@") || strings.HasPrefix(path, "https://") {
+		sourceType = "git"
+	}
+	if sourceType == "local" {
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			return fmt.Errorf("local path does not exist: %s", path)
+		}
+	}
+	
+	existing, err := db.FindSourceByPath(path)
+	if err != nil {
+		return fmt.Errorf("error checking for existing source: %w", err)
+	}
+	if existing != nil {
+		log.Printf("Source with path '%s' already exists.", path)
+		return nil
+	}
+
+	_, err = db.InsertSource(path, sourceType)
+	if err != nil {
+		return fmt.Errorf("could not insert new source: %w", err)
+	}
+	log.Printf("Successfully added new source: %s (type: %s)", path, sourceType)
+	return nil
 }
 
 // runWebServer starts the HTTP server.
@@ -66,59 +106,104 @@ func showDueCards(db *storage.DB) {
 	}
 }
 
-// runReconciliation performs the file system scan and database synchronization.
-func runReconciliation(db *storage.DB, dir string) {
-	log.Printf("Database opened successfully. Starting reconciliation for directory: %s", dir)
-
-	// Get or create the source entry for the scanned directory
-	source, err := db.FindSourceByPath(dir)
+// runSync iterates over all sources and reconciles them.
+func runSync(db *storage.DB) {
+	log.Println("Starting sync process for all sources...")
+	sources, err := db.GetAllSources()
 	if err != nil {
-		log.Fatalf("Failed to find source by path %s: %v", dir, err)
-	}
-	if source == nil {
-		log.Printf("Source path %s not found, inserting new source.", dir)
-		sourceID, insertErr := db.InsertSource(dir)
-		if insertErr != nil {
-			log.Fatalf("Failed to insert new source %s: %v", dir, insertErr)
-		}
-		source = &storage.Source{ID: sourceID, Path: dir, LastScanned: sql.NullTime{Time: time.Now(), Valid: true}}
-	} else {
-		log.Printf("Found existing source for path %s (ID: %d).", dir, source.ID)
+		log.Fatalf("Failed to get sources: %v", err)
 	}
 
+	if len(sources) == 0 {
+		log.Println("No sources configured. Add one with --add-source <path/or/url.git>")
+		return
+	}
+
+	// Create a directory to store cloned repos
+	reposDir := "repos"
+	if err := os.MkdirAll(reposDir, os.ModePerm); err != nil {
+		log.Fatalf("Failed to create repos directory: %v", err)
+	}
+
+	for _, source := range sources {
+		log.Printf("Syncing source ID %d (Type: %s, Path: %s)", source.ID, source.Type, source.Path)
+		
+		sourceToReconcile := source // Make a copy to avoid modifying the loop variable
+		
+		if source.Type == "local" {
+			reconcileLocalSource(db, &sourceToReconcile)
+		} else if source.Type == "git" {
+			localRepoPath, err := gitUrlToLocalPath(reposDir, source.Path)
+			if err != nil {
+				log.Printf("Error determining local path for git repo %s: %v", source.Path, err)
+				continue
+			}
+			
+			if err := gitsource.Sync(source.Path, localRepoPath); err != nil {
+				log.Printf("Error syncing git repo %s: %v", source.Path, err)
+				continue
+			}
+
+			// Reconcile the cloned repo's local path
+			sourceToReconcile.Path = localRepoPath
+			reconcileLocalSource(db, &sourceToReconcile)
+		}
+	}
+	log.Println("Sync process complete.")
+}
+
+// gitUrlToLocalPath creates a safe local directory path from a git URL.
+func gitUrlToLocalPath(baseDir, repoURL string) (string, error) {
+	// A simple way to generate a path: join baseDir with the sanitized URL path.
+	// e.g., https://github.com/user/repo.git -> repos/github.com/user/repo.git
+	parsedURL, err := url.Parse(repoURL)
+	if err != nil {
+		// Handle git@github.com:user/repo.git style URLs
+		if strings.Contains(repoURL, "@") {
+			parts := strings.Split(repoURL, ":")
+			if len(parts) == 2 {
+				hostAndUser := strings.Split(parts[0], "@")
+				if len(hostAndUser) == 2 {
+					host := hostAndUser[1]
+					repoPath := strings.TrimSuffix(parts[1], ".git")
+					return filepath.Join(baseDir, host, repoPath), nil
+				}
+			}
+		}
+		return "", fmt.Errorf("could not parse git URL: %w", err)
+	}
+	
+	sanitizedPath := strings.TrimSuffix(parsedURL.Path, ".git")
+	return filepath.Join(baseDir, parsedURL.Host, sanitizedPath), nil
+}
+
+// reconcileLocalSource performs the file scan and DB sync for a local directory.
+func reconcileLocalSource(db *storage.DB, source *storage.Source) {
 	var parsedCards []domain.Card
 	var parseErrors []error
-	foundCardHashes := make(map[string]bool) // To track cards found in current scan
+	foundCardHashes := make(map[string]bool)
 
-	// Walk the directory, parse files, and reconcile cards
-	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err // Propagate errors from WalkDir
-		}
+	walkErr := filepath.WalkDir(source.Path, func(path string, d fs.DirEntry, err error) error {
+		if err != nil { return err }
 		if !d.IsDir() && strings.HasSuffix(strings.ToLower(d.Name()), ".md") {
 			fileCards, parseErr := parser.ParseFile(path)
 			if parseErr != nil {
-				parseErrors = append(parseErrors, fmt.Errorf("error parsing %s: %w", path, parseErr))
+				parseErrors = append(parseErrors, fmt.Errorf("parsing %s: %w", path, parseErr))
 			}
-
 			for _, card := range fileCards {
-				card.Hash = knol.Hash(card) // Calculate hash for the card
+				card.Hash = knol.Hash(card)
 				parsedCards = append(parsedCards, card)
 				foundCardHashes[card.Hash] = true
-
-				// Check if card exists in DB
+				
 				cardState, findErr := db.FindCardStateByHash(card.Hash)
 				if findErr != nil {
-					parseErrors = append(parseErrors, fmt.Errorf("error checking card %s in DB: %w", card.Hash, findErr))
+					parseErrors = append(parseErrors, fmt.Errorf("db check for %s: %w", card.Hash, findErr))
 					continue
 				}
-
 				if cardState == nil {
-					// Card not in DB, insert it
-					log.Printf("New card found: %s, inserting into DB.", card.Hash)
-					insertErr := db.InsertCard(card, source.ID)
-					if insertErr != nil {
-						parseErrors = append(parseErrors, fmt.Errorf("error inserting card %s: %w", card.Hash, insertErr))
+					log.Printf("New card found: %s, inserting...", card.Hash)
+					if insertErr := db.InsertCard(card, source.ID); insertErr != nil {
+						parseErrors = append(parseErrors, fmt.Errorf("db insert for %s: %w", card.Hash, insertErr))
 					}
 				}
 			}
@@ -126,20 +211,21 @@ func runReconciliation(db *storage.DB, dir string) {
 		return nil
 	})
 
-	if err != nil {
-		log.Fatalf("Error walking directory %s: %v", dir, err)
+	if walkErr != nil {
+		log.Printf("Error walking directory %s: %v", source.Path, walkErr)
+		return
 	}
 
-	// Identify orphaned cards
 	dbCards, err := db.GetCardsBySourceID(source.ID)
 	if err != nil {
-		log.Fatalf("Failed to get cards for source ID %d from DB: %v", source.ID, err)
+		log.Printf("Error getting cards for source %d: %v", source.ID, err)
+		return
 	}
 
 	var orphanedCards int
 	for _, dbCard := range dbCards {
 		if _, found := foundCardHashes[dbCard.Hash]; !found {
-			log.Printf("Orphaned card detected, deleting: Hash %s (Question: %s)", dbCard.Hash, dbCard.Question)
+			log.Printf("Orphaned card, deleting: %s", dbCard.Hash)
 			orphanedCards++
 			if err := db.DeleteCardByHash(dbCard.Hash); err != nil {
 				log.Printf("Warning: Failed to delete orphaned card %s: %v", dbCard.Hash, err)
@@ -147,20 +233,11 @@ func runReconciliation(db *storage.DB, dir string) {
 		}
 	}
 
-	// Update source's last scanned timestamp
 	if err := db.UpdateSourceLastScanned(source.ID); err != nil {
-		log.Printf("Warning: Failed to update last scanned timestamp for source %d: %v", source.ID, err)
+		log.Printf("Warning: Failed to update last scanned for source %d: %v", source.ID, err)
 	}
 
-	// Print the final report
-	fmt.Printf("Reconciliation complete. Found %d cards in files. %d orphaned cards deleted. %d errors.\n",
-		len(parsedCards), orphanedCards, len(parseErrors))
-
-	if len(parseErrors) > 0 {
-		fmt.Println("\nErrors during parsing or reconciliation:")
-		for _, e := range parseErrors {
-			fmt.Printf("- %s\n", e)
-		}
-	}
+	fmt.Printf("Reconciliation for '%s' complete. Found %d cards. %d orphaned deleted. %d errors.\n",
+		source.Path, len(parsedCards), orphanedCards, len(parseErrors))
 }
 

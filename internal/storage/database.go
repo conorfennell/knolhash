@@ -123,17 +123,18 @@ func (db *DB) UpdateCardState(cs *CardState) error {
 
 // Source represents a card source, either a local path or a Git URL.
 type Source struct {
-	ID         int64
-	Path       string
+	ID          int64
+	Path        string
+	Type        string // 'local' or 'git'
 	LastScanned sql.NullTime
 }
 
 // InsertSource inserts a new source path into the database and returns its ID.
-func (db *DB) InsertSource(path string) (int64, error) {
+func (db *DB) InsertSource(path, sourceType string) (int64, error) {
 	res, err := db.conn.Exec(`
-		INSERT INTO sources (path, last_scanned)
-		VALUES (?, ?)
-	`, path, time.Now())
+		INSERT INTO sources (path, type, last_scanned)
+		VALUES (?, ?, ?)
+	`, path, sourceType, time.Now())
 	if err != nil {
 		return 0, fmt.Errorf("failed to insert source %s: %w", path, err)
 	}
@@ -148,11 +149,11 @@ func (db *DB) InsertSource(path string) (int64, error) {
 func (db *DB) FindSourceByPath(path string) (*Source, error) {
 	var s Source
 	row := db.conn.QueryRow(`
-		SELECT id, path, last_scanned
+		SELECT id, path, type, last_scanned
 		FROM sources WHERE path = ?
 	`, path)
 
-	err := row.Scan(&s.ID, &s.Path, &s.LastScanned)
+	err := row.Scan(&s.ID, &s.Path, &s.Type, &s.LastScanned)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // Source not found
@@ -165,7 +166,7 @@ func (db *DB) FindSourceByPath(path string) (*Source, error) {
 // GetAllSources retrieves all stored sources from the database.
 func (db *DB) GetAllSources() ([]Source, error) {
 	rows, err := db.conn.Query(`
-		SELECT id, path, last_scanned
+		SELECT id, path, type, last_scanned
 		FROM sources
 	`)
 	if err != nil {
@@ -176,7 +177,7 @@ func (db *DB) GetAllSources() ([]Source, error) {
 	var sources []Source
 	for rows.Next() {
 		var s Source
-		if err := rows.Scan(&s.ID, &s.Path, &s.LastScanned); err != nil {
+		if err := rows.Scan(&s.ID, &s.Path, &s.Type, &s.LastScanned); err != nil {
 			return nil, fmt.Errorf("failed to scan source row: %w", err)
 		}
 		sources = append(sources, s)

@@ -18,11 +18,15 @@
     - [x] Write `Find`, `Insert`, `GetAll`, `Update` methods for sources.
 - [x] **Implement the reconciler logic:**
     - [x] If a hash is in the file but not the DB: Insert it.
-    - [x] If a hash is in the DB but not the file: Mark it as "orphaned".
+    - [x] If a hash is in the DB but not the file: Mark it as "orphaned" and delete it.
 
 ## Milestone 3: The Brain (FSRS Algorithm)
-- [ ] Port FSRS: Implement the core FSRS math.
-- [ ] The Scheduler: Write a function GetNextDue(card) that returns a list of hashes sorted by their due date.
+- [x] **Port FSRS:** 
+    - [x] Create `internal/fsrs` package.
+    - [x] Implement the core FSRS math based on the simplified formula.
+    - [x] Define default parameters for `a, b, c, d` and retention.
+- [x] **The Scheduler:** 
+    - [x] Write a function `GetDueCards()` that returns a list of hashes sorted by their due date.
 
 ## Milestone 4: The Web Bridge (Backend API)
 - [ ] HTTP Server: Set up net/http or chi.

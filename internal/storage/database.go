@@ -237,3 +237,36 @@ func (db *DB) DeleteCardByHash(hash string) error {
 	return nil
 }
 
+// GetDueCards retrieves all cards that are due for review, sorted by due date.
+func (db *DB) GetDueCards() ([]CardState, error) {
+	rows, err := db.conn.Query(`
+		SELECT hash, question, stability, difficulty, due_date, last_review, state, source_id
+		FROM cards
+		WHERE due_date <= ?
+		ORDER BY due_date ASC
+	`, time.Now())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get due cards: %w", err)
+	}
+	defer rows.Close()
+
+	var cardStates []CardState
+	for rows.Next() {
+		var cs CardState
+		if err := rows.Scan(
+			&cs.Hash,
+			&cs.Question,
+			&cs.Stability,
+			&cs.Difficulty,
+			&cs.DueDate,
+			&cs.LastReview,
+			&cs.State,
+			&cs.SourceID,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan due card row: %w", err)
+		}
+		cardStates = append(cardStates, cs)
+	}
+	return cardStates, nil
+}
+

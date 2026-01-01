@@ -1,26 +1,31 @@
 package main
 
 import (
+	"database/sql" // Added for sql.NullTime
 	"flag"
 	"fmt"
 	"io/fs"
 	"log"
+	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
-	"database/sql" // Added for sql.NullTime
 
 	"github.com/conorfennell/knolhash/internal/domain"
 	"github.com/conorfennell/knolhash/internal/knol" // Import knol for hashing
 	"github.com/conorfennell/knolhash/internal/parser"
 	"github.com/conorfennell/knolhash/internal/storage"
+	"github.com/conorfennell/knolhash/internal/web"
 )
+
 
 func main() {
 	// 1. Define and parse command-line flags
 	dir := flag.String("dir", ".", "The directory to scan for markdown files")
 	dbPath := flag.String("db", "knolhash.db", "Path to the SQLite database file")
 	showDue := flag.Bool("show-due", false, "If set, show cards that are due for review and exit")
+	serve := flag.Bool("serve", false, "If set, start the web server")
+	listenAddr := flag.String("listen-addr", ":8080", "The address for the web server to listen on")
 	flag.Parse()
 
 	// 2. Open the database
@@ -30,43 +35,63 @@ func main() {
 	}
 	defer db.Close()
 
-	// 3. Handle --show-due flag
-	if *showDue {
-		dueCards, err := db.GetDueCards()
-		if err != nil {
-			log.Fatalf("Failed to get due cards: %v", err)
-		}
-		fmt.Printf("Found %d cards due for review:\n", len(dueCards))
-		for _, card := range dueCards {
-			fmt.Printf("- Hash: %s, Due: %s\n", card.Hash, card.DueDate.Format(time.RFC822))
-		}
-		return // Exit after showing due cards
+	// 3. Decide execution mode based on flags
+	if *serve {
+		runWebServer(db, *listenAddr)
+	} else if *showDue {
+		showDueCards(db)
+	} else {
+		runReconciliation(db, *dir)
 	}
+}
 
-	log.Printf("Database opened successfully: %s", *dbPath)
+// runWebServer starts the HTTP server.
+func runWebServer(db *storage.DB, addr string) {
+	server := web.NewServer(db)
+	log.Printf("Starting web server on %s", addr)
+	if err := http.ListenAndServe(addr, server); err != nil {
+		log.Fatalf("Failed to start web server: %v", err)
+	}
+}
 
-	// 4. Get or create the source entry for the scanned directory
-	source, err := db.FindSourceByPath(*dir)
+// showDueCards fetches and prints cards that are due for review.
+func showDueCards(db *storage.DB) {
+	dueCards, err := db.GetDueCards()
 	if err != nil {
-		log.Fatalf("Failed to find source by path %s: %v", *dir, err)
+		log.Fatalf("Failed to get due cards: %v", err)
+	}
+	fmt.Printf("Found %d cards due for review:\n", len(dueCards))
+	for _, card := range dueCards {
+		fmt.Printf("- Hash: %s, Due: %s\n", card.Hash, card.DueDate.Format(time.RFC822))
+	}
+}
+
+// runReconciliation performs the file system scan and database synchronization.
+func runReconciliation(db *storage.DB, dir string) {
+	log.Printf("Database opened successfully. Starting reconciliation for directory: %s", dir)
+
+	// Get or create the source entry for the scanned directory
+	source, err := db.FindSourceByPath(dir)
+	if err != nil {
+		log.Fatalf("Failed to find source by path %s: %v", dir, err)
 	}
 	if source == nil {
-		log.Printf("Source path %s not found, inserting new source.", *dir)
-		sourceID, insertErr := db.InsertSource(*dir)
+		log.Printf("Source path %s not found, inserting new source.", dir)
+		sourceID, insertErr := db.InsertSource(dir)
 		if insertErr != nil {
-			log.Fatalf("Failed to insert new source %s: %v", *dir, insertErr)
+			log.Fatalf("Failed to insert new source %s: %v", dir, insertErr)
 		}
-		source = &storage.Source{ID: sourceID, Path: *dir, LastScanned: sql.NullTime{Time: time.Now(), Valid: true}}
+		source = &storage.Source{ID: sourceID, Path: dir, LastScanned: sql.NullTime{Time: time.Now(), Valid: true}}
 	} else {
-		log.Printf("Found existing source for path %s (ID: %d).", *dir, source.ID)
+		log.Printf("Found existing source for path %s (ID: %d).", dir, source.ID)
 	}
 
 	var parsedCards []domain.Card
 	var parseErrors []error
 	foundCardHashes := make(map[string]bool) // To track cards found in current scan
 
-	// 5. Walk the directory, parse files, and reconcile cards
-	err = filepath.WalkDir(*dir, func(path string, d fs.DirEntry, err error) error {
+	// Walk the directory, parse files, and reconcile cards
+	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err // Propagate errors from WalkDir
 		}
@@ -95,9 +120,6 @@ func main() {
 					if insertErr != nil {
 						parseErrors = append(parseErrors, fmt.Errorf("error inserting card %s: %w", card.Hash, insertErr))
 					}
-				} else {
-					// Card already in DB, do nothing for now (FSRS logic will update later)
-					// log.Printf("Card %s already in DB, due date: %v", card.Hash, cardState.DueDate)
 				}
 			}
 		}
@@ -105,10 +127,10 @@ func main() {
 	})
 
 	if err != nil {
-		log.Fatalf("Error walking directory %s: %v", *dir, err)
+		log.Fatalf("Error walking directory %s: %v", dir, err)
 	}
 
-	// 6. Identify orphaned cards (cards in DB for this source but not in current scan)
+	// Identify orphaned cards
 	dbCards, err := db.GetCardsBySourceID(source.ID)
 	if err != nil {
 		log.Fatalf("Failed to get cards for source ID %d from DB: %v", source.ID, err)
@@ -125,15 +147,14 @@ func main() {
 		}
 	}
 
-	// 7. Update source's last scanned timestamp
+	// Update source's last scanned timestamp
 	if err := db.UpdateSourceLastScanned(source.ID); err != nil {
 		log.Printf("Warning: Failed to update last scanned timestamp for source %d: %v", source.ID, err)
 	}
 
-	// 8. Print the final report
-	fmt.Printf("Found %d cards in files, %d new cards inserted, %d orphaned cards, %d errors.\n",
-		len(parsedCards), len(parsedCards)-len(foundCardHashes)+orphanedCards, orphanedCards, len(parseErrors)) // This count needs refinement
-	// A more accurate count of inserted cards would be to query the DB after reconciliation
+	// Print the final report
+	fmt.Printf("Reconciliation complete. Found %d cards in files. %d orphaned cards deleted. %d errors.\n",
+		len(parsedCards), orphanedCards, len(parseErrors))
 
 	if len(parseErrors) > 0 {
 		fmt.Println("\nErrors during parsing or reconciliation:")

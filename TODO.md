@@ -29,12 +29,16 @@
     - [x] Write a function `GetDueCards()` that returns a list of hashes sorted by their due date.
 
 ## Milestone 4: The Web Bridge (Backend API)
-- [ ] HTTP Server: Set up net/http or chi.
-- [ ] Endpoints:
-    - [ ] GET /api/next: Returns the next due card.
-    - [ ] POST /api/review: Accepts the card ID and the grade (1-4) and updates the DB.
-    - [ ] POST /api/sync: Manual trigger to re-scan the Markdown files.
-- [ ] Static Embedding: Use //go:embed to include your HTML/CSS/JS inside the Go binary.
+- [x] **HTTP Server:** 
+    - [x] Add `net/http` router dependency.
+    - [x] Set up `net/http` server in `internal/web` package.
+    - [x] Define routes for the API.
+- [x] **Endpoints:**
+    - [x] `GET /api/next`: Returns the next due card.
+    - [x] `POST /api/review`: Accepts the card ID and the grade (1-4) and updates the DB.
+    - [x] `POST /api/sync`: Manual trigger to re-scan the Markdown files.
+- [x] **Static Embedding:** 
+    - [x] Use `//go:embed` to include your HTML/CSS/JS inside the Go binary.
 
 ## Milestone 5: The Interface (Mobile-Friendly UI)
 - [ ] Tech Choice: Use HTMX to handle interactivity by fetching HTML fragments from the Go backend.

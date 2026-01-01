@@ -1,0 +1,11 @@
+{{define "card_front"}}
+<article id="main-content">
+    <header>Question</header>
+    <p>{{.Question}}</p>
+    <footer>
+        <button hx-get="/review/answer/{{.Hash}}" hx-target="#main-content" hx-swap="outerHTML">
+            Show Answer
+        </button>
+    </footer>
+</article>
+{{end}}

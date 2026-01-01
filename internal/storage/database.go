@@ -42,6 +42,7 @@ func (db *DB) Close() error {
 type CardState struct {
 	Hash       string
 	Question   string
+	Answer     string
 	Stability  float64
 	Difficulty float64
 	DueDate    time.Time
@@ -54,11 +55,12 @@ type CardState struct {
 // It also sets initial FSRS values for new cards.
 func (db *DB) InsertCard(card domain.Card, sourceID int64) error {
 	_, err := db.conn.Exec(`
-		INSERT INTO cards (hash, question, stability, difficulty, due_date, state, source_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO cards (hash, question, answer, stability, difficulty, due_date, state, source_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		card.Hash,
 		card.Question,
+		card.Answer,
 		0.0, // Initial stability
 		0.0, // Initial difficulty
 		time.Now(), // Initial due date (today)
@@ -75,13 +77,14 @@ func (db *DB) InsertCard(card domain.Card, sourceID int64) error {
 func (db *DB) FindCardStateByHash(hash string) (*CardState, error) {
 	var cs CardState
 	row := db.conn.QueryRow(`
-		SELECT hash, question, stability, difficulty, due_date, last_review, state, source_id
+		SELECT hash, question, answer, stability, difficulty, due_date, last_review, state, source_id
 		FROM cards WHERE hash = ?
 	`, hash)
 
 	err := row.Scan(
 		&cs.Hash,
 		&cs.Question,
+		&cs.Answer,
 		&cs.Stability,
 		&cs.Difficulty,
 		&cs.DueDate,
@@ -197,7 +200,7 @@ func (db *DB) UpdateSourceLastScanned(sourceID int64) error {
 // GetCardsBySourceID retrieves all card states associated with a specific source ID.
 func (db *DB) GetCardsBySourceID(sourceID int64) ([]CardState, error) {
 	rows, err := db.conn.Query(`
-		SELECT hash, question, stability, difficulty, due_date, last_review, state, source_id
+		SELECT hash, question, answer, stability, difficulty, due_date, last_review, state, source_id
 		FROM cards WHERE source_id = ?
 	`, sourceID)
 	if err != nil {
@@ -211,6 +214,7 @@ func (db *DB) GetCardsBySourceID(sourceID int64) ([]CardState, error) {
 		if err := rows.Scan(
 			&cs.Hash,
 			&cs.Question,
+			&cs.Answer,
 			&cs.Stability,
 			&cs.Difficulty,
 			&cs.DueDate,
@@ -240,7 +244,7 @@ func (db *DB) DeleteCardByHash(hash string) error {
 // GetDueCards retrieves all cards that are due for review, sorted by due date.
 func (db *DB) GetDueCards() ([]CardState, error) {
 	rows, err := db.conn.Query(`
-		SELECT hash, question, stability, difficulty, due_date, last_review, state, source_id
+		SELECT hash, question, answer, stability, difficulty, due_date, last_review, state, source_id
 		FROM cards
 		WHERE due_date <= ?
 		ORDER BY due_date ASC
@@ -256,6 +260,7 @@ func (db *DB) GetDueCards() ([]CardState, error) {
 		if err := rows.Scan(
 			&cs.Hash,
 			&cs.Question,
+			&cs.Answer,
 			&cs.Stability,
 			&cs.Difficulty,
 			&cs.DueDate,

@@ -1,0 +1,18 @@
+{{define "card_back"}}
+<article id="main-content">
+    <header>Question</header>
+    <p>{{.Question}}</p>
+    <details open>
+        <summary>Answer</summary>
+        <p>{{.Answer}}</p>
+    </details>
+    <footer>
+        <div class="grid">
+            <button hx-post="/review/{{.Hash}}" hx-vals='{"grade": 1}' hx-target="#main-content" hx-swap="outerHTML" class="secondary">Again</button>
+            <button hx-post="/review/{{.Hash}}" hx-vals='{"grade": 2}' hx-target="#main-content" hx-swap="outerHTML" class="secondary">Hard</button>
+            <button hx-post="/review/{{.Hash}}" hx-vals='{"grade": 3}' hx-target="#main-content" hx-swap="outerHTML">Good</button>
+            <button hx-post="/review/{{.Hash}}" hx-vals='{"grade": 4}' hx-target="#main-content" hx-swap="outerHTML">Easy</button>
+        </div>
+    </footer>
+</article>
+{{end}}

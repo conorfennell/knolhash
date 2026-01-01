@@ -1,0 +1,15 @@
+{
+    "short_name": "Knolhash",
+    "name": "Knolhash Spaced Repetition",
+    "icons": [
+        {
+            "src": "/static/icon.svg",
+            "type": "image/svg+xml",
+            "sizes": "any"
+        }
+    ],
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#ffffff",
+    "background_color": "#ffffff"
+}

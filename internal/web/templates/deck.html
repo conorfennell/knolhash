@@ -1,0 +1,11 @@
+{{define "deck"}}
+<section id="main-content">
+    <h2>Deck Status</h2>
+    <p>You have {{.DueCount}} cards due for review.</p>
+    {{if .HasDueCards}}
+        <button hx-get="/review/next" hx-target="#main-content" hx-swap="outerHTML">
+            Start Review
+        </button>
+    {{end}}
+</section>
+{{end}}

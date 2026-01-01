@@ -41,14 +41,17 @@
     - [x] Use `//go:embed` to include your HTML/CSS/JS inside the Go binary.
 
 ## Milestone 5: The Interface (Mobile-Friendly UI)
-- [ ] Tech Choice: Use HTMX to handle interactivity by fetching HTML fragments from the Go backend.
-- [ ] The "Deck" View: A simple counter showing "Due Today: X".
-- [ ] The "Study" View:
-    - [ ] Card front (Question).
-    - [ ] "Show Answer" button.
-    - [ ] Card back (Answer) + 4 rating buttons (Again, Hard, Good, Easy).
-- [ ] Responsive Design: Use a simple CSS framework (like Pico.css or Tailwind CSS) to ensure the buttons are large and usable on mobile.
-- [ ] PWA Manifest: Add a `manifest.json` so you can "Install" the site on your phone and hide the browser address bar.
+- [x] **Integrate HTMX and Pico.css:**
+    - [x] Download HTMX and Pico.css to `internal/web/static`.
+    - [x] Refactor `index.html` to use HTMX attributes.
+- [x] **Implement Deck and Study Views:**
+    - [x] Create Go templates for HTML fragments.
+    - [x] `GET /deck`: Renders the deck view (due card count).
+    - [x] `GET /review/next`: Renders the front of the next card.
+    - [x] `GET /review/answer/{hash}`: Renders the back of the card.
+    - [x] `POST /review/{hash}`: Accepts a grade and renders the next card.
+- [x] **PWA Manifest:** 
+    - [x] Add a `manifest.json` to `internal/web/static`.
 
 ## Milestone 6: Remote & Git Integration
 - [ ] Git Consumer: Integrate go-git to clone/pull from public URLs.

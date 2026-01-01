@@ -4,15 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Knolhash</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/pico.min.css">
+    <link rel="manifest" href="/static/manifest.json">
 </head>
 <body>
-    <h1>Welcome to Knolhash!</h1>
-    <div id="card-content">
-        <p>Loading card...</p>
-    </div>
-    <button id="next-button">Get Next Card</button>
+    <main class="container">
+        <nav>
+            <ul>
+                <li><strong>Knolhash</strong></li>
+            </ul>
+        </nav>
 
-    <script src="/static/app.js"></script>
+        <div id="main-content" hx-get="/deck" hx-trigger="load">
+            <!-- This content will be replaced by the /deck endpoint on page load -->
+            <progress></progress>
+        </div>
+    </main>
+
+    <script src="/static/htmx.min.js"></script>
 </body>
 </html>

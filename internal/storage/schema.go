@@ -5,6 +5,7 @@ const schema = `
 CREATE TABLE IF NOT EXISTS cards (
     hash TEXT PRIMARY KEY,
     question TEXT NOT NULL,
+    answer TEXT NOT NULL,
     stability REAL,
     difficulty REAL,
     due_date DATETIME NOT NULL,

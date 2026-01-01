@@ -12,12 +12,13 @@
 - [x] **Design and create database schema:**
     - [x] Create a `storage` package.
     - [x] Define SQL for `cards` and `sources` tables.
-- [ ] **Implement database interaction layer:**
+- [x] **Implement database interaction layer:**
     - [x] Write functions to `Open` the database.
-    - [ ] Write `Find`, `Insert`, `Update` methods for cards.
-- [ ] **Implement the reconciler logic:**
-    - [ ] If a hash is in the file but not the DB: Insert it.
-    - [ ] If a hash is in the DB but not the file: Mark it as "orphaned".
+    - [x] Write `Find`, `Insert`, `Update` methods for cards.
+    - [x] Write `Find`, `Insert`, `GetAll`, `Update` methods for sources.
+- [x] **Implement the reconciler logic:**
+    - [x] If a hash is in the file but not the DB: Insert it.
+    - [x] If a hash is in the DB but not the file: Mark it as "orphaned".
 
 ## Milestone 3: The Brain (FSRS Algorithm)
 - [ ] Port FSRS: Implement the core FSRS math.
@@ -48,5 +49,5 @@
 
 ## Milestone 7: Hardening & Deployment
 - [ ] Simple Auth: Implement a "Secret Key" or basic password login via Middleware.
-- [ ] Dockerization: Create a `Dockerfile` that bundles the Go app and provides a volume for the SQLite DB and Markdown files.
+- [ ] Dockerization: Create a Dockerfile that bundles the Go app and provides a volume for the SQLite DB and Markdown files.
 - [ ] Reverse Proxy Setup: Instructions for using Caddy to get an automatic HTTPS certificate (e.g., https://knolhash.yourdomain.com).

@@ -8,13 +8,16 @@
 - [x] Create the CLI entrypoint
 
 ## Milestone 2: Persistence (The Database)
-- [ ] SQLite Setup: Integrate a CGO-free driver (like modernc.org/sqlite).
-- [ ] Table Design:
-    - [ ] `cards`: Stores the KnolHash, current FSRS state (stability, difficulty), and due date.
-    - [ ] `sources`: Stores paths to local folders or Git URLs.
-- [ ] The Reconciler: Write the logic that runs on startup:
+- [x] **Integrate SQLite driver:** Add `modernc.org/sqlite`.
+- [x] **Design and create database schema:**
+    - [x] Create a `storage` package.
+    - [x] Define SQL for `cards` and `sources` tables.
+- [ ] **Implement database interaction layer:**
+    - [x] Write functions to `Open` the database.
+    - [ ] Write `Find`, `Insert`, `Update` methods for cards.
+- [ ] **Implement the reconciler logic:**
     - [ ] If a hash is in the file but not the DB: Insert it.
-    - [ ] If a hash is in the DB but not the file: Mark it as "orphaned" or delete it.
+    - [ ] If a hash is in the DB but not the file: Mark it as "orphaned".
 
 ## Milestone 3: The Brain (FSRS Algorithm)
 - [ ] Port FSRS: Implement the core FSRS math.
@@ -36,7 +39,7 @@
     - [ ] "Show Answer" button.
     - [ ] Card back (Answer) + 4 rating buttons (Again, Hard, Good, Easy).
 - [ ] Responsive Design: Use a simple CSS framework (like Pico.css or Tailwind CSS) to ensure the buttons are large and usable on mobile.
-- [ ] PWA Manifest: Add a manifest.json so you can "Install" the site on your phone and hide the browser address bar.
+- [ ] PWA Manifest: Add a `manifest.json` so you can "Install" the site on your phone and hide the browser address bar.
 
 ## Milestone 6: Remote & Git Integration
 - [ ] Git Consumer: Integrate go-git to clone/pull from public URLs.
@@ -45,5 +48,5 @@
 
 ## Milestone 7: Hardening & Deployment
 - [ ] Simple Auth: Implement a "Secret Key" or basic password login via Middleware.
-- [ ] Dockerization: Create a Dockerfile that bundles the Go app and provides a volume for the SQLite DB and Markdown files.
+- [ ] Dockerization: Create a `Dockerfile` that bundles the Go app and provides a volume for the SQLite DB and Markdown files.
 - [ ] Reverse Proxy Setup: Instructions for using Caddy to get an automatic HTTPS certificate (e.g., https://knolhash.yourdomain.com).

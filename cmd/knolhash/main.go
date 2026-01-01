@@ -10,22 +10,32 @@ import (
 
 	"github.com/conorfennell/knolhash/internal/domain"
 	"github.com/conorfennell/knolhash/internal/parser"
+	"github.com/conorfennell/knolhash/internal/storage"
 )
 
 func main() {
-	// 1. Define and parse the command-line flag for the directory
+	// 1. Define and parse command-line flags
 	dir := flag.String("dir", ".", "The directory to scan for markdown files")
+	dbPath := flag.String("db", "knolhash.db", "Path to the SQLite database file")
 	flag.Parse()
+
+	// 2. Open the database
+	db, err := storage.Open(*dbPath)
+	if err != nil {
+		log.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.Close()
+	log.Printf("Database opened successfully: %s", *dbPath)
 
 	var cards []domain.Card
 	var errors []error
 
-	// 2. Walk the directory
-	err := filepath.WalkDir(*dir, func(path string, d fs.DirEntry, err error) error {
+	// 3. Walk the directory
+	err = filepath.WalkDir(*dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err // Propagate errors from WalkDir
 		}
-		// 3. For each .md file, parse it
+		// For each .md file, parse it
 		if !d.IsDir() && strings.HasSuffix(strings.ToLower(d.Name()), ".md") {
 			fileCards, parseErr := parser.ParseFile(path)
 			if parseErr != nil {
@@ -44,13 +54,7 @@ func main() {
 
 	// 4. Print the final report
 	fmt.Printf("Found %d cards, %d errors.\n", len(cards), len(errors))
-	for _, card := range cards {
-		fmt.Printf("Q %s\n", card.Question)
-		fmt.Printf("A %s\n", card.Answer)
-		fmt.Printf("C %s\n", card.Context)
-		fmt.Printf("H %s\n", card.Hash)
-	}
-
+	
 	// Optional: Print details of errors if there are any
 	if len(errors) > 0 {
 		fmt.Println("\nErrors:")

@@ -71,4 +71,5 @@
 - [x] **Dockerization:**
     - [x] Create a `Dockerfile` for the Go application.
     - [x] Create a `docker-compose.yml` for easy execution.
-- [ ] Reverse Proxy Setup: Instructions for using Caddy to get an automatic HTTPS certificate (e.g., https://knolhash.yourdomain.com).
+- [ ] **Reverse Proxy Setup:**
+    - [ ] Instructions for using Caddy to get an automatic HTTPS certificate (e.g., `https://knolhash.yourdomain.com`).

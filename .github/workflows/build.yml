@@ -1,0 +1,17 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  build-docker-image:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Build Docker image
+      run: docker build . --file Dockerfile --tag knolhash-app:$(echo $GITHUB_SHA | cut -c 1-7)

@@ -1,9 +1,6 @@
 # docker-compose.override.yml
 # This file is automatically used for local development.
 # It adds the Caddy service configured for a localhost environment.
-
-version: '3.8'
-
 services:
   caddy:
     image: caddy:2-alpine

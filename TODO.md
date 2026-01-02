@@ -74,3 +74,48 @@
 - [x] **Reverse Proxy Setup:**
     - [x] Create `CADDY_SETUP.md` with instructions for using Caddy.
     - [x] Create `docker-compose.override.yml` and `docker-compose.prod.yml`.
+
+## Milestone 8: LaTeX & Enhanced Markdown Rendering
+
+**Goal:** Allow users to include LaTeX math and use a richer set of Markdown features within their flashcards, rendered correctly in the web UI.
+
+### 8.1 Backend Enhancements (Markdown Parsing & Pre-rendering)
+
+- [ ] **Integrate Robust Markdown-to-HTML Renderer:**
+    - [ ] Add `github.com/gomarkdown/markdown` dependency.
+    - [ ] Modify `internal/parser/parser.go`:
+        - [ ] Update `domain.Card` fields (Question, Answer, Context) to `template.HTML` type.
+        - [ ] Convert extracted Markdown content to HTML using `gomarkdown`.
+        - [ ] Configure `gomarkdown` to recognize LaTeX blocks (e.g., `$...$` for inline, `$$...$$` for display) and wrap them in specific HTML tags (e.g., `<span class="latex-math">...</span>`, `<div class="latex-display">...</div>`).
+        - [ ] (Optional) Enable `gomarkdown` extensions (tables, footnotes, etc.) if desired.
+- [ ] **Implement Image Path Resolution:**
+    - [ ] Enhance `internal/parser` to process Markdown image links (`![](path/to/img.png)`).
+    - [ ] Implement logic to resolve image paths:
+        - [ ] Relative to the deck's location.
+        - [ ] Relative to the collection root (for `@/` prefixed paths).
+    - [ ] Generate unique, web-accessible URLs for these images (e.g., `/assets/{sourceID}/{deckPathHash}/{imageName}`).
+
+### 8.2 Frontend Enhancements (LaTeX & Rich HTML Display)
+
+- [ ] **Include KaTeX Library:**
+    - [ ] Download `katex.min.css`, `katex.min.js`, and `contrib/auto-render.min.js` into `internal/web/static`.
+- [ ] **Modify Base HTML Template (`internal/web/static/index.html` or equivalent):**
+    - [ ] Link `katex.min.css` in the `<head>`.
+    - [ ] Include `katex.min.js` and `auto-render.min.js` scripts, ensuring `auto-render` is called on page load.
+    - [ ] Add an HTMX event listener (`htmx:afterSwap`) to re-trigger KaTeX rendering on new content loaded via HTMX.
+- [ ] **Update Card Display Templates (`internal/web/templates/card_front.html`, `card_back.html`):**
+    - [ ] Ensure `{{ .Question }}`, `{{ .Answer }}`, `{{ .Context }}` are used directly (without `html` template function if already `template.HTML`) to render the pre-rendered HTML content.
+
+### 8.3 Web Server Asset Serving
+
+- [ ] **Implement Image Asset Handler:**
+    - [ ] Create a new HTTP handler in `internal/web/server.go` (e.g., `handleImageAssets()`).
+    - [ ] This handler should process requests to `/assets/{sourceID}/{deckPathHash}/{imageName}`.
+    - [ ] Implement strict validation and canonicalization of paths to prevent directory traversal vulnerabilities.
+    - [ ] Serve the actual image files from the resolved disk locations.
+
+### 8.4 Testing
+
+- [ ] **Unit Tests for Markdown Parsing:** Verify correct Markdown-to-HTML conversion and LaTeX block detection.
+- [ ] **Integration Tests for Web UI:** Confirm KaTeX rendering and image display in the browser.
+- [ ] **Security Testing:** Ensure image asset handler is secure against path traversal.

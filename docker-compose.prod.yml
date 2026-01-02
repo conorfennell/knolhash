@@ -2,12 +2,11 @@
 # This file is used for production deployments.
 # Use with: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
-version: '3.8'
-
 services:
   knolhash:
     # In production, you should use the pre-built image from your container registry
-    image: ghcr.io/conorfennell/knolhash:main
+    image: ghcr.io/conorfennell/knolhash:master
+    pull_policy: always
     # The 'build' context is omitted in production
     
   caddy:

@@ -28,6 +28,9 @@ WORKDIR /app
 # Copy the built binary from the builder stage
 COPY --from=builder /app/knolhash .
 
+# Copy config.yaml into the container
+COPY config.yaml .
+
 # Expose the port for the web server
 EXPOSE 8080
 
@@ -36,7 +39,3 @@ VOLUME /app/data
 
 # Set the entrypoint to run the application
 ENTRYPOINT ["./knolhash"]
-
-# Default command if no arguments are provided to docker run
-# This starts the web server by default
-CMD ["--serve", "--db", "/app/data/knolhash.db"]

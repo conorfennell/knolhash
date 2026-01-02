@@ -4,11 +4,11 @@
 
 services:
   knolhash:
-    # In production, you should use the pre-built image from your container registry
     image: ghcr.io/conorfennell/knolhash:master
     restart: unless-stopped
     pull_policy: always
-    # The 'build' context is omitted in production
+    volumes:
+      - knolhash-data:/app/data
     
   caddy:
     image: caddy:2-alpine

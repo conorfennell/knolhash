@@ -1,4 +1,4 @@
-db_path: knolhash.db
+db_path: data/knolhash.db
 serve: true
 listen_addr: ":8080"
 sync_interval: 30m

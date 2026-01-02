@@ -5,8 +5,9 @@ import (
 	"embed"
 	"html/template"
 	"io/fs"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -34,7 +35,8 @@ func NewServer(db *storage.DB) *Server {
 	// Parse templates
 	tpl, err := template.ParseFS(templateFiles, "templates/*.html")
 	if err != nil {
-		log.Fatalf("Failed to parse templates: %v", err)
+		slog.Error("Failed to parse templates", "error", err)
+		os.Exit(1)
 	}
 
 	s := &Server{
@@ -56,7 +58,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *Server) routes() {
 	staticFS, err := fs.Sub(staticFiles, "static")
 	if err != nil {
-		log.Fatalf("Failed to create sub-filesystem for static assets: %v", err)
+		slog.Error("Failed to create sub-filesystem for static assets", "error", err)
+		os.Exit(1)
 	}
 	fileServer := http.FileServer(http.FS(staticFS))
 
@@ -88,7 +91,7 @@ func (s *Server) handlePostSync() http.HandlerFunc {
 		// Re-render the source list to be swapped by HTMX
 		sources, err := s.db.GetAllSources()
 		if err != nil {
-			log.Printf("Error getting sources after sync: %v", err)
+			slog.Error("Error getting sources after sync", "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -120,7 +123,7 @@ func (s *Server) handleSources() http.HandlerFunc {
 func (s *Server) handleGetSources(w http.ResponseWriter, r *http.Request) {
 	sources, err := s.db.GetAllSources()
 	if err != nil {
-		log.Printf("Error getting sources: %v", err)
+		slog.Error("Error getting sources", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -146,7 +149,7 @@ func (s *Server) handlePostSource(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := s.db.InsertSource(path, sourceType); err != nil {
-		log.Printf("Error inserting new source: %v", err)
+		slog.Error("Error inserting new source", "error", err)
 		http.Error(w, "Failed to add source", http.StatusInternalServerError)
 		return
 	}
@@ -154,7 +157,7 @@ func (s *Server) handlePostSource(w http.ResponseWriter, r *http.Request) {
 	// Re-render the source list to be swapped by HTMX
 	sources, err := s.db.GetAllSources()
 	if err != nil {
-		log.Printf("Error getting sources after add: %v", err)
+		slog.Error("Error getting sources after add", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -180,15 +183,15 @@ func (s *Server) handleDeleteSource() http.HandlerFunc {
 		}
 
 		if err := s.db.DeleteSource(id); err != nil {
-			log.Printf("Error deleting source %d: %v", id, err)
+			slog.Error("Error deleting source", "id", id, "error", err)
 			http.Error(w, "Failed to delete source", http.StatusInternalServerError)
 			return
 		}
-		
+
 		// Re-render the source list to be swapped by HTMX
 		sources, err := s.db.GetAllSources()
 		if err != nil {
-			log.Printf("Error getting sources after delete: %v", err)
+			slog.Error("Error getting sources after delete", "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -204,7 +207,7 @@ func (s *Server) handleGetDeck() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dueCards, err := s.db.GetDueCards()
 		if err != nil {
-			log.Printf("Error getting due cards for deck view: %v", err)
+			slog.Error("Error getting due cards for deck view", "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -221,7 +224,7 @@ func (s *Server) handleGetNextReview() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dueCards, err := s.db.GetDueCards()
 		if err != nil {
-			log.Printf("Error getting next due card: %v", err)
+			slog.Error("Error getting next due card", "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -272,7 +275,7 @@ func (s *Server) handlePostReview() http.HandlerFunc {
 			Difficulty: cardState.Difficulty,
 			LastReview: cardState.LastReview.Time,
 		}
-		
+
 		newFSRSState := s.fsrs.NextState(currentFSRSState, fsrs.Rating(grade))
 		newDueDate := fsrs.NextDueDate(newFSRSState.Stability)
 
@@ -283,7 +286,7 @@ func (s *Server) handlePostReview() http.HandlerFunc {
 		cardState.State = 2
 
 		if err := s.db.UpdateCardState(cardState); err != nil {
-			log.Printf("Error updating card state for hash %s: %v", hash, err)
+			slog.Error("Error updating card state for hash", "hash", hash, "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}

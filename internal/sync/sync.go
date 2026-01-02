@@ -3,7 +3,7 @@ package sync
 import (
 	"fmt"
 	"io/fs"
-	"log"
+	"log/slog"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -18,38 +18,40 @@ import (
 
 // RunSync iterates over all sources and reconciles them.
 func RunSync(db *storage.DB) {
-	log.Println("Starting sync process for all sources...")
+	slog.Info("Starting sync process for all sources...")
 	sources, err := db.GetAllSources()
 	if err != nil {
-		log.Fatalf("Failed to get sources: %v", err)
+		slog.Error("Failed to get sources", "error", err)
+		os.Exit(1)
 	}
 
 	if len(sources) == 0 {
-		log.Println("No sources configured. Add one with --add-source <path/or/url.git>")
+		slog.Info("No sources configured. Add one with --add-source <path/or/url.git>")
 		return
 	}
 
 	reposDir := "repos"
 	if err := os.MkdirAll(reposDir, os.ModePerm); err != nil {
-		log.Fatalf("Failed to create repos directory: %v", err)
+		slog.Error("Failed to create repos directory", "error", err)
+		os.Exit(1)
 	}
 
 	for _, source := range sources {
-		log.Printf("Syncing source ID %d (Type: %s, Path: %s)", source.ID, source.Type, source.Path)
-		
+		slog.Info("Syncing source", "id", source.ID, "type", source.Type, "path", source.Path)
+
 		sourceToReconcile := source
-		
+
 		if source.Type == "local" {
 			reconcileLocalSource(db, &sourceToReconcile)
 		} else if source.Type == "git" {
 			localRepoPath, err := gitUrlToLocalPath(reposDir, source.Path)
 			if err != nil {
-				log.Printf("Error determining local path for git repo %s: %v", source.Path, err)
+				slog.Error("Error determining local path for git repo", "url", source.Path, "error", err)
 				continue
 			}
-			
+
 			if err := gitsource.Sync(source.Path, localRepoPath); err != nil {
-				log.Printf("Error syncing git repo %s: %v", source.Path, err)
+				slog.Error("Error syncing git repo", "url", source.Path, "error", err)
 				continue
 			}
 
@@ -57,7 +59,7 @@ func RunSync(db *storage.DB) {
 			reconcileLocalSource(db, &sourceToReconcile)
 		}
 	}
-	log.Println("Sync process complete.")
+	slog.Info("Sync process complete.")
 }
 
 func reconcileLocalSource(db *storage.DB, source *storage.Source) {
@@ -66,7 +68,9 @@ func reconcileLocalSource(db *storage.DB, source *storage.Source) {
 	foundCardHashes := make(map[string]bool)
 
 	walkErr := filepath.WalkDir(source.Path, func(path string, d fs.DirEntry, err error) error {
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		if !d.IsDir() && strings.HasSuffix(strings.ToLower(d.Name()), ".md") {
 			fileCards, parseErr := parser.ParseFile(path)
 			if parseErr != nil {
@@ -76,53 +80,56 @@ func reconcileLocalSource(db *storage.DB, source *storage.Source) {
 				card.Hash = knol.Hash(card)
 				parsedCards = append(parsedCards, card)
 				foundCardHashes[card.Hash] = true
-				
+
 				cardState, findErr := db.FindCardStateByHash(card.Hash)
 				if findErr != nil {
 					parseErrors = append(parseErrors, fmt.Errorf("db check for %s: %w", card.Hash, findErr))
 					continue
 				}
-			if cardState == nil {
-				log.Printf("New card found: %s, inserting...", card.Hash)
-				if insertErr := db.InsertCard(card, source.ID); insertErr != nil {
-					parseErrors = append(parseErrors, fmt.Errorf("db insert for %s: %w", card.Hash, insertErr))
+				if cardState == nil {
+					slog.Info("New card found, inserting...", "hash", card.Hash)
+					if insertErr := db.InsertCard(card, source.ID); insertErr != nil {
+						parseErrors = append(parseErrors, fmt.Errorf("db insert for %s: %w", card.Hash, insertErr))
+					}
 				}
-			}
 			}
 		}
 		return nil
 	})
 
 	if walkErr != nil {
-		log.Printf("Error walking directory %s: %v", source.Path, walkErr)
+		slog.Error("Error walking directory", "path", source.Path, "error", walkErr)
 		return
 	}
 
 	dbCards, err := db.GetCardsBySourceID(source.ID)
 	if err != nil {
-		log.Printf("Error getting cards for source %d: %v", source.ID, err)
+		slog.Error("Error getting cards for source", "source_id", source.ID, "error", err)
 		return
 	}
 
 	var orphanedCards int
 	for _, dbCard := range dbCards {
 		if _, found := foundCardHashes[dbCard.Hash]; !found {
-			log.Printf("Orphaned card, deleting: %s", dbCard.Hash)
+			slog.Info("Orphaned card, deleting", "hash", dbCard.Hash)
 			orphanedCards++
 			if err := db.DeleteCardByHash(dbCard.Hash); err != nil {
-				log.Printf("Warning: Failed to delete orphaned card %s: %v", dbCard.Hash, err)
+				slog.Warn("Failed to delete orphaned card", "hash", dbCard.Hash, "error", err)
 			}
 		}
 	}
 
 	if err := db.UpdateSourceLastScanned(source.ID); err != nil {
-		log.Printf("Warning: Failed to update last scanned for source %d: %v", source.ID, err)
+		slog.Warn("Failed to update last scanned for source", "source_id", source.ID, "error", err)
 	}
 
-	fmt.Printf("Reconciliation for '%s' complete. Found %d cards. %d orphaned deleted. %d errors.\n",
-		source.Path, len(parsedCards), orphanedCards, len(parseErrors))
+	slog.Info("reconciliation complete",
+		"path", source.Path,
+		"parsed_cards", len(parsedCards),
+		"orphaned_deleted", orphanedCards,
+		"errors", len(parseErrors),
+	)
 }
-
 func gitUrlToLocalPath(baseDir, repoURL string) (string, error) {
 	parsedURL, err := url.Parse(repoURL)
 	if err != nil || (parsedURL.Scheme != "https" && parsedURL.Scheme != "http") {
@@ -139,7 +146,7 @@ func gitUrlToLocalPath(baseDir, repoURL string) (string, error) {
 		}
 		return "", fmt.Errorf("could not parse git URL: %s", repoURL)
 	}
-	
+
 	sanitizedPath := strings.TrimSuffix(parsedURL.Path, ".git")
 	return filepath.Join(baseDir, parsedURL.Host, sanitizedPath), nil
 }

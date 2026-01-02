@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -14,7 +15,11 @@ import (
 )
 
 func main() {
-	// 1. Define flags
+	// 1. Configure Logger
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
+
+	// 2. Define flags
 	dbPath := flag.String("db", "knolhash.db", "Path to the SQLite database file")
 	addSource := flag.String("add-source", "", "The path or Git URL of a source to add")
 	showDue := flag.Bool("show-due", false, "Show cards that are due for review and exit")
@@ -23,17 +28,19 @@ func main() {
 	syncInterval := flag.Duration("sync-interval", 30*time.Minute, "Interval for background sync when in server mode")
 	flag.Parse()
 
-	// 2. Open DB
+	// 3. Open DB
 	db, err := storage.Open(*dbPath)
 	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
+		slog.Error("Failed to open database", "error", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
-	// 3. Dispatch based on flags
+	// 4. Dispatch based on flags
 	if *addSource != "" {
 		if err := addNewSource(db, *addSource); err != nil {
-			log.Fatalf("Failed to add source: %v", err)
+			slog.Error("Failed to add source", "error", err)
+			os.Exit(1)
 		}
 		return
 	}
@@ -45,7 +52,7 @@ func main() {
 		showDueCards(db)
 		return
 	}
-	
+
 	// Default action is to sync
 	sync.RunSync(db)
 }
@@ -57,13 +64,13 @@ func addNewSource(db *storage.DB, path string) error {
 	if strings.HasSuffix(path, ".git") || strings.HasPrefix(path, "git@") || strings.HasPrefix(path, "https://") {
 		sourceType = "git"
 	}
-	
+
 	existing, err := db.FindSourceByPath(path)
 	if err != nil {
 		return fmt.Errorf("error checking for existing source: %w", err)
 	}
 	if existing != nil {
-		log.Printf("Source with path '%s' already exists.", path)
+		slog.Info("Source with path already exists", "path", path)
 		return nil
 	}
 
@@ -71,7 +78,7 @@ func addNewSource(db *storage.DB, path string) error {
 	if err != nil {
 		return fmt.Errorf("could not insert new source: %w", err)
 	}
-	log.Printf("Successfully added new source: %s (type: %s)", path, sourceType)
+	slog.Info("Successfully added new source", "path", path, "type", sourceType)
 	return nil
 }
 
@@ -80,9 +87,10 @@ func runWebServer(db *storage.DB, addr string, syncInterval time.Duration) {
 	startBackgroundSync(db, syncInterval)
 
 	server := web.NewServer(db)
-	log.Printf("Starting web server on %s", addr)
+	slog.Info("Starting web server", "addr", addr)
 	if err := http.ListenAndServe(addr, server); err != nil {
-		log.Fatalf("Failed to start web server: %v", err)
+		slog.Error("Failed to start web server", "error", err)
+		os.Exit(1)
 	}
 }
 
@@ -91,18 +99,19 @@ func startBackgroundSync(db *storage.DB, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	go func() {
 		for range ticker.C {
-			log.Printf("Background sync triggered (interval: %v)...", interval)
+			slog.Info("Background sync triggered", "interval", interval)
 			sync.RunSync(db)
 		}
 	}()
-	log.Printf("Background sync started, running every %v", interval)
+	slog.Info("Background sync started", "interval", interval)
 }
 
 // showDueCards fetches and prints cards that are due for review.
 func showDueCards(db *storage.DB) {
 	dueCards, err := db.GetDueCards()
 	if err != nil {
-		log.Fatalf("Failed to get due cards: %v", err)
+		slog.Error("Failed to get due cards", "error", err)
+		os.Exit(1)
 	}
 	fmt.Printf("Found %d cards due for review:\n", len(dueCards))
 	for _, card := range dueCards {

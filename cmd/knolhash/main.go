@@ -21,6 +21,11 @@ import (
 	"github.com/spf13/pflag" // Using pflag for better flag parsing with koanf
 )
 
+var (
+	commit    = "dev"
+	buildDate = "unknown"
+)
+
 // Config holds the application's configuration.
 type Config struct {
 	DBPath       string        `koanf:"db_path" validate:"required"`
@@ -35,6 +40,8 @@ func main() {
 	// 1. Configure Logger
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
+
+	slog.Info("KnolHash starting up", "commit", commit, "build_date", buildDate)
 
 	// 2. Set up pflag
 	pflags := pflag.NewFlagSet("knolhash", pflag.ExitOnError)
@@ -58,7 +65,8 @@ func main() {
 	// KNOLHASH_DB_PATH, KNOLHASH_LISTEN_ADDR, etc.
 	k.Load(env.Provider("KNOLHASH_", ".", func(s string) string {
 		return strings.ReplaceAll(strings.ToLower(
-			strings.TrimPrefix(s, "KNOLHASH_")), "_", ".")
+			strings.TrimPrefix(s, "KNOLHASH_")),
+			"_", ".")
 	}), nil)
 
 	// Load from command-line flags (highest precedence)

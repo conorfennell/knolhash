@@ -12,7 +12,9 @@ COPY . .
 
 # Build the application
 # CGO_ENABLED=0 is important for static binaries in Alpine
-RUN CGO_ENABLED=0 go build -o /app/knolhash ./cmd/knolhash
+ARG GIT_COMMIT=dev
+ARG BUILD_DATE=unknown
+RUN CGO_ENABLED=0 go build -ldflags="-X main.commit=${GIT_COMMIT} -X main.buildDate=${BUILD_DATE}" -o /app/knolhash ./cmd/knolhash
 
 # Stage 2: Runner
 # Use alpine/git for runtime if go-git needs system git tools,

@@ -3,7 +3,8 @@
     <ul>
         {{range .Sources}}
         <li>
-            <strong>{{.Path}}</strong> ({{.Type}})
+            <strong>{{.Path}}</strong> ({{.Type}})<br>
+            <small>Last Scanned: {{.LastScanned.Time.Format "02 Jan 06 15:04 MST"}}</small>
             <button hx-delete="/sources/{{.ID}}" hx-target="#source-list" hx-swap="outerHTML" hx-confirm="Are you sure you want to delete this source and all its cards?">
                 Delete
             </button>

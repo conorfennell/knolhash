@@ -63,8 +63,8 @@
     - [x] Update reconciliation logic to handle different source types.
 - [x] **Background Worker:** 
     - [x] Set up a "Ticker" in Go that pulls from all Git sources every 30 minutes.
-- [ ] **Source Manager UI:** 
-    - [ ] A screen to add/remove local paths or GitHub URLs.
+- [x] **Source Manager UI:** 
+    - [x] A screen to add/remove local paths or GitHub URLs.
 
 ## Milestone 7: Hardening & Deployment
 - [ ] Simple Auth: Implement a "Secret Key" or basic password login via Middleware.

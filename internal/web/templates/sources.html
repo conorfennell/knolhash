@@ -2,8 +2,13 @@
 <article id="main-content">
     <header>
         <h2>Manage Sources</h2>
+        <button hx-post="/sync" hx-target="#source-list" hx-swap="outerHTML">
+            Sync Now <span class="htmx-indicator">...</span>
+        </button>
     </header>
     
+    <div id="sync-status"></div>
+
     <div id="source-list">
         {{template "source_list" .}}
     </div>

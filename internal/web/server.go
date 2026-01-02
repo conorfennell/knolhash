@@ -12,6 +12,7 @@ import (
 
 	"github.com/conorfennell/knolhash/internal/fsrs"
 	"github.com/conorfennell/knolhash/internal/storage"
+	"github.com/conorfennell/knolhash/internal/sync"
 )
 
 //go:embed all:static
@@ -71,6 +72,34 @@ func (s *Server) routes() {
 	// Source management routes
 	s.router.HandleFunc("/sources", s.handleSources())
 	s.router.HandleFunc("/sources/", s.handleDeleteSource())
+	s.router.HandleFunc("/sync", s.handlePostSync())
+}
+
+// handlePostSync triggers a manual sync and re-renders the source list.
+func (s *Server) handlePostSync() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		sync.RunSync(s.db) // Run in the foreground to make the user wait
+
+		// Re-render the source list to be swapped by HTMX
+		sources, err := s.db.GetAllSources()
+		if err != nil {
+			log.Printf("Error getting sources after sync: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		data := map[string]interface{}{
+			"Sources": sources,
+		}
+
+		// Render both the success message and the updated list
+		s.templates.ExecuteTemplate(w, "sync_success", nil)
+		s.templates.ExecuteTemplate(w, "source_list", data)
+	}
 }
 
 // handleSources handles both GET and POST for the sources page.

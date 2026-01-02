@@ -38,8 +38,8 @@ func (db *DB) Close() error {
 	return db.conn.Close()
 }
 
-// CardState represents the FSRS state of a card.
-type CardState struct {
+// Card represents the data for a card as stored in the database.
+type Card struct {
 	Hash       string
 	Question   string
 	Answer     string
@@ -73,9 +73,9 @@ func (db *DB) InsertCard(card domain.Card, sourceID int64) error {
 	return nil
 }
 
-// FindCardStateByHash retrieves a card's state from the database by its hash.
-func (db *DB) FindCardStateByHash(hash string) (*CardState, error) {
-	var cs CardState
+// FindCardByHash retrieves a card's state from the database by its hash.
+func (db *DB) FindCardByHash(hash string) (*Card, error) {
+	var cs Card
 	row := db.conn.QueryRow(`
 		SELECT hash, question, answer, stability, difficulty, due_date, last_review, state, source_id
 		FROM cards WHERE hash = ?
@@ -96,13 +96,13 @@ func (db *DB) FindCardStateByHash(hash string) (*CardState, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil // Card not found
 		}
-		return nil, fmt.Errorf("failed to find card state by hash %s: %w", hash, err)
+		return nil, fmt.Errorf("failed to find card by hash %s: %w", hash, err)
 	}
 	return &cs, nil
 }
 
-// UpdateCardState updates an existing card's FSRS state and review information.
-func (db *DB) UpdateCardState(cs *CardState) error {
+// UpdateCard updates an existing card's FSRS state and review information.
+func (db *DB) UpdateCard(cs *Card) error {
 	_, err := db.conn.Exec(`
 		UPDATE cards
 		SET stability = ?, difficulty = ?, due_date = ?, last_review = ?, state = ?
@@ -116,7 +116,7 @@ func (db *DB) UpdateCardState(cs *CardState) error {
 		cs.Hash,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to update card state for hash %s: %w", cs.Hash, err)
+		return fmt.Errorf("failed to update card for hash %s: %w", cs.Hash, err)
 	}
 	return nil
 }
@@ -199,7 +199,7 @@ func (db *DB) UpdateSourceLastScanned(sourceID int64) error {
 }
 
 // GetCardsBySourceID retrieves all card states associated with a specific source ID.
-func (db *DB) GetCardsBySourceID(sourceID int64) ([]CardState, error) {
+func (db *DB) GetCardsBySourceID(sourceID int64) ([]Card, error) {
 	rows, err := db.conn.Query(`
 		SELECT hash, question, answer, stability, difficulty, due_date, last_review, state, source_id
 		FROM cards WHERE source_id = ?
@@ -209,9 +209,9 @@ func (db *DB) GetCardsBySourceID(sourceID int64) ([]CardState, error) {
 	}
 	defer rows.Close()
 
-	var cardStates []CardState
+	var cards []Card
 	for rows.Next() {
-		var cs CardState
+		var cs Card
 		if err := rows.Scan(
 			&cs.Hash,
 			&cs.Question,
@@ -223,11 +223,11 @@ func (db *DB) GetCardsBySourceID(sourceID int64) ([]CardState, error) {
 			&cs.State,
 			&cs.SourceID,
 		); err != nil {
-			return nil, fmt.Errorf("failed to scan card state row for source ID %d: %w", sourceID, err)
+			return nil, fmt.Errorf("failed to scan card row for source ID %d: %w", sourceID, err)
 		}
-		cardStates = append(cardStates, cs)
+		cards = append(cards, cs)
 	}
-	return cardStates, nil
+	return cards, nil
 }
 
 // DeleteCardByHash removes a card from the database by its hash.
@@ -243,7 +243,7 @@ func (db *DB) DeleteCardByHash(hash string) error {
 }
 
 // GetDueCards retrieves all cards that are due for review, sorted by due date.
-func (db *DB) GetDueCards() ([]CardState, error) {
+func (db *DB) GetDueCards() ([]Card, error) {
 	rows, err := db.conn.Query(`
 		SELECT hash, question, answer, stability, difficulty, due_date, last_review, state, source_id
 		FROM cards
@@ -255,9 +255,9 @@ func (db *DB) GetDueCards() ([]CardState, error) {
 	}
 	defer rows.Close()
 
-	var cardStates []CardState
+	var cards []Card
 	for rows.Next() {
-		var cs CardState
+		var cs Card
 		if err := rows.Scan(
 			&cs.Hash,
 			&cs.Question,
@@ -271,9 +271,9 @@ func (db *DB) GetDueCards() ([]CardState, error) {
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan due card row: %w", err)
 		}
-		cardStates = append(cardStates, cs)
+		cards = append(cards, cs)
 	}
-	return cardStates, nil
+	return cards, nil
 }
 
 // DeleteSource deletes a source and all its associated cards from the database.

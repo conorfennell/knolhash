@@ -81,12 +81,12 @@ func reconcileLocalSource(db *storage.DB, source *storage.Source) {
 				parsedCards = append(parsedCards, card)
 				foundCardHashes[card.Hash] = true
 
-				cardState, findErr := db.FindCardStateByHash(card.Hash)
+				existingCard, findErr := db.FindCardByHash(card.Hash)
 				if findErr != nil {
 					parseErrors = append(parseErrors, fmt.Errorf("db check for %s: %w", card.Hash, findErr))
 					continue
 				}
-				if cardState == nil {
+				if existingCard == nil {
 					slog.Info("New card found, inserting...", "hash", card.Hash)
 					if insertErr := db.InsertCard(card, source.ID); insertErr != nil {
 						parseErrors = append(parseErrors, fmt.Errorf("db insert for %s: %w", card.Hash, insertErr))

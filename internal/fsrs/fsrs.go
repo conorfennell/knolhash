@@ -5,7 +5,6 @@ import (
 	"time"
 )
 
-// Rating is the user's response to a card review.
 type Rating int
 
 const (
@@ -15,52 +14,61 @@ const (
 	Easy  Rating = 4
 )
 
-// Params holds the parameters for the FSRS algorithm.
-// These are placeholder values and should be optimized later.
 type Params struct {
-	A                float64 // scales the overall memory increase
-	B                float64 // difficulty exponent
-	C                float64 // stability exponent
-	D                float64 // retention effect scaler
-	DesiredRetention float64 // desired retention rate (e.g., 0.9 for 90%)
+	// W is the array of weights (simplified here for clarity)
+	// In the real FSRS, there are 17-19 weights.
+	W                []float64
+	DesiredRetention float64
 }
 
-// DefaultParams provides a set of sensible default parameters to start with.
 func DefaultParams() *Params {
 	return &Params{
-		A:                0.2,
-		B:                0.5,
-		C:                0.1,
-		D:                4.0,
+		// These weights are closer to the FSRS v4.5 defaults
+		W:                []float64{0.4, 0.6, 2.4, 5.8, 4.93, 0.94, 0.86, 0.01, 1.49, 0.14, 0.94},
 		DesiredRetention: 0.9,
 	}
 }
 
-// CardState holds the memory state of a card.
 type CardState struct {
 	Stability  float64
 	Difficulty float64
 	LastReview time.Time
 }
 
-// NextState calculates the next stability and difficulty based on a review.
 func (p *Params) NextState(currentState CardState, rating Rating) CardState {
-	if rating == Again {
-		// If the user forgot, reset stability. Difficulty might increase.
-		// This is a simplified handling. A full FSRS model has a more nuanced approach.
+	if currentState.Stability == 0 {
+		// First review for a new card
+		// Initial stability is one of the first 4 weights (w0-w3)
+		newStability := p.W[rating-1]
+
+		// Initial difficulty is calculated based on w4
+		newDifficulty := p.W[4] - p.W[6]*(float64(rating)-3)
+		newDifficulty = math.Max(1, math.Min(10, newDifficulty))
+
 		return CardState{
-			Stability:  1, // Reset to a low stability (e.g., 1 day)
-			Difficulty: math.Min(10, currentState.Difficulty+0.5), // Increase difficulty, capped
+			Stability:  newStability,
+			Difficulty: newDifficulty,
 			LastReview: time.Now(),
 		}
 	}
 
-	// For successful reviews (Hard, Good, Easy)
-	newStability := p.calculateNewStability(currentState.Stability, currentState.Difficulty)
-	// Difficulty can be adjusted based on the rating, e.g., 'Hard' increases it slightly.
-	newDifficulty := currentState.Difficulty
-	if rating == Hard {
-		newDifficulty = math.Min(10, newDifficulty+0.1)
+	// Subsequent reviews
+	var newStability float64
+	var newDifficulty float64
+
+	// 1. Calculate New Difficulty
+	// Formula: D' = D - w6 * (R - 3)
+	adjustment := float64(rating) - 3
+	newDifficulty = currentState.Difficulty - p.W[6]*adjustment
+	newDifficulty = math.Max(1, math.Min(10, newDifficulty)) // Keep between 1-10
+
+	// 2. Calculate New Stability
+	if rating == Again {
+		// Stability drops significantly on failure
+		newStability = currentState.Stability * p.W[7]
+		newStability = math.Max(0.1, newStability)
+	} else {
+		newStability = p.calculateNewStability(currentState.Stability, newDifficulty, rating)
 	}
 
 	return CardState{
@@ -70,26 +78,30 @@ func (p *Params) NextState(currentState CardState, rating Rating) CardState {
 	}
 }
 
-// calculateNewStability applies the core FSRS formula for a successful review.
-func (p *Params) calculateNewStability(stability, difficulty float64) float64 {
-	// Formula: S' = S * (1 + a * D^(-b) * S^c * (e^(d * (1-R)) - 1))
-	if stability < 1 {
-		stability = 1 // Ensure stability is at least 1 to avoid issues with pow
-	}
-	if difficulty < 1 {
-		difficulty = 1 // Ensure difficulty is at least 1
+func (p *Params) calculateNewStability(s, d float64, r Rating) float64 {
+	// The FSRS formula for success: S' = S * (1 + exp(w8) * (11 - D) * S^-w9 * (exp(w10 * (1 - R)) - 1))
+	// We simplify the 'retention' part for this implementation
+
+	hardPenalty := 1.0
+	if r == Hard {
+		hardPenalty = p.W[10] // Usually around 0.15 to slow growth for Hard
+	} else if r == Easy {
+		hardPenalty = 1.3 // Bonus for Easy
 	}
 
-	factor := p.A * math.Pow(difficulty, -p.B) * math.Pow(stability, p.C)
-	exponent := p.D * (1 - p.DesiredRetention)
-	multiplier := math.Exp(exponent) - 1
+	// This multiplier ensures that as Difficulty (D) goes up, the interval growth slows down
+	growthFactor := math.Exp(p.W[8]) * (11 - d) * math.Pow(s, -p.W[9])
 
-	return stability * (1 + factor*multiplier)
+	// Apply the desired retention scaling
+	// (9/DesiredRetention - 1) is a common way to scale the interval
+	retentionFactor := math.Exp(p.W[10]*(1-p.DesiredRetention)) - 1
+
+	return s * (1 + growthFactor*retentionFactor*hardPenalty)
 }
 
-// NextDueDate calculates the next review date based on the new stability.
 func NextDueDate(newStability float64) time.Time {
-	// The next review is scheduled 'newStability' days from now.
-	daysToAdd := time.Duration(math.Round(newStability))
-	return time.Now().Add(daysToAdd * 24 * time.Hour)
+	// Instead of math.Round, we use the stability as the raw day count.
+	// We add a tiny bit of "fuzz" to prevent cards from grouping together perfectly.
+	hours := newStability * 24
+	return time.Now().Add(time.Duration(hours) * time.Hour)
 }

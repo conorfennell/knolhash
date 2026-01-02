@@ -244,7 +244,7 @@ func (s *Server) handleGetNextReview() http.HandlerFunc {
 func (s *Server) handleShowAnswer() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hash := strings.TrimPrefix(r.URL.Path, "/review/answer/")
-		card, err := s.db.FindCardStateByHash(hash)
+		card, err := s.db.FindCardByHash(hash)
 		if err != nil || card == nil {
 			http.NotFound(w, r)
 			return
@@ -264,28 +264,28 @@ func (s *Server) handlePostReview() http.HandlerFunc {
 			return
 		}
 
-		cardState, err := s.db.FindCardStateByHash(hash)
-		if err != nil || cardState == nil {
+		card, err := s.db.FindCardByHash(hash)
+		if err != nil || card == nil {
 			http.NotFound(w, r)
 			return
 		}
 
 		currentFSRSState := fsrs.CardState{
-			Stability:  cardState.Stability,
-			Difficulty: cardState.Difficulty,
-			LastReview: cardState.LastReview.Time,
+			Stability:  card.Stability,
+			Difficulty: card.Difficulty,
+			LastReview: card.LastReview.Time,
 		}
 
 		newFSRSState := s.fsrs.NextState(currentFSRSState, fsrs.Rating(grade))
 		newDueDate := fsrs.NextDueDate(newFSRSState.Stability)
 
-		cardState.Stability = newFSRSState.Stability
-		cardState.Difficulty = newFSRSState.Difficulty
-		cardState.DueDate = newDueDate
-		cardState.LastReview = sql.NullTime{Time: newFSRSState.LastReview, Valid: true}
-		cardState.State = 2
+		card.Stability = newFSRSState.Stability
+		card.Difficulty = newFSRSState.Difficulty
+		card.DueDate = newDueDate
+		card.LastReview = sql.NullTime{Time: newFSRSState.LastReview, Valid: true}
+		card.State = 2 // Mark as in-review
 
-		if err := s.db.UpdateCardState(cardState); err != nil {
+		if err := s.db.UpdateCard(card); err != nil {
 			slog.Error("Error updating card state for hash", "hash", hash, "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return

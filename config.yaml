@@ -1,6 +1,4 @@
 db_path: knolhash.db
-add_source: ""
-show_due: true
 serve: true
 listen_addr: ":8080"
 sync_interval: 30m

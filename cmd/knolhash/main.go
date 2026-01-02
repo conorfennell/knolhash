@@ -12,22 +12,21 @@ import (
 	"github.com/conorfennell/knolhash/internal/sync"
 	"github.com/conorfennell/knolhash/internal/web"
 
-	"github.com/knadh/koanf/v2"
+	"github.com/go-playground/validator/v10"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
+	"github.com/knadh/koanf/v2"
 	"github.com/spf13/pflag" // Using pflag for better flag parsing with koanf
 )
 
 // Config holds the application's configuration.
 type Config struct {
-	DBPath       string        `koanf:"db_path"`
-	AddSource    string        `koanf:"add_source"`
-	ShowDue      bool          `koanf:"show_due"`
+	DBPath       string        `koanf:"db_path" validate:"required"`
 	Serve        bool          `koanf:"serve"`
-	ListenAddr   string        `koanf:"listen_addr"`
-	SyncInterval time.Duration `koanf:"sync_interval"`
+	ListenAddr   string        `koanf:"listen_addr" validate:"required_if=Serve true"`
+	SyncInterval time.Duration `koanf:"sync_interval" validate:"required_if=Serve true,gt=0"`
 }
 
 var k = koanf.New(".") // Initialize koanf with a dot delimiter
@@ -44,15 +43,7 @@ func main() {
 		pflags.PrintDefaults()
 	}
 
-	// Load default values (lowest precedence)
-	k.Set("db_path", "knolhash.db")
-	k.Set("add_source", "")
-	k.Set("show_due", false)
-	k.Set("serve", false)
-	k.Set("listen_addr", ":8080")
-	k.Set("sync_interval", 30*time.Minute)
-
-	// Load from config.yaml (second lowest precedence)
+	// Load from config.yaml (lowest precedence)
 	// Check for a config file path flag first
 	cfgFile, _ := pflags.GetString("config") // Assume a --config flag might exist for a path
 	if cfgFile == "" {
@@ -79,34 +70,29 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Validate configuration
+	validate := validator.New()
+	if err := validate.Struct(&cfg); err != nil {
+		slog.Error("Configuration validation failed", "error", err)
+		os.Exit(1)
+	}
+
 	// 3. Open DB
 	db, err := storage.Open(cfg.DBPath)
 	if err != nil {
 		slog.Error("Failed to open database", "error", err)
 		os.Exit(1)
 	}
-	defer db.Close()
-
-	// 4. Dispatch based on flags (now using config values)
-	if cfg.AddSource != "" {
-		if err := addNewSource(db, cfg.AddSource); err != nil {
-			slog.Error("Failed to add source", "error", err)
-			os.Exit(1)
-		}
-		return
-	}
+	defer db.Close() // 4. Dispatch based on flags (now using config values)
 	if cfg.Serve {
 		runWebServer(db, cfg.ListenAddr, cfg.SyncInterval)
-		return
-	}
-	if cfg.ShowDue {
-		showDueCards(db)
 		return
 	}
 
 	// Default action is to sync
 	sync.RunSync(db)
 }
+
 // addNewSource adds a new source to the database, determining its type.
 func addNewSource(db *storage.DB, path string) error {
 	// This logic could be moved to a shared package if it gets more complex
@@ -155,17 +141,3 @@ func startBackgroundSync(db *storage.DB, interval time.Duration) {
 	}()
 	slog.Info("Background sync started", "interval", interval)
 }
-
-// showDueCards fetches and prints cards that are due for review.
-func showDueCards(db *storage.DB) {
-	dueCards, err := db.GetDueCards()
-	if err != nil {
-		slog.Error("Failed to get due cards", "error", err)
-		os.Exit(1)
-	}
-	fmt.Printf("Found %d cards due for review:\n", len(dueCards))
-	for _, card := range dueCards {
-		fmt.Printf("- Hash: %s, Due: %s\n", card.Hash, card.DueDate.Format(time.RFC822))
-	}
-}
-

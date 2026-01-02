@@ -20,4 +20,5 @@ services:
       - caddy_data:/data
 
 volumes:
+  knolhash-data:
   caddy_data:

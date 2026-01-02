@@ -4,8 +4,6 @@ services:
     restart: unless-stopped
     volumes:
       - knolhash-data:/app/data
-      - ./examples:/app/examples
-    command: ["--serve", "--db", "/app/data/knolhash.db"]
 
 volumes:
   knolhash-data:

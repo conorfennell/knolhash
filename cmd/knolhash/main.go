@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -12,43 +11,95 @@ import (
 	"github.com/conorfennell/knolhash/internal/storage"
 	"github.com/conorfennell/knolhash/internal/sync"
 	"github.com/conorfennell/knolhash/internal/web"
+
+	"github.com/knadh/koanf/v2"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/posflag"
+	"github.com/spf13/pflag" // Using pflag for better flag parsing with koanf
 )
+
+// Config holds the application's configuration.
+type Config struct {
+	DBPath       string        `koanf:"db_path"`
+	AddSource    string        `koanf:"add_source"`
+	ShowDue      bool          `koanf:"show_due"`
+	Serve        bool          `koanf:"serve"`
+	ListenAddr   string        `koanf:"listen_addr"`
+	SyncInterval time.Duration `koanf:"sync_interval"`
+}
+
+var k = koanf.New(".") // Initialize koanf with a dot delimiter
 
 func main() {
 	// 1. Configure Logger
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	// 2. Define flags
-	dbPath := flag.String("db", "knolhash.db", "Path to the SQLite database file")
-	addSource := flag.String("add-source", "", "The path or Git URL of a source to add")
-	showDue := flag.Bool("show-due", false, "Show cards that are due for review and exit")
-	serve := flag.Bool("serve", false, "Start the web server")
-	listenAddr := flag.String("listen-addr", ":8080", "The address for the web server to listen on")
-	syncInterval := flag.Duration("sync-interval", 30*time.Minute, "Interval for background sync when in server mode")
-	flag.Parse()
+	// 2. Set up pflag
+	pflags := pflag.NewFlagSet("knolhash", pflag.ExitOnError)
+	pflags.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		pflags.PrintDefaults()
+	}
+
+	// Load default values (lowest precedence)
+	k.Set("db_path", "knolhash.db")
+	k.Set("add_source", "")
+	k.Set("show_due", false)
+	k.Set("serve", false)
+	k.Set("listen_addr", ":8080")
+	k.Set("sync_interval", 30*time.Minute)
+
+	// Load from config.yaml (second lowest precedence)
+	// Check for a config file path flag first
+	cfgFile, _ := pflags.GetString("config") // Assume a --config flag might exist for a path
+	if cfgFile == "" {
+		cfgFile = "config.yaml" // Default config file name
+	}
+
+	if err := k.Load(file.Provider(cfgFile), yaml.Parser()); err != nil {
+		slog.Info("No config.yaml found or error reading it", "file", cfgFile, "error", err)
+	}
+
+	// Load from environment variables (higher precedence than file)
+	// KNOLHASH_DB_PATH, KNOLHASH_LISTEN_ADDR, etc.
+	k.Load(env.Provider("KNOLHASH_", ".", func(s string) string {
+		return strings.ReplaceAll(strings.ToLower(
+			strings.TrimPrefix(s, "KNOLHASH_")), "_", ".")
+	}), nil)
+
+	// Load from command-line flags (highest precedence)
+	k.Load(posflag.Provider(pflags, ".", k), nil)
+
+	var cfg Config
+	if err := k.Unmarshal("", &cfg); err != nil {
+		slog.Error("Failed to unmarshal configuration", "error", err)
+		os.Exit(1)
+	}
 
 	// 3. Open DB
-	db, err := storage.Open(*dbPath)
+	db, err := storage.Open(cfg.DBPath)
 	if err != nil {
 		slog.Error("Failed to open database", "error", err)
 		os.Exit(1)
 	}
 	defer db.Close()
 
-	// 4. Dispatch based on flags
-	if *addSource != "" {
-		if err := addNewSource(db, *addSource); err != nil {
+	// 4. Dispatch based on flags (now using config values)
+	if cfg.AddSource != "" {
+		if err := addNewSource(db, cfg.AddSource); err != nil {
 			slog.Error("Failed to add source", "error", err)
 			os.Exit(1)
 		}
 		return
 	}
-	if *serve {
-		runWebServer(db, *listenAddr, *syncInterval)
+	if cfg.Serve {
+		runWebServer(db, cfg.ListenAddr, cfg.SyncInterval)
 		return
 	}
-	if *showDue {
+	if cfg.ShowDue {
 		showDueCards(db)
 		return
 	}
@@ -56,7 +107,6 @@ func main() {
 	// Default action is to sync
 	sync.RunSync(db)
 }
-
 // addNewSource adds a new source to the database, determining its type.
 func addNewSource(db *storage.DB, path string) error {
 	// This logic could be moved to a shared package if it gets more complex
@@ -118,5 +168,4 @@ func showDueCards(db *storage.DB) {
 		fmt.Printf("- Hash: %s, Due: %s\n", card.Hash, card.DueDate.Format(time.RFC822))
 	}
 }
-
 

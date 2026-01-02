@@ -54,15 +54,15 @@
     - [x] Add a `manifest.json` to `internal/web/static`.
 
 ## Milestone 6: Remote & Git Integration
-- [ ] **Git Consumer:**
-    - [ ] Add `go-git` dependency.
-    - [ ] Create `internal/gitsource` package.
-    - [ ] Implement logic to clone or pull public Git repositories.
-- [ ] **Refactor Source Handling:**
-    - [ ] Add `type` column to `sources` table (`local` vs `git`).
-    - [ ] Update reconciliation logic to handle different source types.
-- [ ] **Background Worker:** 
-    - [ ] Set up a "Ticker" in Go that pulls from all Git sources every 30 minutes.
+- [x] **Git Consumer:**
+    - [x] Add `go-git` dependency.
+    - [x] Create `internal/gitsource` package.
+    - [x] Implement logic to clone or pull public Git repositories.
+- [x] **Refactor Source Handling:**
+    - [x] Add `type` column to `sources` table (`local` vs `git`).
+    - [x] Update reconciliation logic to handle different source types.
+- [x] **Background Worker:** 
+    - [x] Set up a "Ticker" in Go that pulls from all Git sources every 30 minutes.
 - [ ] **Source Manager UI:** 
     - [ ] A screen to add/remove local paths or GitHub URLs.
 

@@ -66,7 +66,108 @@ func (s *Server) routes() {
 	s.router.HandleFunc("/deck", s.handleGetDeck())
 	s.router.HandleFunc("/review/next", s.handleGetNextReview())
 	s.router.HandleFunc("/review/answer/", s.handleShowAnswer())
-	s.router.HandleFunc("/review/", s.handlePostReview()) // Note the trailing slash for path params
+	s.router.HandleFunc("/review/", s.handlePostReview())
+
+	// Source management routes
+	s.router.HandleFunc("/sources", s.handleSources())
+	s.router.HandleFunc("/sources/", s.handleDeleteSource())
+}
+
+// handleSources handles both GET and POST for the sources page.
+func (s *Server) handleSources() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			s.handleGetSources(w, r)
+		case http.MethodPost:
+			s.handlePostSource(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}
+}
+
+// handleGetSources renders the main sources management page.
+func (s *Server) handleGetSources(w http.ResponseWriter, r *http.Request) {
+	sources, err := s.db.GetAllSources()
+	if err != nil {
+		log.Printf("Error getting sources: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	data := map[string]interface{}{
+		"Sources": sources,
+	}
+	s.templates.ExecuteTemplate(w, "sources", data)
+}
+
+// handlePostSource adds a new source and re-renders the source list.
+func (s *Server) handlePostSource(w http.ResponseWriter, r *http.Request) {
+	path := r.PostFormValue("path")
+	if path == "" {
+		http.Error(w, "Path cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	// This is a simplified version of the logic in main.go's addNewSource.
+	// A refactoring would be to move that logic into a shared package.
+	sourceType := "local"
+	if strings.HasSuffix(path, ".git") || strings.HasPrefix(path, "git@") || strings.HasPrefix(path, "https://") {
+		sourceType = "git"
+	}
+
+	if _, err := s.db.InsertSource(path, sourceType); err != nil {
+		log.Printf("Error inserting new source: %v", err)
+		http.Error(w, "Failed to add source", http.StatusInternalServerError)
+		return
+	}
+
+	// Re-render the source list to be swapped by HTMX
+	sources, err := s.db.GetAllSources()
+	if err != nil {
+		log.Printf("Error getting sources after add: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	data := map[string]interface{}{
+		"Sources": sources,
+	}
+	s.templates.ExecuteTemplate(w, "source_list", data)
+}
+
+// handleDeleteSource deletes a source and re-renders the source list.
+func (s *Server) handleDeleteSource() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		idStr := strings.TrimPrefix(r.URL.Path, "/sources/")
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid source ID", http.StatusBadRequest)
+			return
+		}
+
+		if err := s.db.DeleteSource(id); err != nil {
+			log.Printf("Error deleting source %d: %v", id, err)
+			http.Error(w, "Failed to delete source", http.StatusInternalServerError)
+			return
+		}
+		
+		// Re-render the source list to be swapped by HTMX
+		sources, err := s.db.GetAllSources()
+		if err != nil {
+			log.Printf("Error getting sources after delete: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		data := map[string]interface{}{
+			"Sources": sources,
+		}
+		s.templates.ExecuteTemplate(w, "source_list", data)
+	}
 }
 
 // handleGetDeck renders the deck view, showing the number of due cards.

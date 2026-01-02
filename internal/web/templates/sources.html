@@ -1,0 +1,19 @@
+{{define "sources"}}
+<article id="main-content">
+    <header>
+        <h2>Manage Sources</h2>
+    </header>
+    
+    <div id="source-list">
+        {{template "source_list" .}}
+    </div>
+    
+    <footer>
+        <h3>Add New Source</h3>
+        <form hx-post="/sources" hx-target="#source-list" hx-swap="outerHTML">
+            <input type="text" name="path" placeholder="Enter local path or Git URL" required>
+            <button type="submit">Add Source</button>
+        </form>
+    </footer>
+</article>
+{{end}}

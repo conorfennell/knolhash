@@ -1,0 +1,14 @@
+{{define "source_list"}}
+<div id="source-list">
+    <ul>
+        {{range .Sources}}
+        <li>
+            <strong>{{.Path}}</strong> ({{.Type}})
+            <button hx-delete="/sources/{{.ID}}" hx-target="#source-list" hx-swap="outerHTML" hx-confirm="Are you sure you want to delete this source and all its cards?">
+                Delete
+            </button>
+        </li>
+        {{end}}
+    </ul>
+</div>
+{{end}}

@@ -27,6 +27,7 @@ func main() {
 	showDue := flag.Bool("show-due", false, "Show cards that are due for review and exit")
 	serve := flag.Bool("serve", false, "Start the web server")
 	listenAddr := flag.String("listen-addr", ":8080", "The address for the web server to listen on")
+	syncInterval := flag.Duration("sync-interval", 30*time.Minute, "Interval for background sync when in server mode")
 	flag.Parse()
 
 	// 2. Open DB
@@ -44,7 +45,7 @@ func main() {
 		return
 	}
 	if *serve {
-		runWebServer(db, *listenAddr)
+		runWebServer(db, *listenAddr, *syncInterval)
 		return
 	}
 	if *showDue {
@@ -86,12 +87,27 @@ func addNewSource(db *storage.DB, path string) error {
 }
 
 // runWebServer starts the HTTP server.
-func runWebServer(db *storage.DB, addr string) {
+func runWebServer(db *storage.DB, addr string, syncInterval time.Duration) {
+	// Start background sync
+	startBackgroundSync(db, syncInterval)
+
 	server := web.NewServer(db)
 	log.Printf("Starting web server on %s", addr)
 	if err := http.ListenAndServe(addr, server); err != nil {
 		log.Fatalf("Failed to start web server: %v", err)
 	}
+}
+
+// startBackgroundSync starts a goroutine that periodically calls runSync.
+func startBackgroundSync(db *storage.DB, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	go func() {
+		for range ticker.C {
+			log.Printf("Background sync triggered (interval: %v)...", interval)
+			runSync(db) // Call the main sync logic
+		}
+	}()
+	log.Printf("Background sync started, running every %v", interval)
 }
 
 // showDueCards fetches and prints cards that are due for review.

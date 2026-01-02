@@ -276,3 +276,25 @@ func (db *DB) GetDueCards() ([]CardState, error) {
 	return cardStates, nil
 }
 
+// DeleteSource deletes a source and all its associated cards from the database.
+func (db *DB) DeleteSource(id int64) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback() // Rollback on error or if not committed
+
+	// Delete associated cards first
+	_, err = tx.Exec(`DELETE FROM cards WHERE source_id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete cards for source %d: %w", id, err)
+	}
+
+	// Delete the source itself
+	_, err = tx.Exec(`DELETE FROM sources WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete source %d: %w", id, err)
+	}
+
+	return tx.Commit()
+}

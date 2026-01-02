@@ -76,6 +76,23 @@ func (s *Server) routes() {
 	s.router.HandleFunc("/sources", s.handleSources())
 	s.router.HandleFunc("/sources/", s.handleDeleteSource())
 	s.router.HandleFunc("/sync", s.handlePostSync())
+	s.router.HandleFunc("/cards", s.handleGetCards())
+}
+
+// handleGetCards renders a page with all cards sorted by due date.
+func (s *Server) handleGetCards() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cards, err := s.db.GetAllCardsSortedByDueDate()
+		if err != nil {
+			slog.Error("Error getting all cards", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		data := map[string]interface{}{
+			"Cards": cards,
+		}
+		s.templates.ExecuteTemplate(w, "card_list", data)
+	}
 }
 
 // handlePostSync triggers a manual sync and re-renders the source list.

@@ -298,3 +298,52 @@ func (db *DB) DeleteSource(id int64) error {
 
 	return tx.Commit()
 }
+
+// CardWithSource extends the Card model to include the path of its source.
+type CardWithSource struct {
+	Hash       string
+	Question   string
+	Answer     string
+	Stability  float64
+	Difficulty float64
+	DueDate    time.Time
+	LastReview sql.NullTime
+	State      int
+	SourceID   sql.NullInt64
+	SourcePath sql.NullString
+}
+
+// GetAllCardsSortedByDueDate retrieves all cards from the database, sorted by due date.
+func (db *DB) GetAllCardsSortedByDueDate() ([]CardWithSource, error) {
+	rows, err := db.conn.Query(`
+		SELECT c.hash, c.question, c.answer, c.stability, c.difficulty, c.due_date, c.last_review, c.state, c.source_id, s.path
+		FROM cards c
+		LEFT JOIN sources s ON c.source_id = s.id
+		ORDER BY c.due_date ASC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all cards sorted by due date: %w", err)
+	}
+	defer rows.Close()
+
+	var cards []CardWithSource
+	for rows.Next() {
+		var cs CardWithSource
+		if err := rows.Scan(
+			&cs.Hash,
+			&cs.Question,
+			&cs.Answer,
+			&cs.Stability,
+			&cs.Difficulty,
+			&cs.DueDate,
+			&cs.LastReview,
+			&cs.State,
+			&cs.SourceID,
+			&cs.SourcePath,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan card row: %w", err)
+		}
+		cards = append(cards, cs)
+	}
+	return cards, nil
+}

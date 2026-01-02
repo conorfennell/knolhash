@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  knolhash:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - knolhash-data:/app/data
+      - ./examples:/app/examples
+    # The default command is to start the server.
+    # To add a source, you would run:
+    # docker-compose run knolhash --add-source /app/examples
+    # docker-compose run knolhash --add-source https://github.com/user/repo.git
+    command: ["--serve", "--db", "/app/data/knolhash.db"]
+
+volumes:
+  knolhash-data:

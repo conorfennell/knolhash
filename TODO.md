@@ -67,6 +67,8 @@
     - [x] A screen to add/remove local paths or GitHub URLs.
 
 ## Milestone 7: Hardening & Deployment
-- [ ] Simple Auth: Implement a "Secret Key" or basic password login via Middleware.
-- [ ] Dockerization: Create a Dockerfile that bundles the Go app and provides a volume for the SQLite DB and Markdown files.
+- [ ] **Simple Auth:** *Skipped for now*
+- [x] **Dockerization:**
+    - [x] Create a `Dockerfile` for the Go application.
+    - [x] Create a `docker-compose.yml` for easy execution.
 - [ ] Reverse Proxy Setup: Instructions for using Caddy to get an automatic HTTPS certificate (e.g., https://knolhash.yourdomain.com).

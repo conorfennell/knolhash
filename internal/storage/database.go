@@ -3,6 +3,8 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/conorfennell/knolhash/internal/domain"
@@ -16,6 +18,12 @@ type DB struct {
 
 // Open creates a new database connection and ensures the schema is up to date.
 func Open(dsn string) (*DB, error) {
+	// Ensure the directory for the database file exists.
+	dir := filepath.Dir(dsn)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("failed to create database directory: %w", err)
+	}
+
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)

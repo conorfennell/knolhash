@@ -44,10 +44,24 @@ func Parse(r io.Reader) ([]domain.Card, error) {
 	currentState := seeking
 
 	finishCard := func() {
+		if len(currentBlock) > 0 {
+			content := strings.Join(currentBlock, "\n")
+			switch currentState {
+			case readingQuestion:
+				currentCard.Question = content
+			case readingAnswer:
+				currentCard.Answer = content
+			case readingContext:
+				currentCard.Context = content
+			}
+			currentBlock = nil
+		}
+
 		if currentCard.Question != "" {
 			cards = append(cards, currentCard)
 		}
 		currentCard = domain.Card{}
+		currentState = seeking
 	}
 
 	for scanner.Scan() {
@@ -56,45 +70,57 @@ func Parse(r io.Reader) ([]domain.Card, error) {
 		isQ := strings.HasPrefix(line, questionPrefix)
 		isA := strings.HasPrefix(line, answerPrefix)
 		isC := strings.HasPrefix(line, contextPrefix)
+		isSeparator := line == "---"
+
+		if isSeparator {
+			finishCard()
+			continue
+		}
 
 		if isQ || isA || isC {
-			// When a new prefix is found, save the previous block's content
-			switch currentState {
-			case readingQuestion:
-				currentCard.Question = strings.TrimSpace(strings.Join(currentBlock, "\n"))
-			case readingAnswer:
-				currentCard.Answer = strings.TrimSpace(strings.Join(currentBlock, "\n"))
-			case readingContext:
-				currentCard.Context = strings.TrimSpace(strings.Join(currentBlock, "\n"))
+			if len(currentBlock) > 0 {
+				content := strings.Join(currentBlock, "\n")
+				switch currentState {
+				case readingQuestion:
+					currentCard.Question = content
+				case readingAnswer:
+					currentCard.Answer = content
+				case readingContext:
+					currentCard.Context = content
+				}
+				currentBlock = nil
 			}
-			currentBlock = nil // Reset for the new block
 
 			if isQ {
-				finishCard() // A new question starts a new card
+				if currentState != seeking { // A new question always starts a new card
+					finishCard()
+				}
 				currentState = readingQuestion
-				currentBlock = append(currentBlock, strings.TrimSpace(strings.TrimPrefix(line, questionPrefix)))
+				lineContent := line[len(questionPrefix):]
+				if strings.HasPrefix(lineContent, " ") {
+					lineContent = lineContent[1:]
+				}
+				currentBlock = append(currentBlock, lineContent)
 			} else if isA {
 				currentState = readingAnswer
-				currentBlock = append(currentBlock, strings.TrimSpace(strings.TrimPrefix(line, answerPrefix)))
+				lineContent := line[len(answerPrefix):]
+				if strings.HasPrefix(lineContent, " ") {
+					lineContent = lineContent[1:]
+				}
+				currentBlock = append(currentBlock, lineContent)
 			} else if isC {
 				currentState = readingContext
-				currentBlock = append(currentBlock, strings.TrimSpace(strings.TrimPrefix(line, contextPrefix)))
+				lineContent := line[len(contextPrefix):]
+				if strings.HasPrefix(lineContent, " ") {
+					lineContent = lineContent[1:]
+				}
+				currentBlock = append(currentBlock, lineContent)
 			}
 		} else if currentState != seeking {
-			// Continue reading multi-line content
 			currentBlock = append(currentBlock, line)
 		}
 	}
 
-	// Save the last block of the last card
-	switch currentState {
-	case readingQuestion:
-		currentCard.Question = strings.TrimSpace(strings.Join(currentBlock, "\n"))
-	case readingAnswer:
-		currentCard.Answer = strings.TrimSpace(strings.Join(currentBlock, "\n"))
-	case readingContext:
-		currentCard.Context = strings.TrimSpace(strings.Join(currentBlock, "\n"))
-	}
 	finishCard() // Finish the very last card in the file
 
 	if err := scanner.Err(); err != nil {

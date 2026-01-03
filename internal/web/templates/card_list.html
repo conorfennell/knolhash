@@ -17,7 +17,7 @@
             <tbody>
             {{range .Cards}}
             <tr>
-                <td>{{.Question}}</td>
+                <td>{{markdown .Question}}</td>
                 <td>{{.DueDate.Format "2006-01-02 15:04"}}</td>
                 <td>{{printf "%.2f" .Stability}}</td>
                 <td>{{printf "%.2f" .Difficulty}}</td>

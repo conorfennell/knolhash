@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Knolhash</title>
     <link rel="stylesheet" href="/static/pico.min.css">
+    <link rel="stylesheet" href="/static/custom.css">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
     <link rel="manifest" href="/static/manifest.json">
     <link rel="shortcut icon" href="/static/favicon.ico">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" integrity="sha384-KiWOvVjnN8qwZuNPaMbBsOiMqp/oeJ4NE5obif2B+8CDr2PQ5i2IghCIeMLwDEXC" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
 </head>
 <body>
     <main class="container">
@@ -31,5 +34,26 @@
     </main>
 
     <script src="/static/htmx.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" integrity="sha384-hIoYJkEuG_LOC3oEmUQGiLlgyCwsOrfVo02Uo2pIoF6O+tWtC2u8vI4fn5C3gWGP" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" integrity="sha384-43gMulI3Ok+lL8G/82gSREnhSoQS9s5goqBOv5vhmP2tKCVeG9TaHVC7cM/NPI2M" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+    <script>
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            // Re-render KaTeX
+            renderMathInElement(evt.detail.elt, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError: false
+            });
+
+            // Re-apply syntax highlighting
+            evt.detail.elt.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+        });
+    </script>
 </body>
 </html>

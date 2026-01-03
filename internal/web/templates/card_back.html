@@ -1,10 +1,10 @@
 {{define "card_back"}}
 <article id="main-content">
     <header>Question</header>
-    <p>{{.Question}}</p>
+    <p>{{markdown .Question}}</p>
     <details open>
         <summary>Answer</summary>
-        <p>{{.Answer}}</p>
+        <p>{{markdown .Answer}}</p>
     </details>
     <footer>
         <div class="grid">

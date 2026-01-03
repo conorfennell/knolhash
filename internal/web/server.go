@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"database/sql"
 	"embed"
 	"html/template"
@@ -14,6 +15,7 @@ import (
 	"github.com/conorfennell/knolhash/internal/fsrs"
 	"github.com/conorfennell/knolhash/internal/storage"
 	"github.com/conorfennell/knolhash/internal/sync"
+	"github.com/yuin/goldmark"
 )
 
 //go:embed all:static
@@ -28,12 +30,26 @@ type Server struct {
 	router    *http.ServeMux
 	fsrs      *fsrs.Params
 	templates *template.Template
+	markdown  goldmark.Markdown
 }
 
 // NewServer creates and configures a new server.
 func NewServer(db *storage.DB) *Server {
-	// Parse templates
-	tpl, err := template.ParseFS(templateFiles, "templates/*.html")
+	md := goldmark.New(
+		goldmark.WithExtensions(),
+	)
+
+	funcMap := template.FuncMap{
+		"markdown": func(source string) template.HTML {
+			var buf bytes.Buffer
+			if err := md.Convert([]byte(source), &buf); err != nil {
+				return template.HTML("<p>Error rendering markdown</p>")
+			}
+			return template.HTML(buf.String())
+		},
+	}
+
+	tpl, err := template.New("").Funcs(funcMap).ParseFS(templateFiles, "templates/*.html")
 	if err != nil {
 		slog.Error("Failed to parse templates", "error", err)
 		os.Exit(1)
@@ -44,6 +60,7 @@ func NewServer(db *storage.DB) *Server {
 		router:    http.NewServeMux(),
 		fsrs:      fsrs.DefaultParams(),
 		templates: tpl,
+		markdown:  md,
 	}
 	s.routes()
 	return s

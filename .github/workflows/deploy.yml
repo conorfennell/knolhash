@@ -1,0 +1,26 @@
+name: Deploy to Production
+
+on:
+  workflow_run:
+    workflows: ["Docker Push to GHCR"]
+    types:
+      - completed
+    branches: [ "master", "main" ]
+
+jobs:
+  deploy:
+    # Only run this job if the triggering workflow was successful
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to production server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /root/knolhash
+            git pull
+            ./start-prod.sh

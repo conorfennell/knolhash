@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"embed"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"log/slog"
@@ -82,6 +83,9 @@ func (s *Server) routes() {
 
 	s.router.Handle("/static/", http.StripPrefix("/static/", fileServer))
 	s.router.Handle("/", fileServer)
+
+	// Secret
+	s.router.HandleFunc("/secret/fibonacci/", s.handleFibonacci())
 
 	// HTMX-based routes
 	s.router.HandleFunc("/deck", s.handleGetDeck())
@@ -253,6 +257,31 @@ func (s *Server) handleGetDeck() http.HandlerFunc {
 	}
 }
 
+func (s *Server) handleFibonacci() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			number, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/secret/fibonacci/"))
+			if err != nil {
+				fmt.Println(err)
+				w.WriteHeader(http.StatusBadRequest)
+			} else {
+				last, secondLast := 1, 0
+				if number == 1 {
+					w.Write([]byte(strconv.Itoa(secondLast)))
+				} else if number == 2 {
+					w.Write([]byte(strconv.Itoa(last)))
+				} else {
+					for ; number > 2; number-- {
+						new := last + secondLast
+						last, secondLast = new, last
+					}
+					w.Write([]byte(strconv.Itoa(last)))
+				}
+			}
+		}
+	}
+}
+
 // handleGetNextReview renders the front of the next due card.
 func (s *Server) handleGetNextReview() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -329,4 +358,3 @@ func (s *Server) handlePostReview() http.HandlerFunc {
 		s.handleGetNextReview()(w, r)
 	}
 }
-

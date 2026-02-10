@@ -101,31 +101,6 @@ func main() {
 	sync.RunSync(db)
 }
 
-// addNewSource adds a new source to the database, determining its type.
-func addNewSource(db *storage.DB, path string) error {
-	// This logic could be moved to a shared package if it gets more complex
-	sourceType := "local"
-	if strings.HasSuffix(path, ".git") || strings.HasPrefix(path, "git@") || strings.HasPrefix(path, "https://") {
-		sourceType = "git"
-	}
-
-	existing, err := db.FindSourceByPath(path)
-	if err != nil {
-		return fmt.Errorf("error checking for existing source: %w", err)
-	}
-	if existing != nil {
-		slog.Info("Source with path already exists", "path", path)
-		return nil
-	}
-
-	_, err = db.InsertSource(path, sourceType)
-	if err != nil {
-		return fmt.Errorf("could not insert new source: %w", err)
-	}
-	slog.Info("Successfully added new source", "path", path, "type", sourceType)
-	return nil
-}
-
 // runWebServer starts the HTTP server and a background sync ticker.
 func runWebServer(db *storage.DB, addr string, syncInterval time.Duration) {
 	startBackgroundSync(db, syncInterval)

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/conorfennell/knolhash/internal/grpc"
 	"github.com/conorfennell/knolhash/internal/storage"
 	"github.com/conorfennell/knolhash/internal/sync"
 	"github.com/conorfennell/knolhash/internal/web"
@@ -28,10 +29,11 @@ var (
 
 // Config holds the application's configuration.
 type Config struct {
-	DBPath       string        `koanf:"db_path" validate:"required"`
-	Serve        bool          `koanf:"serve"`
-	ListenAddr   string        `koanf:"listen_addr" validate:"required_if=Serve true"`
-	SyncInterval time.Duration `koanf:"sync_interval" validate:"required_if=Serve true,gt=0"`
+	DBPath         string        `koanf:"db_path" validate:"required"`
+	Serve          bool          `koanf:"serve"`
+	ListenAddr     string        `koanf:"listen_addr" validate:"required_if=Serve true"`
+	GRPCListenAddr string        `koanf:"grpc_listen_addr" validate:"required_if=Serve true"`
+	SyncInterval   time.Duration `koanf:"sync_interval" validate:"required_if=Serve true,gt=0"`
 }
 
 var k = koanf.New(".") // Initialize koanf with a dot delimiter
@@ -93,7 +95,7 @@ func main() {
 	}
 	defer db.Close() // 4. Dispatch based on flags (now using config values)
 	if cfg.Serve {
-		runWebServer(db, cfg.ListenAddr, cfg.SyncInterval)
+		runWebServer(db, cfg.ListenAddr, cfg.GRPCListenAddr, cfg.SyncInterval)
 		return
 	}
 
@@ -101,9 +103,16 @@ func main() {
 	sync.RunSync(db)
 }
 
-// runWebServer starts the HTTP server and a background sync ticker.
-func runWebServer(db *storage.DB, addr string, syncInterval time.Duration) {
+// runWebServer starts the HTTP and gRPC servers and a background sync ticker.
+func runWebServer(db *storage.DB, addr string, grpcAddr string, syncInterval time.Duration) {
 	startBackgroundSync(db, syncInterval)
+
+	go func() {
+		if err := grpc.StartServer(grpcAddr); err != nil {
+			slog.Error("Failed to start gRPC server", "error", err)
+			os.Exit(1)
+		}
+	}()
 
 	server := web.NewServer(db)
 	slog.Info("Starting web server", "addr", addr)

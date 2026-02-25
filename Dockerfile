@@ -33,8 +33,9 @@ COPY --from=builder /app/knolhash .
 # Copy config.yaml into the container
 COPY config.yaml .
 
-# Expose the port for the web server
+# Expose the ports for the web and gRPC servers
 EXPOSE 8080
+EXPOSE 50051
 
 # Define volumes for persistent data (database and cloned repos)
 VOLUME /app/data

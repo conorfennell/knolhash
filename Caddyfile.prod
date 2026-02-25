@@ -1,4 +1,11 @@
 knolhash.com {
+    # gRPC Traffic
+    @grpc {
+        header Content-Type application/grpc*
+    }
+    reverse_proxy @grpc h2c://knolhash:50051
+
+    # Standard Web Traffic
     reverse_proxy knolhash:8080 {
         header_up Host {http.request.host}
         header_up X-Real-IP {http.request.remote}

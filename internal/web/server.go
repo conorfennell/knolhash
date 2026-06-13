@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/conorfennell/knolhash/internal/fsrs"
 	"github.com/conorfennell/knolhash/internal/storage"
@@ -51,6 +53,80 @@ func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
 			return template.HTML(buf.String())
 		},
 		"add1": func(i int) int { return i + 1 },
+		"flagEmoji": func(team string) string {
+			return worldcup.TeamFlags[team]
+		},
+		"teamClass": func(state worldcup.TeamState) string {
+			if state.FinalPlace > 0 {
+				return "eliminated"
+			}
+			switch state.GroupPosition {
+			case 1:
+				return "pos-1"
+			case 2:
+				return "pos-2"
+			case 3:
+				return "pos-3"
+			case 4:
+				return "pos-4"
+			}
+			return ""
+		},
+		"irishTime": func(t time.Time) string {
+			if t.IsZero() {
+				return ""
+			}
+			loc, err := time.LoadLocation("Europe/Dublin")
+			if err != nil {
+				return t.UTC().Format("02 Jan 15:04")
+			}
+			return t.In(loc).Format("Mon 02 Jan 15:04")
+		},
+		"matchEntries": func(m worldcup.Match, entries []worldcup.Entry) string {
+			var names []string
+			seen := make(map[string]bool)
+			for _, e := range entries {
+				for _, t := range e.Teams {
+					if (t == m.HomeTeam || t == m.AwayTeam) && !seen[e.Name] {
+						names = append(names, e.Name)
+						seen[e.Name] = true
+						break
+					}
+				}
+			}
+			return strings.Join(names, ", ")
+		},
+		"historyJSON": func(h []worldcup.MatchSnapshot) template.JS {
+			if len(h) == 0 {
+				return template.JS("[]")
+			}
+			b, err := json.Marshal(h)
+			if err != nil {
+				return template.JS("[]")
+			}
+			return template.JS(b)
+		},
+		"entryNamesJSON": func(names []string) template.JS {
+			b, _ := json.Marshal(names)
+			return template.JS(b)
+		},
+		"inDangerZone": func(r worldcup.EntryResult) bool {
+			for _, state := range r.TeamStates {
+				if state.GroupPosition == 4 && state.FinalPlace == 0 && state.Played > 0 {
+					return true
+				}
+			}
+			return false
+		},
+		"dangerTeams": func(r worldcup.EntryResult) string {
+			var names []string
+			for _, state := range r.TeamStates {
+				if state.GroupPosition == 4 && state.FinalPlace == 0 && state.Played > 0 {
+					names = append(names, state.Name)
+				}
+			}
+			return strings.Join(names, ", ")
+		},
 		"leadingTeamFor": func(r worldcup.EntryResult, teams map[string]worldcup.TeamState) string {
 			var leaders []string
 			for _, teamName := range r.Entry.Teams {

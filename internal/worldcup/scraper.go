@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -11,6 +13,9 @@ import (
 
 	"golang.org/x/net/html"
 )
+
+// scoreRe matches "N–N", "N-N", "N − N" (various dash/minus forms).
+var scoreRe = regexp.MustCompile(`(\d+)\s*[–\-−]\s*(\d+)`)
 
 const wikiURL = "https://en.wikipedia.org/wiki/2026_FIFA_World_Cup"
 
@@ -39,12 +44,15 @@ func FetchTournamentData() (TournamentData, error) {
 		return TournamentData{}, fmt.Errorf("parsing HTML: %w", err)
 	}
 
+	knownTeams := entryTeamSet()
 	teams := parseGroupTables(doc)
+	matches := parseMatches(doc, knownTeams)
 	applyKnockoutEliminations(doc, teams)
 
-	slog.Info("worldcup: scraped tournament data", "teams", len(teams))
+	slog.Info("worldcup: scraped tournament data", "teams", len(teams), "matches", len(matches))
 	return TournamentData{
 		Teams:     teams,
+		Matches:   matches,
 		FetchedAt: time.Now(),
 	}, nil
 }
@@ -271,4 +279,155 @@ func normalizeTeamName(raw string) string {
 		return mapped
 	}
 	return name
+}
+
+// cellInfo holds text and class for one table cell.
+type cellInfo struct {
+	text  string
+	class string
+}
+
+// cellsInfo returns text + class for every <td>/<th> in a row.
+func cellsInfo(row *html.Node) []cellInfo {
+	var out []cellInfo
+	for c := row.FirstChild; c != nil; c = c.NextSibling {
+		if c.Type != html.ElementNode || (c.Data != "td" && c.Data != "th") {
+			continue
+		}
+		cls := ""
+		for _, a := range c.Attr {
+			if a.Key == "class" {
+				cls = a.Val
+				break
+			}
+		}
+		out = append(out, cellInfo{
+			text:  strings.TrimSpace(extractText(c)),
+			class: cls,
+		})
+	}
+	return out
+}
+
+// parseMatches scans all non-group wikitables for match rows and returns them
+// sorted chronologically. Rows are identified by a score cell ("N–N") or
+// Wikipedia's fscore CSS class; team names come from fhome/faway classes or
+// the cells adjacent to the score. Only matches involving at least one entry
+// team are returned.
+func parseMatches(doc *html.Node, knownTeams map[string]bool) []Match {
+	seen := make(map[string]bool)
+	var matches []Match
+
+	for _, table := range findWikitables(doc) {
+		rows := tableRows(table)
+		if isGroupTable(rows) {
+			continue
+		}
+
+		var currentDate time.Time
+
+		for _, row := range rows {
+			cells := cellsInfo(row)
+
+			// Single-cell rows are often date headers.
+			if len(cells) == 1 {
+				if t, ok := tryParseDate(cells[0].text); ok {
+					currentDate = t
+				}
+				continue
+			}
+
+			// Find score cell: prefer class "fscore", fall back to regex.
+			scoreIdx := -1
+			for i, c := range cells {
+				if strings.Contains(c.class, "fscore") {
+					scoreIdx = i
+					break
+				}
+			}
+			if scoreIdx < 0 {
+				for i, c := range cells {
+					if scoreRe.MatchString(c.text) {
+						scoreIdx = i
+						break
+					}
+				}
+			}
+			if scoreIdx < 0 {
+				continue
+			}
+
+			// Find team names: prefer fhome/faway classes, fall back to adjacent cells.
+			homeText, awayText := "", ""
+			for _, c := range cells {
+				if strings.Contains(c.class, "fhome") && homeText == "" {
+					homeText = normalizeTeamName(c.text)
+				}
+				if strings.Contains(c.class, "faway") && awayText == "" {
+					awayText = normalizeTeamName(c.text)
+				}
+			}
+			if homeText == "" && scoreIdx > 0 {
+				homeText = normalizeTeamName(cells[scoreIdx-1].text)
+			}
+			if awayText == "" && scoreIdx < len(cells)-1 {
+				awayText = normalizeTeamName(cells[scoreIdx+1].text)
+			}
+
+			// Skip if neither team is a sweepstake entry team.
+			if !knownTeams[homeText] && !knownTeams[awayText] {
+				continue
+			}
+
+			// Deduplicate (same match can appear in multiple tables).
+			key := homeText + "|||" + awayText
+			alt := awayText + "|||" + homeText
+			if seen[key] || seen[alt] {
+				continue
+			}
+			seen[key] = true
+
+			m := Match{
+				HomeTeam: homeText,
+				AwayTeam: awayText,
+				KickOff:  currentDate,
+			}
+			scoreText := cells[scoreIdx].text
+			if sub := scoreRe.FindStringSubmatch(scoreText); sub != nil {
+				m.HomeScore, _ = strconv.Atoi(sub[1])
+				m.AwayScore, _ = strconv.Atoi(sub[2])
+				m.Played = true
+			}
+
+			matches = append(matches, m)
+		}
+	}
+
+	// Sort chronologically; zero-time matches go to the end.
+	sort.Slice(matches, func(i, j int) bool {
+		a, b := matches[i].KickOff, matches[j].KickOff
+		if a.IsZero() && b.IsZero() {
+			return matches[i].HomeTeam < matches[j].HomeTeam
+		}
+		if a.IsZero() {
+			return false
+		}
+		if b.IsZero() {
+			return true
+		}
+		return a.Before(b)
+	})
+
+	return matches
+}
+
+// tryParseDate attempts to parse common Wikipedia date formats.
+func tryParseDate(s string) (time.Time, bool) {
+	s = strings.TrimSpace(s)
+	for _, f := range []string{"2 January 2006", "January 2, 2006", "2 Jan 2006", "Jan 2, 2006"} {
+		if t, err := time.Parse(f, s); err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
 }

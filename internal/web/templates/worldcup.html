@@ -3,44 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="60">
-    <title>World Cup 2026 Leaderboard</title>
+    <title>World Cup 2026 — Sweepstake</title>
     <link rel="stylesheet" href="/static/pico.min.css">
     <link rel="stylesheet" href="/static/custom.css">
     <style>
+        .pos-1 { color: #2d8a4e; font-weight: 600; }
+        .pos-2 { color: #a07800; }
+        .pos-3 { color: #c05000; }
+        .pos-4 { color: #888; }
+        .eliminated { text-decoration: line-through; color: #aaa; }
+
+        .rank-up   { color: #2d8a4e; font-size: 0.8rem; }
+        .rank-down { color: #c0392b; font-size: 0.8rem; }
+        .rank-same { color: #aaa;    font-size: 0.8rem; }
+
         .leaderboard th, .leaderboard td { padding: 0.4rem 0.6rem; font-size: 0.9rem; }
-        .leaderboard .rank { text-align: center; font-weight: bold; color: var(--pico-muted-color); }
+        .leaderboard .rank  { text-align: center; font-weight: bold; color: var(--pico-muted-color); width: 2rem; }
+        .leaderboard .arrow { text-align: center; width: 1.5rem; padding: 0.4rem 0.1rem; }
         .leaderboard .points { text-align: center; font-weight: bold; }
         .leaderboard .goals  { text-align: center; }
-        .teams-cell { font-size: 0.8rem; color: var(--pico-muted-color); }
+        .leaderboard tr.entry-row { cursor: pointer; user-select: none; }
+        .leaderboard tr.entry-row:hover td { background: rgba(128,128,128,0.06); }
+
+        .entry-detail { display: none; }
+        .entry-detail.open { display: table-row; }
+        .entry-detail td { padding: 0.3rem 0.6rem 0.7rem 2.5rem; font-size: 0.82rem; }
+        .team-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.2rem; }
+        .team-chip { padding: 0.15rem 0.5rem; border-radius: 1rem; border: 1px solid currentColor; white-space: nowrap; font-size: 0.8rem; }
+
         .mini-lb th, .mini-lb td { padding: 0.25rem 0.5rem; font-size: 0.85rem; }
-        .mini-lb .rank { text-align: center; color: var(--pico-muted-color); width: 1.5rem; }
+        .mini-lb .rank  { text-align: center; color: var(--pico-muted-color); width: 1.5rem; }
         .mini-lb .points { text-align: center; font-weight: bold; }
         .mini-lb .goals  { text-align: center; }
+
         .prize-card header { display: flex; justify-content: space-between; align-items: baseline; }
         .prize-card header span.amount { font-weight: bold; white-space: nowrap; }
-        .meta { font-size: 0.8rem; color: var(--pico-muted-color); text-align: right; margin-top: 1rem; }
-        .tbd { color: var(--pico-muted-color); font-style: italic; }
+
+        .match-block { margin-bottom: 0.6rem; }
+        .match-teams { font-weight: 500; font-size: 0.9rem; }
+        .match-score { font-weight: bold; }
+        .match-time  { color: var(--pico-muted-color); font-size: 0.78rem; }
+        .match-names { font-size: 0.76rem; color: var(--pico-muted-color); }
+
+        .danger-zone { border-left: 4px solid #c0392b; padding: 0.5rem 1rem; margin-bottom: 1.2rem; background: rgba(192,57,43,0.05); border-radius: 0 0.4rem 0.4rem 0; }
+        .danger-title { font-weight: bold; color: #c0392b; margin-bottom: 0.3rem; }
+
+        .chart-section { margin-top: 2rem; }
+        .chart-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .chart-wrap { position: relative; height: 280px; margin-bottom: 2rem; }
+
         .section-title { margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .meta { font-size: 0.8rem; color: var(--pico-muted-color); text-align: right; margin-top: 1.2rem; }
+        .tbd  { color: var(--pico-muted-color); font-style: italic; }
         .leader-note { font-size: 0.75rem; color: var(--pico-muted-color); margin-top: 0.25rem; }
+
         @media (max-width: 600px) {
-            .leaderboard .teams-cell { display: none; }
+            .hide-mobile { display: none; }
         }
     </style>
 </head>
 <body>
     <main class="container">
         <nav>
-            <ul>
-                <li><strong>World Cup 2026</strong></li>
-            </ul>
+            <ul><li><strong>World Cup 2026</strong></li></ul>
         </nav>
 
         <h2>World Cup 2026 — Sweepstake</h2>
         <p>18 entries &middot; &euro;{{.TotalPot}} pot</p>
 
-        <h3 class="section-title">Prizes</h3>
+        {{if or .UpcomingMatches .RecentMatches}}
+        <h3 class="section-title">Matches</h3>
+        <div class="grid">
+            <article>
+                <header><strong>Coming Up</strong></header>
+                {{if .UpcomingMatches}}
+                {{range .UpcomingMatches}}
+                <div class="match-block">
+                    <div class="match-teams">{{flagEmoji .HomeTeam}}{{.HomeTeam}} vs {{flagEmoji .AwayTeam}}{{.AwayTeam}}</div>
+                    {{if not .KickOff.IsZero}}<div class="match-time">{{irishTime .KickOff}}</div>{{end}}
+                    <div class="match-names">{{matchEntries . $.Entries}}</div>
+                </div>
+                {{end}}
+                {{else}}
+                <p class="tbd">No upcoming matches found</p>
+                {{end}}
+            </article>
 
+            <article>
+                <header><strong>Just Finished</strong></header>
+                {{if .RecentMatches}}
+                {{range .RecentMatches}}
+                <div class="match-block">
+                    <div class="match-teams">{{flagEmoji .HomeTeam}}{{.HomeTeam}} <span class="match-score">{{.HomeScore}}–{{.AwayScore}}</span> {{flagEmoji .AwayTeam}}{{.AwayTeam}}</div>
+                    {{if not .KickOff.IsZero}}<div class="match-time">{{irishTime .KickOff}}</div>{{end}}
+                    <div class="match-names">{{matchEntries . $.Entries}}</div>
+                </div>
+                {{end}}
+                {{else}}
+                <p class="tbd">No completed matches found</p>
+                {{end}}
+            </article>
+        </div>
+        {{end}}
+
+        <h3 class="section-title">Prizes</h3>
         <div class="grid">
             <article class="prize-card">
                 <header>
@@ -49,9 +115,7 @@
                 </header>
                 <div class="overflow-auto">
                 <table class="mini-lb">
-                    <thead>
-                        <tr><th class="rank">#</th><th>Entry</th><th class="points">Pts</th><th class="goals">Goals</th></tr>
-                    </thead>
+                    <thead><tr><th class="rank">#</th><th>Entry</th><th class="points">Pts</th><th class="goals">Goals</th></tr></thead>
                     <tbody>
                         {{range $i, $r := .TopWorst}}
                         <tr>
@@ -73,9 +137,7 @@
                 </header>
                 <div class="overflow-auto">
                 <table class="mini-lb">
-                    <thead>
-                        <tr><th class="rank">#</th><th>Entry</th><th class="goals">Goals</th></tr>
-                    </thead>
+                    <thead><tr><th class="rank">#</th><th>Entry</th><th class="goals">Goals</th></tr></thead>
                     <tbody>
                         {{range $i, $r := .TopGoals}}
                         <tr>
@@ -98,9 +160,7 @@
                 </header>
                 <div class="overflow-auto">
                 <table class="mini-lb">
-                    <thead>
-                        <tr><th class="rank">#</th><th>Entry</th><th class="points">Pts</th><th class="goals">Goals</th></tr>
-                    </thead>
+                    <thead><tr><th class="rank">#</th><th>Entry</th><th class="points">Pts</th><th class="goals">Goals</th></tr></thead>
                     <tbody>
                         {{range $i, $r := .TopBest}}
                         <tr>
@@ -123,15 +183,13 @@
                 {{if eq .Prizes.OverallWinner.EntryName "TBD"}}
                 <div class="overflow-auto">
                 <table class="mini-lb">
-                    <thead>
-                        <tr><th class="rank">#</th><th>Entry</th><th>Group leaders</th></tr>
-                    </thead>
+                    <thead><tr><th class="rank">#</th><th>Entry</th><th>Group leaders</th></tr></thead>
                     <tbody>
                         {{range $i, $r := .TopLeaders}}
                         <tr>
                             <td class="rank">{{add1 $i}}</td>
                             <td>{{$r.Entry.Name}}</td>
-                            <td class="teams-cell">{{leadingTeamFor $r $.Teams}}</td>
+                            <td>{{leadingTeamFor $r $.Teams}}</td>
                         </tr>
                         {{end}}
                         {{if not .TopLeaders}}
@@ -147,27 +205,55 @@
             </article>
         </div>
 
+        {{if .DangerEntries}}
+        <div class="danger-zone">
+            <div class="danger-title">⚠️ Danger Zone</div>
+            <div>Entries with a team currently bottom of their group:</div>
+            <div class="team-chips" style="margin-top:0.4rem">
+                {{range .DangerEntries}}
+                <span style="font-weight:500">{{.Entry.Name}}</span>
+                <span style="color:#aaa;margin:0 0.3rem">({{dangerTeams .}})</span>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+
         <h3 class="section-title">Full Leaderboard</h3>
         <div class="overflow-auto">
         <table class="leaderboard">
             <thead>
                 <tr>
                     <th class="rank">#</th>
+                    <th class="arrow"></th>
                     <th>Entry</th>
                     <th class="points">Pts</th>
                     <th class="goals">Goals</th>
-                    <th class="teams-cell">Teams</th>
+                    <th class="hide-mobile">Teams</th>
                 </tr>
             </thead>
             <tbody>
                 {{range $i, $r := .Results}}
-                <tr>
+                <tr class="entry-row" data-rank="{{add1 $i}}" data-entry="{{$r.Entry.Name}}" onclick="toggleDetail('d{{$i}}')">
                     <td class="rank">{{add1 $i}}</td>
+                    <td class="arrow"><span class="rank-arrow" data-entry="{{$r.Entry.Name}}"></span></td>
                     <td><strong>{{$r.Entry.Name}}</strong></td>
                     <td class="points">{{$r.TotalPoints}}</td>
                     <td class="goals">{{$r.TotalGoals}}</td>
-                    <td class="teams-cell">
-                        {{range $j, $team := $r.Entry.Teams}}{{if $j}}, {{end}}{{$team}}{{teamPts $r $j}}{{end}}
+                    <td class="hide-mobile">
+                        {{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="team-chip {{teamClass $state}}">{{flagEmoji $team}}{{$team}}</span> {{end}}
+                    </td>
+                </tr>
+                <tr class="entry-detail" id="d{{$i}}">
+                    <td colspan="6">
+                        <div class="team-chips">
+                            {{range $j, $team := $r.Entry.Teams}}
+                            {{$state := index $r.TeamStates $j}}
+                            <span class="team-chip {{teamClass $state}}">
+                                {{flagEmoji $team}}{{$team}}
+                                {{if $state.GroupPosition}}({{$state.GroupPosition}}{{if $state.Played}}/{{$state.Played}}{{end}}{{if $state.GoalsFor}}, {{$state.GoalsFor}}g{{end}}){{end}}
+                            </span>
+                            {{end}}
+                        </div>
                     </td>
                 </tr>
                 {{end}}
@@ -175,13 +261,138 @@
         </table>
         </div>
 
+        {{if .History}}
+        <div class="chart-section">
+            <h3 class="section-title">Prize Movements</h3>
+            <p style="font-size:0.82rem;color:var(--pico-muted-color)">Rank after each match — rank 1 is leading the prize. Click legend to toggle entries.</p>
+
+            <div class="chart-title">⚽ Most Goals</div>
+            <div class="chart-wrap"><canvas id="chartGoals"></canvas></div>
+
+            <div class="chart-title">🏆 Least Points</div>
+            <div class="chart-wrap"><canvas id="chartLeast"></canvas></div>
+
+            <div class="chart-title">🍽 Most Points</div>
+            <div class="chart-wrap"><canvas id="chartMost"></canvas></div>
+        </div>
+        {{end}}
+
         <p class="meta">
             {{if .FetchedAt.IsZero}}
                 Data not yet loaded.
             {{else}}
-                Last updated: {{.FetchedAt.Format "02 Jan 2006 15:04:05 UTC"}} &middot; Auto-refreshes every 60 seconds.
+                Last updated: {{.FetchedAt.Format "02 Jan 2006 15:04 UTC"}} &middot;
+                Next update in <span id="countdown">–</span>
             {{end}}
         </p>
     </main>
+
+    <script>
+    // ── Countdown ──────────────────────────────────────────────────────────────
+    (function() {
+        var next = {{.NextRefreshUnix}};
+        function tick() {
+            var rem = next - Math.floor(Date.now() / 1000);
+            var el = document.getElementById('countdown');
+            if (!el) return;
+            if (rem <= 0) { el.textContent = 'refreshing…'; return; }
+            var m = Math.floor(rem / 60), s = rem % 60;
+            el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+        }
+        tick();
+        setInterval(tick, 1000);
+    })();
+
+    // ── Row expand ─────────────────────────────────────────────────────────────
+    function toggleDetail(id) {
+        var row = document.getElementById(id);
+        if (row) row.classList.toggle('open');
+    }
+
+    // ── Rank arrows (localStorage) ─────────────────────────────────────────────
+    (function() {
+        var KEY = 'wc2026_ranks_v1';
+        var prev = {};
+        try { prev = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e) {}
+        var curr = {};
+        document.querySelectorAll('tr.entry-row').forEach(function(row) {
+            var rank  = parseInt(row.dataset.rank, 10);
+            var name  = row.dataset.entry;
+            curr[name] = rank;
+            var arrow = row.querySelector('.rank-arrow');
+            if (!arrow || prev[name] == null) return;
+            var diff = prev[name] - rank;
+            if (diff > 0)       { arrow.textContent = '↑'; arrow.className = 'rank-arrow rank-up'; }
+            else if (diff < 0)  { arrow.textContent = '↓'; arrow.className = 'rank-arrow rank-down'; }
+            else                { arrow.textContent = '–'; arrow.className = 'rank-arrow rank-same'; }
+        });
+        try { localStorage.setItem(KEY, JSON.stringify(curr)); } catch(e) {}
+    })();
+    </script>
+
+    {{if .History}}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+    <script>
+    (function() {
+        var history = {{historyJSON .History}};
+        var entries = {{entryNamesJSON .EntryNames}};
+        var labels  = history.map(function(s) { return s.Label; });
+
+        function hslColor(i, n) {
+            return 'hsl(' + Math.round(i * 360 / n) + ',60%,48%)';
+        }
+
+        function datasets(key) {
+            return entries.map(function(name, i) {
+                return {
+                    label: name,
+                    data: history.map(function(s) { return s[key][name] != null ? s[key][name] : null; }),
+                    borderColor: hslColor(i, entries.length),
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
+                    pointRadius: 2,
+                    tension: 0.3,
+                };
+            });
+        }
+
+        var baseOpts = {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: { boxWidth: 12, font: { size: 11 } }
+                }
+            },
+            scales: {
+                x: { ticks: { font: { size: 10 }, maxRotation: 45 } },
+                y: {
+                    reverse: true,
+                    min: 1,
+                    ticks: { stepSize: 1, precision: 0 },
+                    title: { display: true, text: 'Rank', font: { size: 11 } }
+                }
+            }
+        };
+
+        function makeChart(id, key) {
+            var ctx = document.getElementById(id);
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'line',
+                data: { labels: labels, datasets: datasets(key) },
+                options: JSON.parse(JSON.stringify(baseOpts))
+            });
+        }
+
+        makeChart('chartGoals', 'GoalRanks');
+        makeChart('chartLeast', 'LeastRanks');
+        makeChart('chartMost',  'MostRanks');
+    })();
+    </script>
+    {{end}}
 </body>
 </html>{{end}}

@@ -9,15 +9,22 @@ import (
 )
 
 type worldcupTemplateData struct {
-	Results    []worldcup.EntryResult
-	TopBest    []worldcup.EntryResult // top 5 fewest points (Least Points prize)
-	TopWorst   []worldcup.EntryResult // top 5 most points (Most Points prize)
-	TopGoals   []worldcup.EntryResult // top 5 most goals (Most Goals prize)
-	TopLeaders []worldcup.EntryResult // top 5 for Overall Winner prize
-	Teams      map[string]worldcup.TeamState
-	Prizes     worldcup.PrizeSummary
-	FetchedAt  time.Time
-	TotalPot   int
+	Results         []worldcup.EntryResult
+	TopBest         []worldcup.EntryResult
+	TopWorst        []worldcup.EntryResult
+	TopGoals        []worldcup.EntryResult
+	TopLeaders      []worldcup.EntryResult
+	Teams           map[string]worldcup.TeamState
+	Entries         []worldcup.Entry
+	Prizes          worldcup.PrizeSummary
+	FetchedAt       time.Time
+	TotalPot        int
+	RecentMatches   []worldcup.Match
+	UpcomingMatches []worldcup.Match
+	History         []worldcup.MatchSnapshot
+	EntryNames      []string
+	NextRefreshUnix int64
+	DangerEntries   []worldcup.EntryResult
 }
 
 func (s *Server) handleGetWorldcup() http.HandlerFunc {
@@ -31,16 +38,38 @@ func (s *Server) handleGetWorldcup() http.HandlerFunc {
 			topN = len(results)
 		}
 
+		entryNames := make([]string, len(results))
+		for i, r := range results {
+			entryNames[i] = r.Entry.Name
+		}
+
+		var dangerEntries []worldcup.EntryResult
+		for _, r := range results {
+			for _, state := range r.TeamStates {
+				if state.GroupPosition == 4 && state.FinalPlace == 0 && state.Played > 0 {
+					dangerEntries = append(dangerEntries, r)
+					break
+				}
+			}
+		}
+
 		td := worldcupTemplateData{
-			Results:    results,
-			TopBest:    results[:topN],
-			TopWorst:   worldcup.TopByMostPoints(results, 5),
-			TopGoals:   worldcup.TopByMostGoals(results, 5),
-			TopLeaders: worldcup.TopOverallWinner(results, data, 5),
-			Teams:      data.Teams,
-			Prizes:     prizes,
-			FetchedAt:  data.FetchedAt,
-			TotalPot:   worldcup.TotalPot,
+			Results:         results,
+			TopBest:         results[:topN],
+			TopWorst:        worldcup.TopByMostPoints(results, 5),
+			TopGoals:        worldcup.TopByMostGoals(results, 5),
+			TopLeaders:      worldcup.TopOverallWinner(results, data, 5),
+			Teams:           data.Teams,
+			Entries:         worldcup.Entries,
+			Prizes:          prizes,
+			FetchedAt:       data.FetchedAt,
+			TotalPot:        worldcup.TotalPot,
+			RecentMatches:   worldcup.RecentMatches(data.Matches, 10),
+			UpcomingMatches: worldcup.UpcomingMatches(data.Matches, 10),
+			History:         worldcup.ComputeHistory(data.Matches, worldcup.Entries, data),
+			EntryNames:      entryNames,
+			NextRefreshUnix: data.FetchedAt.Add(15 * time.Minute).Unix(),
+			DangerEntries:   dangerEntries,
 		}
 		if err := s.templates.ExecuteTemplate(w, "worldcup", td); err != nil {
 			slog.Error("worldcup: template error", "error", err)

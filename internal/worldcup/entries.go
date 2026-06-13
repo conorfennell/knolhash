@@ -18,9 +18,21 @@ type TeamState struct {
 	ThirdPlaceGroupRank int // 1–8 for 3rd-placed teams that advance to knockouts; 0 otherwise
 }
 
+// Match represents one tournament fixture.
+type Match struct {
+	HomeTeam  string
+	AwayTeam  string
+	KickOff   time.Time // UTC; zero if unknown
+	HomeScore int
+	AwayScore int
+	Played    bool
+	Group     string
+}
+
 // TournamentData is the full scraped state of the tournament.
 type TournamentData struct {
 	Teams     map[string]TeamState // keyed by canonical team name
+	Matches   []Match
 	FetchedAt time.Time
 }
 

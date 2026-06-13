@@ -46,7 +46,11 @@ func FetchTournamentData() (TournamentData, error) {
 
 	knownTeams := entryTeamSet()
 	teams := parseGroupTables(doc)
-	matches := parseMatches(doc, knownTeams)
+	// Primary: footballbox divs (used by 2026 WC page); fallback: wikitables.
+	matches := parseFootballBoxes(doc, knownTeams)
+	if len(matches) == 0 {
+		matches = parseMatches(doc, knownTeams)
+	}
 	applyKnockoutEliminations(doc, teams)
 
 	slog.Info("worldcup: scraped tournament data", "teams", len(teams), "matches", len(matches))
@@ -430,4 +434,153 @@ func tryParseDate(s string) (time.Time, bool) {
 		}
 	}
 	return time.Time{}, false
+}
+
+// parseFootballBoxes extracts matches from div.footballbox elements, which is
+// how Wikipedia presents matches on the 2026 FIFA World Cup page.
+func parseFootballBoxes(doc *html.Node, knownTeams map[string]bool) []Match {
+	boxes := findNodesByClass(doc, "div", "footballbox")
+	seen := make(map[string]bool)
+	var matches []Match
+
+	for _, box := range boxes {
+		// Date: prefer ISO date in the machine-readable dtstart span.
+		var kickOff time.Time
+		if ds := findNodeByClassSubstr(box, "span", "dtstart"); ds != nil {
+			if t, err := time.Parse("2006-01-02", strings.TrimSpace(extractText(ds))); err == nil {
+				kickOff = t
+			}
+		}
+
+		homeNode := findNodeByClass(box, "th", "fhome")
+		awayNode := findNodeByClass(box, "th", "faway")
+		scoreNode := findNodeByClass(box, "th", "fscore")
+		if homeNode == nil || awayNode == nil || scoreNode == nil {
+			continue
+		}
+
+		homeText := normalizeTeamName(firstAnchorText(homeNode))
+		awayText := normalizeTeamName(firstAnchorText(awayNode))
+		scoreText := strings.TrimSpace(extractText(scoreNode))
+
+		if homeText == "" || awayText == "" {
+			continue
+		}
+		if !knownTeams[homeText] && !knownTeams[awayText] {
+			continue
+		}
+
+		key := homeText + "|||" + awayText
+		if seen[key] || seen[awayText+"|||"+homeText] {
+			continue
+		}
+		seen[key] = true
+
+		m := Match{HomeTeam: homeText, AwayTeam: awayText, KickOff: kickOff}
+		if sub := scoreRe.FindStringSubmatch(scoreText); sub != nil {
+			m.HomeScore, _ = strconv.Atoi(sub[1])
+			m.AwayScore, _ = strconv.Atoi(sub[2])
+			m.Played = true
+		}
+		matches = append(matches, m)
+	}
+
+	sort.Slice(matches, func(i, j int) bool {
+		a, b := matches[i].KickOff, matches[j].KickOff
+		if a.IsZero() && b.IsZero() {
+			return matches[i].HomeTeam < matches[j].HomeTeam
+		}
+		if a.IsZero() {
+			return false
+		}
+		if b.IsZero() {
+			return true
+		}
+		return a.Before(b)
+	})
+	return matches
+}
+
+// findNodesByClass returns all elements of the given tag whose class list
+// contains class as a whole word. tag="" matches any element.
+func findNodesByClass(root *html.Node, tag, class string) []*html.Node {
+	var out []*html.Node
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		if n.Type == html.ElementNode && (tag == "" || n.Data == tag) {
+			for _, a := range n.Attr {
+				if a.Key == "class" {
+					for _, c := range strings.Fields(a.Val) {
+						if c == class {
+							out = append(out, n)
+							break
+						}
+					}
+					break
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(root)
+	return out
+}
+
+// findNodeByClass returns the first element matching tag + class.
+func findNodeByClass(root *html.Node, tag, class string) *html.Node {
+	nodes := findNodesByClass(root, tag, class)
+	if len(nodes) == 0 {
+		return nil
+	}
+	return nodes[0]
+}
+
+// findNodeByClassSubstr returns the first element of tag whose class attribute
+// contains classSubstr as a substring (for multi-value class chains).
+func findNodeByClassSubstr(root *html.Node, tag, classSubstr string) *html.Node {
+	var found *html.Node
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		if found != nil {
+			return
+		}
+		if n.Type == html.ElementNode && (tag == "" || n.Data == tag) {
+			for _, a := range n.Attr {
+				if a.Key == "class" && strings.Contains(a.Val, classSubstr) {
+					found = n
+					return
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(root)
+	return found
+}
+
+// firstAnchorText returns the text of the first <a> element found within n.
+func firstAnchorText(n *html.Node) string {
+	var found *html.Node
+	var walk func(*html.Node)
+	walk = func(node *html.Node) {
+		if found != nil {
+			return
+		}
+		if node.Type == html.ElementNode && node.Data == "a" {
+			found = node
+			return
+		}
+		for c := node.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(n)
+	if found == nil {
+		return ""
+	}
+	return strings.TrimSpace(extractText(found))
 }

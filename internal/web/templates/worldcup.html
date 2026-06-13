@@ -1,0 +1,187 @@
+{{define "worldcup"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="60">
+    <title>World Cup 2026 Leaderboard</title>
+    <link rel="stylesheet" href="/static/pico.min.css">
+    <link rel="stylesheet" href="/static/custom.css">
+    <style>
+        .leaderboard th, .leaderboard td { padding: 0.4rem 0.6rem; font-size: 0.9rem; }
+        .leaderboard .rank { text-align: center; font-weight: bold; color: var(--pico-muted-color); }
+        .leaderboard .points { text-align: center; font-weight: bold; }
+        .leaderboard .goals  { text-align: center; }
+        .teams-cell { font-size: 0.8rem; color: var(--pico-muted-color); }
+        .mini-lb th, .mini-lb td { padding: 0.25rem 0.5rem; font-size: 0.85rem; }
+        .mini-lb .rank { text-align: center; color: var(--pico-muted-color); width: 1.5rem; }
+        .mini-lb .points { text-align: center; font-weight: bold; }
+        .mini-lb .goals  { text-align: center; }
+        .prize-card header { display: flex; justify-content: space-between; align-items: baseline; }
+        .prize-card header span.amount { font-weight: bold; white-space: nowrap; }
+        .meta { font-size: 0.8rem; color: var(--pico-muted-color); text-align: right; margin-top: 1rem; }
+        .tbd { color: var(--pico-muted-color); font-style: italic; }
+        .section-title { margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .leader-note { font-size: 0.75rem; color: var(--pico-muted-color); margin-top: 0.25rem; }
+        @media (max-width: 600px) {
+            .leaderboard .teams-cell { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <nav>
+            <ul>
+                <li><strong>World Cup 2026</strong></li>
+            </ul>
+        </nav>
+
+        <h2>World Cup 2026 — Sweepstake</h2>
+        <p>18 entries &middot; &euro;{{.TotalPot}} pot</p>
+
+        <h3 class="section-title">Prizes</h3>
+
+        <div class="grid">
+            <article class="prize-card">
+                <header>
+                    <span>Most Points</span>
+                    <span class="amount">&euro;{{printf "%.2f" .Prizes.MostPoints.Amount}}</span>
+                </header>
+                <div class="overflow-auto">
+                <table class="mini-lb">
+                    <thead>
+                        <tr><th class="rank">#</th><th>Entry</th><th class="points">Pts</th><th class="goals">Goals</th></tr>
+                    </thead>
+                    <tbody>
+                        {{range $i, $r := .TopWorst}}
+                        <tr>
+                            <td class="rank">{{add1 $i}}</td>
+                            <td>{{$r.Entry.Name}}</td>
+                            <td class="points">{{$r.TotalPoints}}</td>
+                            <td class="goals">{{$r.TotalGoals}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+                </div>
+            </article>
+
+            <article class="prize-card">
+                <header>
+                    <span>Most Goals</span>
+                    <span class="amount">&euro;{{printf "%.2f" .Prizes.MostGoals.Amount}}</span>
+                </header>
+                <div class="overflow-auto">
+                <table class="mini-lb">
+                    <thead>
+                        <tr><th class="rank">#</th><th>Entry</th><th class="goals">Goals</th></tr>
+                    </thead>
+                    <tbody>
+                        {{range $i, $r := .TopGoals}}
+                        <tr>
+                            <td class="rank">{{add1 $i}}</td>
+                            <td>{{$r.Entry.Name}}</td>
+                            <td class="goals">{{$r.TotalGoals}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+                </div>
+            </article>
+        </div>
+
+        <div class="grid">
+            <article class="prize-card">
+                <header>
+                    <span>Least Points</span>
+                    <span class="amount">&euro;{{printf "%.2f" .Prizes.LeastPoints.Amount}}</span>
+                </header>
+                <div class="overflow-auto">
+                <table class="mini-lb">
+                    <thead>
+                        <tr><th class="rank">#</th><th>Entry</th><th class="points">Pts</th><th class="goals">Goals</th></tr>
+                    </thead>
+                    <tbody>
+                        {{range $i, $r := .TopBest}}
+                        <tr>
+                            <td class="rank">{{add1 $i}}</td>
+                            <td>{{$r.Entry.Name}}</td>
+                            <td class="points">{{$r.TotalPoints}}</td>
+                            <td class="goals">{{$r.TotalGoals}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+                </div>
+            </article>
+
+            <article class="prize-card">
+                <header>
+                    <span>World Cup Winner</span>
+                    <span class="amount">&euro;{{printf "%.2f" .Prizes.OverallWinner.Amount}}</span>
+                </header>
+                {{if eq .Prizes.OverallWinner.EntryName "TBD"}}
+                <div class="overflow-auto">
+                <table class="mini-lb">
+                    <thead>
+                        <tr><th class="rank">#</th><th>Entry</th><th>Group leaders</th></tr>
+                    </thead>
+                    <tbody>
+                        {{range $i, $r := .TopLeaders}}
+                        <tr>
+                            <td class="rank">{{add1 $i}}</td>
+                            <td>{{$r.Entry.Name}}</td>
+                            <td class="teams-cell">{{leadingTeamFor $r $.Teams}}</td>
+                        </tr>
+                        {{end}}
+                        {{if not .TopLeaders}}
+                        <tr><td colspan="3" class="tbd">No group stage data yet</td></tr>
+                        {{end}}
+                    </tbody>
+                </table>
+                </div>
+                <footer class="leader-note">Entries with a team currently leading their group</footer>
+                {{else}}
+                <footer><strong>{{.Prizes.OverallWinner.EntryName}}</strong></footer>
+                {{end}}
+            </article>
+        </div>
+
+        <h3 class="section-title">Full Leaderboard</h3>
+        <div class="overflow-auto">
+        <table class="leaderboard">
+            <thead>
+                <tr>
+                    <th class="rank">#</th>
+                    <th>Entry</th>
+                    <th class="points">Pts</th>
+                    <th class="goals">Goals</th>
+                    <th class="teams-cell">Teams</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range $i, $r := .Results}}
+                <tr>
+                    <td class="rank">{{add1 $i}}</td>
+                    <td><strong>{{$r.Entry.Name}}</strong></td>
+                    <td class="points">{{$r.TotalPoints}}</td>
+                    <td class="goals">{{$r.TotalGoals}}</td>
+                    <td class="teams-cell">
+                        {{range $j, $team := $r.Entry.Teams}}{{if $j}}, {{end}}{{$team}}{{teamPts $r $j}}{{end}}
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        </div>
+
+        <p class="meta">
+            {{if .FetchedAt.IsZero}}
+                Data not yet loaded.
+            {{else}}
+                Last updated: {{.FetchedAt.Format "02 Jan 2006 15:04:05 UTC"}} &middot; Auto-refreshes every 60 seconds.
+            {{end}}
+        </p>
+    </main>
+</body>
+</html>{{end}}

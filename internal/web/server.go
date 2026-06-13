@@ -16,6 +16,7 @@ import (
 	"github.com/conorfennell/knolhash/internal/fsrs"
 	"github.com/conorfennell/knolhash/internal/storage"
 	"github.com/conorfennell/knolhash/internal/sync"
+	"github.com/conorfennell/knolhash/internal/worldcup"
 	"github.com/yuin/goldmark"
 )
 
@@ -27,15 +28,16 @@ var templateFiles embed.FS
 
 // Server holds the dependencies for the HTTP server.
 type Server struct {
-	db        *storage.DB
-	router    *http.ServeMux
-	fsrs      *fsrs.Params
-	templates *template.Template
-	markdown  goldmark.Markdown
+	db            *storage.DB
+	router        *http.ServeMux
+	fsrs          *fsrs.Params
+	templates     *template.Template
+	markdown      goldmark.Markdown
+	worldcupCache *worldcup.Cache
 }
 
 // NewServer creates and configures a new server.
-func NewServer(db *storage.DB) *Server {
+func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
 	md := goldmark.New(
 		goldmark.WithExtensions(),
 	)
@@ -48,6 +50,31 @@ func NewServer(db *storage.DB) *Server {
 			}
 			return template.HTML(buf.String())
 		},
+		"add1": func(i int) int { return i + 1 },
+		"leadingTeamFor": func(r worldcup.EntryResult, teams map[string]worldcup.TeamState) string {
+			var leaders []string
+			for _, teamName := range r.Entry.Teams {
+				if state, ok := teams[teamName]; ok && state.GroupPosition == 1 && state.FinalPlace == 0 {
+					leaders = append(leaders, teamName)
+				}
+			}
+			return strings.Join(leaders, ", ")
+		},
+		"teamPts": func(r worldcup.EntryResult, j int) string {
+			if j < 0 || j >= 4 {
+				return ""
+			}
+			state := r.TeamStates[j]
+			pts := worldcup.PlacementPoints(state.FinalPlace) + worldcup.ThirdPlaceGroupBonus(state.ThirdPlaceGroupRank)
+			if pts == 0 {
+				goals := state.GoalsFor
+				if goals == 0 {
+					return ""
+				}
+				return fmt.Sprintf(" (%dg)", goals)
+			}
+			return fmt.Sprintf(" (%dpts)", pts)
+		},
 	}
 
 	tpl, err := template.New("").Funcs(funcMap).ParseFS(templateFiles, "templates/*.html")
@@ -57,11 +84,12 @@ func NewServer(db *storage.DB) *Server {
 	}
 
 	s := &Server{
-		db:        db,
-		router:    http.NewServeMux(),
-		fsrs:      fsrs.DefaultParams(),
-		templates: tpl,
-		markdown:  md,
+		db:            db,
+		router:        http.NewServeMux(),
+		fsrs:          fsrs.DefaultParams(),
+		templates:     tpl,
+		markdown:      md,
+		worldcupCache: wc,
 	}
 	s.routes()
 	return s
@@ -83,6 +111,9 @@ func (s *Server) routes() {
 
 	s.router.Handle("/static/", http.StripPrefix("/static/", fileServer))
 	s.router.Handle("/", fileServer)
+
+	// World Cup leaderboard
+	s.router.HandleFunc("/worldcup", s.handleGetWorldcup())
 
 	// Secret
 	s.router.HandleFunc("/secret/fibonacci/", s.handleFibonacci())

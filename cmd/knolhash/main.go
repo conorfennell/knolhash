@@ -12,6 +12,7 @@ import (
 	"github.com/conorfennell/knolhash/internal/storage"
 	"github.com/conorfennell/knolhash/internal/sync"
 	"github.com/conorfennell/knolhash/internal/web"
+	"github.com/conorfennell/knolhash/internal/worldcup"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -107,6 +108,9 @@ func main() {
 func runWebServer(db *storage.DB, addr string, grpcAddr string, syncInterval time.Duration) {
 	startBackgroundSync(db, syncInterval)
 
+	wc := worldcup.NewCache()
+	wc.StartBackgroundRefresh()
+
 	go func() {
 		if err := grpc.StartServer(grpcAddr); err != nil {
 			slog.Error("Failed to start gRPC server", "error", err)
@@ -114,7 +118,7 @@ func runWebServer(db *storage.DB, addr string, grpcAddr string, syncInterval tim
 		}
 	}()
 
-	server := web.NewServer(db)
+	server := web.NewServer(db, wc)
 	slog.Info("Starting web server", "addr", addr)
 	if err := http.ListenAndServe(addr, server); err != nil {
 		slog.Error("Failed to start web server", "error", err)

@@ -337,13 +337,35 @@
             }
         };
 
+        function isolateClick(e, legendItem, legend) {
+            var chart = legend.chart;
+            var idx = legendItem.datasetIndex;
+            var visibleCount = 0;
+            chart.data.datasets.forEach(function(ds, i) {
+                if (!chart.getDatasetMeta(i).hidden) visibleCount++;
+            });
+            // If this is already the only visible line, restore all.
+            if (visibleCount === 1 && !chart.getDatasetMeta(idx).hidden) {
+                chart.data.datasets.forEach(function(ds, i) {
+                    chart.getDatasetMeta(i).hidden = false;
+                });
+            } else {
+                chart.data.datasets.forEach(function(ds, i) {
+                    chart.getDatasetMeta(i).hidden = i !== idx;
+                });
+            }
+            chart.update();
+        }
+
         function makeChart(id, key) {
             var ctx = document.getElementById(id);
             if (!ctx) return;
+            var opts = JSON.parse(JSON.stringify(baseOpts));
+            opts.plugins.legend.onClick = isolateClick;
             new Chart(ctx, {
                 type: 'line',
                 data: { labels: labels, datasets: datasets(key) },
-                options: JSON.parse(JSON.stringify(baseOpts))
+                options: opts
             });
         }
 

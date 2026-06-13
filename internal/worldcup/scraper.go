@@ -444,13 +444,7 @@ func parseFootballBoxes(doc *html.Node, knownTeams map[string]bool) []Match {
 	var matches []Match
 
 	for _, box := range boxes {
-		// Date: prefer ISO date in the machine-readable dtstart span.
-		var kickOff time.Time
-		if ds := findNodeByClassSubstr(box, "span", "dtstart"); ds != nil {
-			if t, err := time.Parse("2006-01-02", strings.TrimSpace(extractText(ds))); err == nil {
-				kickOff = t
-			}
-		}
+		kickOff := extractKickOff(box)
 
 		homeNode := findNodeByClass(box, "th", "fhome")
 		awayNode := findNodeByClass(box, "th", "faway")
@@ -583,4 +577,100 @@ func firstAnchorText(n *html.Node) string {
 		return ""
 	}
 	return strings.TrimSpace(extractText(found))
+}
+
+// extractKickOff builds a UTC time from the footballbox's dtstart span (date)
+// and ftime div (local time + UTC offset). Returns zero time if parsing fails.
+func extractKickOff(box *html.Node) time.Time {
+	var date time.Time
+	if ds := findNodeByClassSubstr(box, "span", "dtstart"); ds != nil {
+		if t, err := time.Parse("2006-01-02", strings.TrimSpace(extractText(ds))); err == nil {
+			date = t
+		}
+	}
+	if date.IsZero() {
+		return time.Time{}
+	}
+
+	ftimeNode := findNodeByClass(box, "div", "ftime")
+	if ftimeNode == nil {
+		return date
+	}
+
+	// UTC offset from the anchor text, e.g. "UTC−6".
+	offsetHours := 0
+	if h, ok := parseUTCOffset(firstAnchorText(ftimeNode)); ok {
+		offsetHours = h
+	}
+
+	// Time text: strip the "UTC…" portion from the ftime text.
+	ftimeText := strings.TrimSpace(extractText(ftimeNode))
+	if idx := strings.Index(ftimeText, "UTC"); idx >= 0 {
+		ftimeText = strings.TrimSpace(ftimeText[:idx])
+	}
+	// Normalise non-breaking spaces.
+	ftimeText = strings.Map(func(r rune) rune {
+		if r == ' ' {
+			return ' '
+		}
+		return r
+	}, ftimeText)
+
+	hour, min, ok := parseLocalTime(ftimeText)
+	if !ok {
+		return date
+	}
+
+	// Build local datetime then shift to UTC.
+	local := time.Date(date.Year(), date.Month(), date.Day(), hour, min, 0, 0, time.UTC)
+	return local.Add(time.Duration(-offsetHours) * time.Hour)
+}
+
+// parseUTCOffset parses strings like "UTC−6", "UTC+1", "UTC−04:00" into hours.
+func parseUTCOffset(s string) (int, bool) {
+	s = strings.TrimSpace(s)
+	if !strings.HasPrefix(s, "UTC") {
+		return 0, false
+	}
+	rest := strings.TrimPrefix(s, "UTC")
+	if rest == "" {
+		return 0, true
+	}
+	// Normalise various minus/dash characters to ASCII hyphen.
+	rest = strings.NewReplacer("−", "-", "−", "-", "–", "-").Replace(rest)
+	sign := 1
+	if strings.HasPrefix(rest, "-") {
+		sign = -1
+		rest = rest[1:]
+	} else if strings.HasPrefix(rest, "+") {
+		rest = rest[1:]
+	}
+	h, err := strconv.Atoi(strings.TrimSpace(strings.SplitN(rest, ":", 2)[0]))
+	if err != nil {
+		return 0, false
+	}
+	return sign * h, true
+}
+
+// parseLocalTime parses "1:00 p.m." / "8:00 p.m." / "12:00 p.m." into 24-hour hour+min.
+func parseLocalTime(s string) (hour, min int, ok bool) {
+	s = strings.ToLower(strings.TrimSpace(s))
+	isPM := strings.Contains(s, "p.m.") || strings.Contains(s, "pm")
+	s = strings.NewReplacer("p.m.", "", "a.m.", "", "pm", "", "am", "").Replace(s)
+	s = strings.TrimSpace(s)
+	parts := strings.SplitN(s, ":", 2)
+	if len(parts) < 2 {
+		return 0, 0, false
+	}
+	h, err1 := strconv.Atoi(strings.TrimSpace(parts[0]))
+	m, err2 := strconv.Atoi(strings.TrimSpace(parts[1]))
+	if err1 != nil || err2 != nil {
+		return 0, 0, false
+	}
+	if isPM && h != 12 {
+		h += 12
+	} else if !isPM && h == 12 {
+		h = 0
+	}
+	return h, m, true
 }

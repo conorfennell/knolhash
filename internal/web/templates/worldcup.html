@@ -22,13 +22,7 @@
         .leaderboard .arrow { text-align: center; width: 1.5rem; padding: 0.4rem 0.1rem; }
         .leaderboard .points { text-align: center; font-weight: bold; }
         .leaderboard .goals  { text-align: center; }
-        .leaderboard tr.entry-row { cursor: pointer; user-select: none; }
-        .leaderboard tr.entry-row:hover td { background: rgba(128,128,128,0.06); }
-
-        .entry-detail { display: none; }
-        .entry-detail.open { display: table-row; }
-        .entry-detail td { padding: 0.3rem 0.6rem 0.7rem 2.5rem; font-size: 0.82rem; }
-        .team-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.2rem; }
+        .team-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
         .team-chip { padding: 0.15rem 0.5rem; border-radius: 1rem; border: 1px solid currentColor; white-space: nowrap; font-size: 0.8rem; }
 
         .mini-lb th, .mini-lb td { padding: 0.25rem 0.5rem; font-size: 0.85rem; }
@@ -44,9 +38,6 @@
         .match-score { font-weight: bold; }
         .match-time  { color: var(--pico-muted-color); font-size: 0.78rem; }
         .match-names { font-size: 0.76rem; color: var(--pico-muted-color); }
-
-        .danger-zone { border-left: 4px solid #c0392b; padding: 0.5rem 1rem; margin-bottom: 1.2rem; background: rgba(192,57,43,0.05); border-radius: 0 0.4rem 0.4rem 0; }
-        .danger-title { font-weight: bold; color: #c0392b; margin-bottom: 0.3rem; }
 
         .chart-section { margin-top: 2rem; }
         .chart-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
@@ -205,19 +196,6 @@
             </article>
         </div>
 
-        {{if .DangerEntries}}
-        <div class="danger-zone">
-            <div class="danger-title">⚠️ Danger Zone</div>
-            <div>Entries with a team currently bottom of their group:</div>
-            <div class="team-chips" style="margin-top:0.4rem">
-                {{range .DangerEntries}}
-                <span style="font-weight:500">{{.Entry.Name}}</span>
-                <span style="color:#aaa;margin:0 0.3rem">({{dangerTeams .}})</span>
-                {{end}}
-            </div>
-        </div>
-        {{end}}
-
         <h3 class="section-title">Full Leaderboard</h3>
         <div class="overflow-auto">
         <table class="leaderboard">
@@ -233,27 +211,14 @@
             </thead>
             <tbody>
                 {{range $i, $r := .Results}}
-                <tr class="entry-row" data-rank="{{add1 $i}}" data-entry="{{$r.Entry.Name}}" onclick="toggleDetail('d{{$i}}')">
+                <tr class="entry-row" data-rank="{{add1 $i}}" data-entry="{{$r.Entry.Name}}">
                     <td class="rank">{{add1 $i}}</td>
                     <td class="arrow"><span class="rank-arrow" data-entry="{{$r.Entry.Name}}"></span></td>
                     <td><strong>{{$r.Entry.Name}}</strong></td>
                     <td class="points">{{$r.TotalPoints}}</td>
                     <td class="goals">{{$r.TotalGoals}}</td>
                     <td class="hide-mobile">
-                        {{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="team-chip {{teamClass $state}}">{{flagEmoji $team}}{{$team}}</span> {{end}}
-                    </td>
-                </tr>
-                <tr class="entry-detail" id="d{{$i}}">
-                    <td colspan="6">
-                        <div class="team-chips">
-                            {{range $j, $team := $r.Entry.Teams}}
-                            {{$state := index $r.TeamStates $j}}
-                            <span class="team-chip {{teamClass $state}}">
-                                {{flagEmoji $team}}{{$team}}
-                                {{if $state.GroupPosition}}({{$state.GroupPosition}}{{if $state.Played}}/{{$state.Played}}{{end}}{{if $state.GoalsFor}}, {{$state.GoalsFor}}g{{end}}){{end}}
-                            </span>
-                            {{end}}
-                        </div>
+                        {{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="team-chip {{teamClass $state}}">{{flagEmoji $team}}{{$team}}{{if $state.GoalsFor}} {{$state.GoalsFor}}⚽{{end}}</span> {{end}}
                     </td>
                 </tr>
                 {{end}}
@@ -302,12 +267,6 @@
         tick();
         setInterval(tick, 1000);
     })();
-
-    // ── Row expand ─────────────────────────────────────────────────────────────
-    function toggleDetail(id) {
-        var row = document.getElementById(id);
-        if (row) row.classList.toggle('open');
-    }
 
     // ── Rank arrows (localStorage) ─────────────────────────────────────────────
     (function() {

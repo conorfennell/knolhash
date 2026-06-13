@@ -13,17 +13,17 @@
         .pos-4 { color: #888; }
         .eliminated { text-decoration: line-through; color: #aaa; }
 
-        .rank-up   { color: #2d8a4e; font-size: 0.8rem; }
-        .rank-down { color: #c0392b; font-size: 0.8rem; }
-        .rank-same { color: #aaa;    font-size: 0.8rem; }
+        .rank-up   { color: #2d8a4e; font-size: 0.7rem; vertical-align: super; margin-left: 0.1rem; }
+        .rank-down { color: #c0392b; font-size: 0.7rem; vertical-align: super; margin-left: 0.1rem; }
+        .rank-same { color: #aaa;    font-size: 0.7rem; vertical-align: super; margin-left: 0.1rem; }
 
         .leaderboard th, .leaderboard td { padding: 0.4rem 0.6rem; font-size: 0.9rem; }
-        .leaderboard .rank  { text-align: center; font-weight: bold; color: var(--pico-muted-color); width: 2rem; }
-        .leaderboard .arrow { text-align: center; width: 1.5rem; padding: 0.4rem 0.1rem; }
+        .leaderboard .rank  { text-align: center; font-weight: bold; color: var(--pico-muted-color); width: 2.5rem; white-space: nowrap; }
         .leaderboard .points { text-align: center; font-weight: bold; }
         .leaderboard .goals  { text-align: center; }
         .team-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
         .team-chip { padding: 0.15rem 0.5rem; border-radius: 1rem; border: 1px solid currentColor; white-space: nowrap; font-size: 0.8rem; }
+        .show-mobile { display: none; }
 
         .mini-lb th, .mini-lb td { padding: 0.25rem 0.5rem; font-size: 0.85rem; }
         .mini-lb .rank  { text-align: center; color: var(--pico-muted-color); width: 1.5rem; }
@@ -33,11 +33,9 @@
         .prize-card header { display: flex; justify-content: space-between; align-items: baseline; }
         .prize-card header span.amount { font-weight: bold; white-space: nowrap; }
 
-        .match-block { margin-bottom: 0.6rem; }
-        .match-teams { font-weight: 500; font-size: 0.9rem; }
+        .match-line { font-size: 0.88rem; margin-bottom: 0.35rem; line-height: 1.6; }
         .match-score { font-weight: bold; }
-        .match-time  { color: var(--pico-muted-color); font-size: 0.78rem; }
-        .match-names { font-size: 0.76rem; color: var(--pico-muted-color); }
+        .dim { color: var(--pico-muted-color); font-size: 0.82rem; }
 
         .chart-section { margin-top: 2rem; }
         .chart-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
@@ -50,6 +48,7 @@
 
         @media (max-width: 600px) {
             .hide-mobile { display: none; }
+            .show-mobile { display: table-cell; }
         }
     </style>
 </head>
@@ -69,11 +68,7 @@
                 <header><strong>Coming Up</strong></header>
                 {{if .UpcomingMatches}}
                 {{range .UpcomingMatches}}
-                <div class="match-block">
-                    <div class="match-teams">{{flagEmoji .HomeTeam}}{{.HomeTeam}} vs {{flagEmoji .AwayTeam}}{{.AwayTeam}}</div>
-                    {{if not .KickOff.IsZero}}<div class="match-time">{{irishTime .KickOff}}</div>{{end}}
-                    <div class="match-names">{{matchEntries . $.Entries}}</div>
-                </div>
+                <div class="match-line">{{flagEmoji .HomeTeam}}{{.HomeTeam}} vs {{flagEmoji .AwayTeam}}{{.AwayTeam}}{{if not .KickOff.IsZero}} <span class="dim">· {{irishTime .KickOff}}</span>{{end}} <span class="dim">· {{matchEntries . $.Entries}}</span></div>
                 {{end}}
                 {{else}}
                 <p class="tbd">No upcoming matches found</p>
@@ -84,11 +79,7 @@
                 <header><strong>Just Finished</strong></header>
                 {{if .RecentMatches}}
                 {{range .RecentMatches}}
-                <div class="match-block">
-                    <div class="match-teams">{{flagEmoji .HomeTeam}}{{.HomeTeam}} <span class="match-score">{{.HomeScore}}–{{.AwayScore}}</span> {{flagEmoji .AwayTeam}}{{.AwayTeam}}</div>
-                    {{if not .KickOff.IsZero}}<div class="match-time">{{irishTime .KickOff}}</div>{{end}}
-                    <div class="match-names">{{matchEntries . $.Entries}}</div>
-                </div>
+                <div class="match-line">{{flagEmoji .HomeTeam}}{{.HomeTeam}} <span class="match-score">{{.HomeScore}}–{{.AwayScore}}</span> {{flagEmoji .AwayTeam}}{{.AwayTeam}}{{if not .KickOff.IsZero}} <span class="dim">· {{irishTime .KickOff}}</span>{{end}} <span class="dim">· {{matchEntries . $.Entries}}</span></div>
                 {{end}}
                 {{else}}
                 <p class="tbd">No completed matches found</p>
@@ -202,23 +193,25 @@
             <thead>
                 <tr>
                     <th class="rank">#</th>
-                    <th class="arrow"></th>
                     <th>Entry</th>
                     <th class="points">Pts</th>
                     <th class="goals">Goals</th>
                     <th class="hide-mobile">Teams</th>
+                    <th class="show-mobile"></th>
                 </tr>
             </thead>
             <tbody>
                 {{range $i, $r := .Results}}
                 <tr class="entry-row" data-rank="{{add1 $i}}" data-entry="{{$r.Entry.Name}}">
-                    <td class="rank">{{add1 $i}}</td>
-                    <td class="arrow"><span class="rank-arrow" data-entry="{{$r.Entry.Name}}"></span></td>
+                    <td class="rank">{{add1 $i}}<span class="rank-arrow" data-entry="{{$r.Entry.Name}}"></span></td>
                     <td><strong>{{$r.Entry.Name}}</strong></td>
                     <td class="points">{{$r.TotalPoints}}</td>
                     <td class="goals">{{$r.TotalGoals}}</td>
                     <td class="hide-mobile">
                         {{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="team-chip {{teamClass $state}}">{{flagEmoji $team}}{{$team}}{{if $state.GoalsFor}} {{$state.GoalsFor}}⚽{{end}}</span> {{end}}
+                    </td>
+                    <td class="show-mobile" style="white-space:nowrap;font-size:1.05rem">
+                        {{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}">{{flagEmoji $team}}{{if $state.GoalsFor}}{{$state.GoalsFor}}{{end}}</span>{{end}}
                     </td>
                 </tr>
                 {{end}}
@@ -302,9 +295,11 @@
         }
 
         function datasets(key) {
+            var lastSnap = history.length > 0 ? history[history.length - 1] : null;
             return entries.map(function(name, i) {
+                var rank = lastSnap && lastSnap[key][name] ? ' #' + lastSnap[key][name] : '';
                 return {
-                    label: name,
+                    label: name + rank,
                     data: history.map(function(s) { return s[key][name] != null ? s[key][name] : null; }),
                     borderColor: hslColor(i, entries.length),
                     backgroundColor: 'transparent',

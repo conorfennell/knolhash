@@ -74,7 +74,13 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache) *Serv
 		"entrySlug": func(name string) string {
 			return strings.ToLower(strings.ReplaceAll(name, " ", "-"))
 		},
-		"isLive": func(m worldcup.Match) bool {
+		"isLive": func(m worldcup.Match, lives []worldcup.LiveMatch) bool {
+			// Trust the live feed first — Wikipedia can mark a match as played mid-game.
+			for _, lm := range lives {
+				if lm.HomeTeam == m.HomeTeam && lm.AwayTeam == m.AwayTeam {
+					return true
+				}
+			}
 			if m.KickOff.IsZero() || m.Played {
 				return false
 			}

@@ -36,6 +36,7 @@
         .pb-leader td { background: #edf7f0; }
         .pb-cutoff td { border-top: 2px dashed #d0d0d0 !important; }
         .pb-rank { width: 1.8rem; text-align: center; color: var(--pico-muted-color); font-size: 0.78rem; }
+        .pb-flags { white-space: nowrap; font-size: 1rem; }
         .pb-stat { text-align: right; font-weight: 700; }
         .pb-substat { text-align: right; color: var(--pico-muted-color); }
 
@@ -136,12 +137,12 @@
                     <span class="pb-amount">&euro;{{printf "%.2f" .Prizes.MostPoints.Amount}}</span>
                 </div>
                 <table class="pb-table">
-                    <thead><tr><th class="pb-rank">#</th><th>Entry</th><th class="pb-stat">Pts</th><th class="pb-substat">⚽</th></tr></thead>
+                    <thead><tr><th class="pb-rank">#</th><th>Entry</th><th></th><th class="pb-stat">Pts</th><th class="pb-substat">⚽</th></tr></thead>
                     <tbody>
                         {{range $i, $r := .TopWorst}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td>{{$r.Entry.Name}}</td>
+                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}">{{flagEmoji $team}}{{if $state.GoalsFor}}{{$state.GoalsFor}}{{end}}</span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalPoints}}</td>
                             <td class="pb-substat">{{$r.TotalGoals}}</td>
                         </tr>
@@ -156,12 +157,12 @@
                     <span class="pb-amount">&euro;{{printf "%.2f" .Prizes.MostGoals.Amount}}</span>
                 </div>
                 <table class="pb-table">
-                    <thead><tr><th class="pb-rank">#</th><th>Entry</th><th class="pb-stat">⚽</th></tr></thead>
+                    <thead><tr><th class="pb-rank">#</th><th>Entry</th><th></th><th class="pb-stat">⚽</th></tr></thead>
                     <tbody>
                         {{range $i, $r := .TopGoals}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td>{{$r.Entry.Name}}</td>
+                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}">{{flagEmoji $team}}{{if $state.GoalsFor}}{{$state.GoalsFor}}{{end}}</span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalGoals}}</td>
                         </tr>
                         {{end}}
@@ -177,12 +178,12 @@
                     <span class="pb-amount">&euro;{{printf "%.2f" .Prizes.LeastPoints.Amount}}</span>
                 </div>
                 <table class="pb-table">
-                    <thead><tr><th class="pb-rank">#</th><th>Entry</th><th class="pb-stat">Pts</th><th class="pb-substat">⚽</th></tr></thead>
+                    <thead><tr><th class="pb-rank">#</th><th>Entry</th><th></th><th class="pb-stat">Pts</th><th class="pb-substat">⚽</th></tr></thead>
                     <tbody>
                         {{range $i, $r := .TopBest}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td>{{$r.Entry.Name}}</td>
+                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}">{{flagEmoji $team}}{{if $state.GoalsFor}}{{$state.GoalsFor}}{{end}}</span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalPoints}}</td>
                             <td class="pb-substat">{{$r.TotalGoals}}</td>
                         </tr>
@@ -198,12 +199,12 @@
                 </div>
                 {{if eq .Prizes.OverallWinner.EntryName "TBD"}}
                 <table class="pb-table">
-                    <thead><tr><th class="pb-rank">#</th><th>Entry</th><th>Leading</th></tr></thead>
+                    <thead><tr><th class="pb-rank">#</th><th>Entry</th><th></th><th>Leading</th></tr></thead>
                     <tbody>
                         {{range $i, $r := .TopLeaders}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td>{{$r.Entry.Name}}</td>
+                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}">{{flagEmoji $team}}{{if $state.GoalsFor}}{{$state.GoalsFor}}{{end}}</span>{{end}}</td>
                             <td>{{leadingTeamFor $r $.Teams}}</td>
                         </tr>
                         {{end}}
@@ -219,39 +220,7 @@
             </div>
         </div>
 
-        <h3 class="section-title">Full Leaderboard</h3>
-        <div class="overflow-auto">
-        <table class="leaderboard">
-            <thead>
-                <tr>
-                    <th class="rank">#</th>
-                    <th>Entry</th>
-                    <th class="points">Pts</th>
-                    <th class="goals">Goals</th>
-                    <th class="hide-mobile">Teams</th>
-                    <th class="show-mobile"></th>
-                </tr>
-            </thead>
-            <tbody>
-                {{range $i, $r := .Results}}
-                <tr class="entry-row" data-rank="{{add1 $i}}" data-entry="{{$r.Entry.Name}}">
-                    <td class="rank">{{add1 $i}}<span class="rank-arrow" data-entry="{{$r.Entry.Name}}"></span></td>
-                    <td><strong>{{$r.Entry.Name}}</strong></td>
-                    <td class="points">{{$r.TotalPoints}}</td>
-                    <td class="goals">{{$r.TotalGoals}}</td>
-                    <td class="hide-mobile">
-                        {{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="team-chip {{teamClass $state}}">{{flagEmoji $team}}{{$team}}{{if $state.GoalsFor}} {{$state.GoalsFor}}⚽{{end}}</span> {{end}}
-                    </td>
-                    <td class="show-mobile" style="white-space:nowrap;font-size:1.05rem">
-                        {{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}">{{flagEmoji $team}}{{if $state.GoalsFor}}{{$state.GoalsFor}}{{end}}</span>{{end}}
-                    </td>
-                </tr>
-                {{end}}
-            </tbody>
-        </table>
-        </div>
-
-        {{if .History}}
+{{if .History}}
         <div class="chart-section">
             <h3 class="section-title">Prize Movements</h3>
             <p style="font-size:0.82rem;color:var(--pico-muted-color)">Rank after each match — rank 1 is leading the prize. Click legend to toggle entries.</p>

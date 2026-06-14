@@ -28,6 +28,7 @@ type Match struct {
 	AwayScore int
 	Played    bool
 	Group     string
+	Venue     string // e.g. "NRG Stadium, Houston"
 }
 
 // TournamentData is the full scraped state of the tournament.

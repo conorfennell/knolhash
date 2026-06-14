@@ -552,6 +552,11 @@ func parseFootballBoxes(doc *html.Node, knownTeams map[string]bool) []Match {
 			m.AwayScore, _ = strconv.Atoi(sub[2])
 			m.Played = true
 		}
+		if fright := findNodeByClass(box, "div", "fright"); fright != nil {
+			if loc := findNodeByAttr(fright, "span", "itemprop", "name address"); loc != nil {
+				m.Venue = strings.TrimSpace(extractText(loc))
+			}
+		}
 		matches = append(matches, m)
 	}
 
@@ -596,6 +601,30 @@ func findNodesByClass(root *html.Node, tag, class string) []*html.Node {
 	}
 	walk(root)
 	return out
+}
+
+// findNodeByAttr returns the first element of tag whose attribute key equals val.
+func findNodeByAttr(root *html.Node, tag, key, val string) *html.Node {
+	var found *html.Node
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		if found != nil {
+			return
+		}
+		if n.Type == html.ElementNode && (tag == "" || n.Data == tag) {
+			for _, a := range n.Attr {
+				if a.Key == key && a.Val == val {
+					found = n
+					return
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(root)
+	return found
 }
 
 // findNodeByClass returns the first element matching tag + class.

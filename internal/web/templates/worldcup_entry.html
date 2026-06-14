@@ -60,6 +60,7 @@
         .fx-away { text-align: left; flex: 1; }
         .fx-vs   { color: #bbb; font-size: 0.78rem; font-weight: 400; flex-shrink: 0; }
         .fx-yours { color: #0f2744; font-weight: 800; }
+        .fx-venue { font-size: 0.72rem; color: #bbb; margin-top: 0.1rem; }
 
         /* ── Prize table ──────────────────────────────────────────────── */
         .prize-block { border: 1px solid var(--pico-muted-border-color); border-radius: 0.5rem; overflow: hidden; margin-bottom: 0.6rem; }
@@ -130,10 +131,13 @@
             <div class="fx-row">
                 {{if isLive . $.LiveMatches}}<span class="fx-when" style="color:#dc2626;font-weight:700;">🔴 Live{{with liveMinute . $.LiveMatches}} · {{.}}{{end}}</span>
                 {{else}}<span class="fx-when">{{if not .KickOff.IsZero}}{{irishTime .KickOff}}{{else}}TBC{{end}}</span>{{end}}
-                <div class="fx-match">
-                    <span class="fx-home{{if isEntryTeam .HomeTeam $.Entry}} fx-yours{{end}}">{{.HomeTeam}} {{flagEmoji .HomeTeam}}</span>
-                    <span class="fx-vs">{{with liveScore . $.LiveMatches}}{{.}}{{else}}vs{{end}}</span>
-                    <span class="fx-away{{if isEntryTeam .AwayTeam $.Entry}} fx-yours{{end}}">{{flagEmoji .AwayTeam}} {{.AwayTeam}}</span>
+                <div style="flex:1">
+                    <div class="fx-match">
+                        <span class="fx-home{{if isEntryTeam .HomeTeam $.Entry}} fx-yours{{end}}">{{.HomeTeam}} {{flagEmoji .HomeTeam}}</span>
+                        <span class="fx-vs">{{with liveScore . $.LiveMatches}}{{.}}{{else}}vs{{end}}</span>
+                        <span class="fx-away{{if isEntryTeam .AwayTeam $.Entry}} fx-yours{{end}}">{{flagEmoji .AwayTeam}} {{.AwayTeam}}</span>
+                    </div>
+                    {{if .Venue}}<div class="fx-venue">{{.Venue}}</div>{{end}}
                 </div>
             </div>
             {{end}}

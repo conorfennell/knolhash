@@ -19,6 +19,7 @@ type entryViewData struct {
 	Prizes           worldcup.PrizeSummary
 	CombinedUpcoming []worldcup.Match
 	Teams            map[string]worldcup.TeamState
+	LiveMatches      []worldcup.LiveMatch
 	FetchedAt        time.Time
 	NextRefreshUnix  int64
 	TotalPot         int
@@ -47,11 +48,38 @@ type worldcupTemplateData struct {
 	EntryNames      []string
 	NextRefreshUnix int64
 	DangerEntries   []worldcup.EntryResult
+	LiveMatches     []worldcup.LiveMatch
+}
+
+// applyLiveGoals overlays current in-play goals onto a copy of TournamentData
+// so the leaderboard moves in real time during a match.
+func applyLiveGoals(data worldcup.TournamentData, lives []worldcup.LiveMatch) worldcup.TournamentData {
+	if len(lives) == 0 {
+		return data
+	}
+	merged := make(map[string]worldcup.TeamState, len(data.Teams))
+	for k, v := range data.Teams {
+		merged[k] = v
+	}
+	for _, lm := range lives {
+		if s, ok := merged[lm.HomeTeam]; ok {
+			s.GoalsFor += lm.HomeScore
+			merged[lm.HomeTeam] = s
+		}
+		if s, ok := merged[lm.AwayTeam]; ok {
+			s.GoalsFor += lm.AwayScore
+			merged[lm.AwayTeam] = s
+		}
+	}
+	data.Teams = merged
+	return data
 }
 
 func (s *Server) handleGetWorldcup() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data := s.worldcupCache.Get()
+		lives := s.liveCache.Get()
+		data = applyLiveGoals(data, lives)
 		results := worldcup.ScoreAll(worldcup.Entries, data)
 		prizes := worldcup.ComputePrizes(results, data, worldcup.TotalPot)
 
@@ -87,6 +115,7 @@ func (s *Server) handleGetWorldcup() http.HandlerFunc {
 			EntryNames:      entryNames,
 			NextRefreshUnix: data.FetchedAt.Add(15 * time.Minute).Unix(),
 			DangerEntries:   dangerEntries,
+			LiveMatches:     lives,
 		}
 		if err := s.templates.ExecuteTemplate(w, "worldcup", td); err != nil {
 			slog.Error("worldcup: template error", "error", err)
@@ -119,6 +148,8 @@ func (s *Server) handleGetWorldcupEntry() http.HandlerFunc {
 		}
 
 		data := s.worldcupCache.Get()
+		lives := s.liveCache.Get()
+		data = applyLiveGoals(data, lives)
 		results := worldcup.ScoreAll(worldcup.Entries, data)
 		prizes := worldcup.ComputePrizes(results, data, worldcup.TotalPot)
 
@@ -186,6 +217,7 @@ func (s *Server) handleGetWorldcupEntry() http.HandlerFunc {
 			Prizes:           prizes,
 			CombinedUpcoming: combinedUpcoming,
 			Teams:            data.Teams,
+			LiveMatches:      lives,
 			FetchedAt:        data.FetchedAt,
 			NextRefreshUnix:  data.FetchedAt.Add(15 * time.Minute).Unix(),
 			TotalPot:         worldcup.TotalPot,

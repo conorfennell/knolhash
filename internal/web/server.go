@@ -36,10 +36,11 @@ type Server struct {
 	templates     *template.Template
 	markdown      goldmark.Markdown
 	worldcupCache *worldcup.Cache
+	liveCache     *worldcup.LiveCache
 }
 
 // NewServer creates and configures a new server.
-func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
+func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache) *Server {
 	md := goldmark.New(
 		goldmark.WithExtensions(),
 	)
@@ -79,6 +80,27 @@ func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
 			}
 			now := time.Now().UTC()
 			return now.After(m.KickOff) && now.Before(m.KickOff.Add(2*time.Hour))
+		},
+		"liveScore": func(m worldcup.Match, lives []worldcup.LiveMatch) string {
+			for _, lm := range lives {
+				if lm.HomeTeam == m.HomeTeam && lm.AwayTeam == m.AwayTeam {
+					return fmt.Sprintf("%d–%d", lm.HomeScore, lm.AwayScore)
+				}
+			}
+			return ""
+		},
+		"liveMinute": func(m worldcup.Match, lives []worldcup.LiveMatch) string {
+			for _, lm := range lives {
+				if lm.HomeTeam == m.HomeTeam && lm.AwayTeam == m.AwayTeam {
+					if lm.Status == "PAUSED" {
+						return "HT"
+					}
+					if lm.Minute > 0 {
+						return fmt.Sprintf("%d'", lm.Minute)
+					}
+				}
+			}
+			return ""
 		},
 		"isEntryTeam": func(teamName string, entry worldcup.Entry) bool {
 			for _, t := range entry.Teams {
@@ -260,6 +282,7 @@ func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
 		templates:     tpl,
 		markdown:      md,
 		worldcupCache: wc,
+		liveCache:     lc,
 	}
 	s.routes()
 	return s

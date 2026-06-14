@@ -31,11 +31,12 @@ var (
 
 // Config holds the application's configuration.
 type Config struct {
-	DBPath         string        `koanf:"db_path" validate:"required"`
-	Serve          bool          `koanf:"serve"`
-	ListenAddr     string        `koanf:"listen_addr" validate:"required_if=Serve true"`
-	GRPCListenAddr string        `koanf:"grpc_listen_addr" validate:"required_if=Serve true"`
-	SyncInterval   time.Duration `koanf:"sync_interval" validate:"required_if=Serve true,gt=0"`
+	DBPath              string        `koanf:"db_path" validate:"required"`
+	Serve               bool          `koanf:"serve"`
+	ListenAddr          string        `koanf:"listen_addr" validate:"required_if=Serve true"`
+	GRPCListenAddr      string        `koanf:"grpc_listen_addr" validate:"required_if=Serve true"`
+	SyncInterval        time.Duration `koanf:"sync_interval" validate:"required_if=Serve true,gt=0"`
+	FootballDataAPIKey  string        `koanf:"football_data_api_key"`
 }
 
 var k = koanf.New(".") // Initialize koanf with a dot delimiter
@@ -97,7 +98,7 @@ func main() {
 	}
 	defer db.Close() // 4. Dispatch based on flags (now using config values)
 	if cfg.Serve {
-		runWebServer(db, cfg.ListenAddr, cfg.GRPCListenAddr, cfg.SyncInterval)
+		runWebServer(db, cfg.ListenAddr, cfg.GRPCListenAddr, cfg.SyncInterval, cfg.FootballDataAPIKey)
 		return
 	}
 
@@ -106,11 +107,14 @@ func main() {
 }
 
 // runWebServer starts the HTTP and gRPC servers and a background sync ticker.
-func runWebServer(db *storage.DB, addr string, grpcAddr string, syncInterval time.Duration) {
+func runWebServer(db *storage.DB, addr string, grpcAddr string, syncInterval time.Duration, footballDataAPIKey string) {
 	startBackgroundSync(db, syncInterval)
 
 	wc := worldcup.NewCache()
 	wc.StartBackgroundRefresh()
+
+	lc := worldcup.NewLiveCache(footballDataAPIKey)
+	lc.Start()
 
 	go func() {
 		if err := grpc.StartServer(grpcAddr); err != nil {
@@ -119,7 +123,7 @@ func runWebServer(db *storage.DB, addr string, grpcAddr string, syncInterval tim
 		}
 	}()
 
-	server := web.NewServer(db, wc)
+	server := web.NewServer(db, wc, lc)
 	slog.Info("Starting web server", "addr", addr)
 	if err := http.ListenAndServe(addr, server); err != nil {
 		slog.Error("Failed to start web server", "error", err)

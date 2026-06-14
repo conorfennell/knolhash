@@ -120,10 +120,10 @@
                 {{if .UpcomingMatches}}
                 {{range .UpcomingMatches}}
                 <div class="match-row">
-                    {{if not .KickOff.IsZero}}<div class="match-when">{{if isLive .}}<span class="ml-badge ml-live">🔴 Live</span>{{else}}<span class="ml-badge ml-time-up">{{irishTime .KickOff}}</span>{{end}}</div>{{end}}
+                    {{if not .KickOff.IsZero}}<div class="match-when">{{if isLive .}}<span class="ml-badge ml-live">🔴 Live{{with liveMinute . $.LiveMatches}} · {{.}}{{end}}</span>{{else}}<span class="ml-badge ml-time-up">{{irishTime .KickOff}}</span>{{end}}</div>{{end}}
                     <div class="match-fixture">
                         <span class="mf-home">{{.HomeTeam}} {{flagEmoji .HomeTeam}}</span>
-                        <span class="mf-mid"><span class="mf-v">v</span></span>
+                        <span class="mf-mid">{{with liveScore . $.LiveMatches}}<span class="mf-score">{{.}}</span>{{else}}<span class="mf-v">v</span>{{end}}</span>
                         <span class="mf-away">{{flagEmoji .AwayTeam}} {{.AwayTeam}}</span>
                     </div>
                     <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries}}</span></div>

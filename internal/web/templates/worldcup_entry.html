@@ -128,10 +128,11 @@
         {{if .CombinedUpcoming}}
             {{range .CombinedUpcoming}}
             <div class="fx-row">
-                <span class="fx-when">{{if not .KickOff.IsZero}}{{irishTime .KickOff}}{{else}}TBC{{end}}</span>
+                {{if isLive .}}<span class="fx-when" style="color:#dc2626;font-weight:700;">🔴 Live{{with liveMinute . $.LiveMatches}} · {{.}}{{end}}</span>
+                {{else}}<span class="fx-when">{{if not .KickOff.IsZero}}{{irishTime .KickOff}}{{else}}TBC{{end}}</span>{{end}}
                 <div class="fx-match">
                     <span class="fx-home{{if isEntryTeam .HomeTeam $.Entry}} fx-yours{{end}}">{{.HomeTeam}} {{flagEmoji .HomeTeam}}</span>
-                    <span class="fx-vs">vs</span>
+                    <span class="fx-vs">{{with liveScore . $.LiveMatches}}{{.}}{{else}}vs{{end}}</span>
                     <span class="fx-away{{if isEntryTeam .AwayTeam $.Entry}} fx-yours{{end}}">{{flagEmoji .AwayTeam}} {{.AwayTeam}}</span>
                 </div>
             </div>

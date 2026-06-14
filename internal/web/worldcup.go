@@ -33,11 +33,6 @@ func (s *Server) handleGetWorldcup() http.HandlerFunc {
 		results := worldcup.ScoreAll(worldcup.Entries, data)
 		prizes := worldcup.ComputePrizes(results, data, worldcup.TotalPot)
 
-		topN := 5
-		if topN > len(results) {
-			topN = len(results)
-		}
-
 		entryNames := make([]string, len(results))
 		for i, r := range results {
 			entryNames[i] = r.Entry.Name
@@ -55,10 +50,10 @@ func (s *Server) handleGetWorldcup() http.HandlerFunc {
 
 		td := worldcupTemplateData{
 			Results:         results,
-			TopBest:         results[:topN],
-			TopWorst:        worldcup.TopByMostPoints(results, 5),
-			TopGoals:        worldcup.TopByMostGoals(results, 5),
-			TopLeaders:      worldcup.TopOverallWinner(results, data, 5),
+			TopBest:         results,
+			TopWorst:        worldcup.TopByMostPoints(results, len(results)),
+			TopGoals:        worldcup.TopByMostGoals(results, len(results)),
+			TopLeaders:      worldcup.TopOverallWinner(results, data, len(results)),
 			Teams:           data.Teams,
 			Entries:         worldcup.Entries,
 			Prizes:          prizes,

@@ -11,23 +11,23 @@ import (
 )
 
 type entryViewData struct {
-	Entry           worldcup.Entry
-	Result          worldcup.EntryResult
-	Rank            int
-	TotalEntries    int
-	AllResults      []worldcup.EntryResult
-	Prizes          worldcup.PrizeSummary
-	TeamMatches     [4][]worldcup.Match
-	Teams           map[string]worldcup.TeamState
-	FetchedAt       time.Time
-	NextRefreshUnix int64
-	TotalPot        int
-	LeastPtsRank    int
-	LeastPtsGap     int
-	MostPtsRank     int
-	MostPtsGap      int
-	MostGoalsRank   int
-	MostGoalsGap    int
+	Entry            worldcup.Entry
+	Result           worldcup.EntryResult
+	Rank             int
+	TotalEntries     int
+	AllResults       []worldcup.EntryResult
+	Prizes           worldcup.PrizeSummary
+	CombinedUpcoming []worldcup.Match
+	Teams            map[string]worldcup.TeamState
+	FetchedAt        time.Time
+	NextRefreshUnix  int64
+	TotalPot         int
+	LeastPtsRank     int
+	LeastPtsGap      int
+	MostPtsRank      int
+	MostPtsGap       int
+	MostGoalsRank    int
+	MostGoalsGap     int
 }
 
 type worldcupTemplateData struct {
@@ -133,18 +133,24 @@ func (s *Server) handleGetWorldcupEntry() http.HandlerFunc {
 			}
 		}
 
-		// Per-team upcoming fixtures (next 3 each), already sorted chronologically.
+		// All upcoming fixtures for any of this entry's teams, merged and deduped.
 		upcoming := worldcup.UpcomingMatches(data.Matches, len(data.Matches))
-		var teamMatches [4][]worldcup.Match
-		for j, teamName := range entry.Teams {
-			for _, m := range upcoming {
-				if m.HomeTeam == teamName || m.AwayTeam == teamName {
-					teamMatches[j] = append(teamMatches[j], m)
-					if len(teamMatches[j]) >= 3 {
-						break
-					}
-				}
+		entryTeams := make(map[string]bool)
+		for _, t := range entry.Teams {
+			entryTeams[t] = true
+		}
+		seen := make(map[string]bool)
+		var combinedUpcoming []worldcup.Match
+		for _, m := range upcoming {
+			if !entryTeams[m.HomeTeam] && !entryTeams[m.AwayTeam] {
+				continue
 			}
+			key := m.HomeTeam + "|||" + m.AwayTeam
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			combinedUpcoming = append(combinedUpcoming, m)
 		}
 
 		// Prize rank + gap for Least Points (lower = better; results sorted ascending).
@@ -172,23 +178,23 @@ func (s *Server) handleGetWorldcupEntry() http.HandlerFunc {
 		mostGoalsGap := goalsSorted[0].TotalGoals - result.TotalGoals
 
 		td := entryViewData{
-			Entry:           entry,
-			Result:          result,
-			Rank:            rank,
-			TotalEntries:    len(results),
-			AllResults:      results,
-			Prizes:          prizes,
-			TeamMatches:     teamMatches,
-			Teams:           data.Teams,
-			FetchedAt:       data.FetchedAt,
-			NextRefreshUnix: data.FetchedAt.Add(15 * time.Minute).Unix(),
-			TotalPot:        worldcup.TotalPot,
-			LeastPtsRank:    leastPtsRank,
-			LeastPtsGap:     leastPtsGap,
-			MostPtsRank:     mostPtsRank,
-			MostPtsGap:      mostPtsGap,
-			MostGoalsRank:   mostGoalsRank,
-			MostGoalsGap:    mostGoalsGap,
+			Entry:            entry,
+			Result:           result,
+			Rank:             rank,
+			TotalEntries:     len(results),
+			AllResults:       results,
+			Prizes:           prizes,
+			CombinedUpcoming: combinedUpcoming,
+			Teams:            data.Teams,
+			FetchedAt:        data.FetchedAt,
+			NextRefreshUnix:  data.FetchedAt.Add(15 * time.Minute).Unix(),
+			TotalPot:         worldcup.TotalPot,
+			LeastPtsRank:     leastPtsRank,
+			LeastPtsGap:      leastPtsGap,
+			MostPtsRank:      mostPtsRank,
+			MostPtsGap:       mostPtsGap,
+			MostGoalsRank:    mostGoalsRank,
+			MostGoalsGap:     mostGoalsGap,
 		}
 		if err := s.templates.ExecuteTemplate(w, "worldcup_entry", td); err != nil {
 			slog.Error("worldcup entry: template error", "error", err)

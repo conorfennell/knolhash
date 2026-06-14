@@ -73,6 +73,14 @@ func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
 		"entrySlug": func(name string) string {
 			return strings.ToLower(strings.ReplaceAll(name, " ", "-"))
 		},
+		"isEntryTeam": func(teamName string, entry worldcup.Entry) bool {
+			for _, t := range entry.Teams {
+				if t == teamName {
+					return true
+				}
+			}
+			return false
+		},
 		"flagClass": func(state worldcup.TeamState) string {
 			if state.FinalPlace > 0 && !state.Provisional {
 				return "flag-eliminated"

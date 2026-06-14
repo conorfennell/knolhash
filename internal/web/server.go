@@ -73,6 +73,13 @@ func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
 		"entrySlug": func(name string) string {
 			return strings.ToLower(strings.ReplaceAll(name, " ", "-"))
 		},
+		"isLive": func(m worldcup.Match) bool {
+			if m.KickOff.IsZero() || m.Played {
+				return false
+			}
+			now := time.Now().UTC()
+			return now.After(m.KickOff) && now.Before(m.KickOff.Add(2*time.Hour))
+		},
 		"isEntryTeam": func(teamName string, entry worldcup.Entry) bool {
 			for _, t := range entry.Teams {
 				if t == teamName {

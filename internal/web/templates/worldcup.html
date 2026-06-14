@@ -47,6 +47,9 @@
         .ml-badge { font-size: 0.78rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 0.9rem; flex-shrink: 0; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
         .ml-time-up   { background: #dbeafe; color: #1d4ed8; }
         .ml-time-done { background: #e5e7eb; color: #6b7280; }
+        .ml-live      { background: #fee2e2; color: #dc2626; font-weight: 800; letter-spacing: 0.03em; }
+        @keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+        .ml-live { animation: live-pulse 1.4s ease-in-out infinite; }
 
         /* ── Prize blocks ─────────────────────────────────────────────── */
         .prize-block { border: 1px solid var(--pico-muted-border-color); border-radius: 0.5rem; overflow: hidden; }
@@ -117,7 +120,7 @@
                 {{if .UpcomingMatches}}
                 {{range .UpcomingMatches}}
                 <div class="match-row">
-                    {{if not .KickOff.IsZero}}<div class="match-when"><span class="ml-badge ml-time-up">{{irishTime .KickOff}}</span></div>{{end}}
+                    {{if not .KickOff.IsZero}}<div class="match-when">{{if isLive .}}<span class="ml-badge ml-live">🔴 Live</span>{{else}}<span class="ml-badge ml-time-up">{{irishTime .KickOff}}</span>{{end}}</div>{{end}}
                     <div class="match-fixture">
                         <span class="mf-home">{{.HomeTeam}} {{flagEmoji .HomeTeam}}</span>
                         <span class="mf-mid"><span class="mf-v">v</span></span>

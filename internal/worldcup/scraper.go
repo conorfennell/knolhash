@@ -51,6 +51,7 @@ func FetchTournamentData() (TournamentData, error) {
 	if len(matches) == 0 {
 		matches = parseMatches(doc, knownTeams)
 	}
+	applyThirdPlaceRankings(doc, teams)
 	applyKnockoutEliminations(doc, teams)
 
 	slog.Info("worldcup: scraped tournament data", "teams", len(teams), "matches", len(matches))
@@ -122,6 +123,56 @@ func parseGroupTables(doc *html.Node) map[string]TeamState {
 	}
 
 	return teams
+}
+
+// applyThirdPlaceRankings parses the "Ranking of third-placed teams" wikitable
+// and updates team state based on their rank among the 12 third-placed teams:
+//   - ranks 1–8  (advancing to knockouts): ThirdPlaceGroupRank = rank
+//   - ranks 9–12 (eliminated):             FinalPlace = rank+24  (→ positions 33–36, scoring 33–36 pts)
+//
+// The table is identified by having a "Grp" column, which group tables lack.
+// Rows where the team name cannot be resolved to a known entry team are skipped
+// (e.g. "Third place Group E" when that group hasn't finished yet).
+func applyThirdPlaceRankings(doc *html.Node, teams map[string]TeamState) {
+	knownTeams := entryTeamSet()
+	for _, table := range findWikitables(doc) {
+		rows := tableRows(table)
+		if len(rows) < 2 {
+			continue
+		}
+		headers := cellTexts(rows[0])
+		if indexOfHeader(headers, "Grp") < 0 {
+			continue
+		}
+		teamIdx := indexOfHeader(headers, "Team")
+		if teamIdx < 0 {
+			teamIdx = 2
+		}
+		for _, row := range rows[1:] {
+			cells := cellTexts(row)
+			if len(cells) <= teamIdx {
+				continue
+			}
+			pos, err := strconv.Atoi(strings.TrimSpace(cells[0]))
+			if err != nil || pos < 1 || pos > 12 {
+				continue
+			}
+			name := normalizeTeamName(cells[teamIdx])
+			if name == "" || !knownTeams[name] {
+				continue
+			}
+			state := teams[name]
+			if pos <= 8 {
+				state.ThirdPlaceGroupRank = pos
+				state.FinalPlace = 0
+			} else {
+				state.FinalPlace = pos + 24
+				state.ThirdPlaceGroupRank = 0
+			}
+			teams[name] = state
+		}
+		break
+	}
 }
 
 // applyKnockoutEliminations attempts to assign FinalPlace values to teams

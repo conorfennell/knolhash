@@ -285,9 +285,6 @@ func ScoreAll(entries []Entry, data TournamentData) []EntryResult {
 		if a.TotalPoints != b.TotalPoints {
 			return a.TotalPoints < b.TotalPoints
 		}
-		if a.TotalGoals != b.TotalGoals {
-			return a.TotalGoals < b.TotalGoals
-		}
 		return a.Entry.Name < b.Entry.Name
 	})
 	return results

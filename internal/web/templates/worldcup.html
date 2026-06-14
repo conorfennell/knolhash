@@ -142,7 +142,7 @@
                         {{range $i, $r := .TopWorst}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}">{{flagEmoji $team}}{{if $state.GoalsFor}}{{$state.GoalsFor}}{{end}}</span>{{end}}</td>
+                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}">{{flagEmoji $team}}{{$state.GoalsFor}}</span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalPoints}}</td>
                             <td class="pb-substat">{{$r.TotalGoals}}</td>
                         </tr>
@@ -162,7 +162,7 @@
                         {{range $i, $r := .TopGoals}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}">{{flagEmoji $team}}{{if $state.GoalsFor}}{{$state.GoalsFor}}{{end}}</span>{{end}}</td>
+                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}">{{flagEmoji $team}}{{$state.GoalsFor}}</span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalGoals}}</td>
                         </tr>
                         {{end}}
@@ -183,7 +183,7 @@
                         {{range $i, $r := .TopBest}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}">{{flagEmoji $team}}{{if $state.GoalsFor}}{{$state.GoalsFor}}{{end}}</span>{{end}}</td>
+                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}">{{flagEmoji $team}}{{$state.GoalsFor}}</span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalPoints}}</td>
                             <td class="pb-substat">{{$r.TotalGoals}}</td>
                         </tr>
@@ -204,7 +204,7 @@
                         {{range $i, $r := .TopLeaders}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}">{{flagEmoji $team}}{{if $state.GoalsFor}}{{$state.GoalsFor}}{{end}}</span>{{end}}</td>
+                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}">{{flagEmoji $team}}{{$state.GoalsFor}}</span>{{end}}</td>
                             <td>{{leadingTeamFor $r $.Teams}}</td>
                         </tr>
                         {{end}}

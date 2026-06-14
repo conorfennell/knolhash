@@ -3,3 +3,4 @@ serve: true
 listen_addr: ":8080"
 grpc_listen_addr: ":50051"
 sync_interval: 30m
+football_data_api_key: 7a4e484fd1984a9ab25b839281f13d60

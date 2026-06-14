@@ -55,15 +55,26 @@ type worldcupTemplateData struct {
 
 // applyLiveGoals overlays current in-play goals onto a copy of TournamentData
 // so the leaderboard moves in real time during a match.
+// Skips any match that Wikipedia has already marked as played — those goals
+// are already baked into TeamState.GoalsFor by the scraper.
 func applyLiveGoals(data worldcup.TournamentData, lives []worldcup.LiveMatch) worldcup.TournamentData {
 	if len(lives) == 0 {
 		return data
+	}
+	completed := make(map[string]bool, len(data.Matches))
+	for _, m := range data.Matches {
+		if m.Played {
+			completed[m.HomeTeam+"|||"+m.AwayTeam] = true
+		}
 	}
 	merged := make(map[string]worldcup.TeamState, len(data.Teams))
 	for k, v := range data.Teams {
 		merged[k] = v
 	}
 	for _, lm := range lives {
+		if completed[lm.HomeTeam+"|||"+lm.AwayTeam] {
+			continue
+		}
 		if s, ok := merged[lm.HomeTeam]; ok {
 			s.GoalsFor += lm.HomeScore
 			merged[lm.HomeTeam] = s

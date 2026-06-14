@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	_ "time/tzdata" // embed timezone database so Docker containers don't need system tzdata
 
 	"github.com/conorfennell/knolhash/internal/grpc"
 	"github.com/conorfennell/knolhash/internal/storage"

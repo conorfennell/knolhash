@@ -167,7 +167,7 @@
                         {{range $i, $r := .TopWorst}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
+                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a></td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalPoints}}</td>
                             <td class="pb-substat">{{$r.TotalGoals}}</td>
                         </tr>
@@ -187,7 +187,7 @@
                         {{range $i, $r := .TopGoals}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
+                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a></td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalGoals}}</td>
                         </tr>
                         {{end}}
@@ -208,7 +208,7 @@
                         {{range $i, $r := .TopBest}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
+                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a></td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalPoints}}</td>
                             <td class="pb-substat">{{$r.TotalGoals}}</td>
                         </tr>
@@ -229,7 +229,7 @@
                         {{range $i, $r := .TopLeaders}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td>{{$r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
+                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a></td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
                             <td>{{leadingTeamFor $r $.Teams}}</td>
                         </tr>
                         {{end}}
@@ -249,7 +249,7 @@
         {{range $i, $r := .Results}}
             <div class="prize-block">
                 <div class="pb-header">
-                    <span class="pb-title">{{add1 $i}}. {{$r.Entry.Name}}</span>
+                    <span class="pb-title">{{add1 $i}}. <a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a></span>
                     <span class="pb-amount">{{$r.TotalPoints}}pts &middot; {{$r.TotalGoals}}⚽</span>
                 </div>
                 <table class="pb-table">

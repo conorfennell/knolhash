@@ -70,6 +70,9 @@ func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
 			}
 			return ""
 		},
+		"entrySlug": func(name string) string {
+			return strings.ToLower(strings.ReplaceAll(name, " ", "-"))
+		},
 		"flagClass": func(state worldcup.TeamState) string {
 			if state.FinalPlace > 0 && !state.Provisional {
 				return "flag-eliminated"
@@ -263,6 +266,7 @@ func (s *Server) routes() {
 
 	// World Cup leaderboard
 	s.router.HandleFunc("/worldcup", s.handleGetWorldcup())
+	s.router.HandleFunc("/worldcup/entry/", s.handleGetWorldcupEntry())
 
 	// Secret
 	s.router.HandleFunc("/secret/fibonacci/", s.handleFibonacci())

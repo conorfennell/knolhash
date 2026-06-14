@@ -256,8 +256,28 @@ func ThirdPlaceGroupBonus(rank int) int {
 	return rank
 }
 
+// estimatedGroupPoints returns a rough point estimate for a team that has no
+// confirmed result yet (FinalPlace==0, ThirdPlaceGroupRank==0). It uses the
+// team's current group position as a floor:
+//   - 1st or 2nd: 25 pts (minimum once they lose in R32)
+//   - 3rd (unranked): 25 pts (most 3rd-place teams advance to R32)
+//   - 4th (mid-group, not yet finalized): 42 pts
+//   - unknown: 0
+func estimatedGroupPoints(state TeamState) int {
+	switch state.GroupPosition {
+	case 1, 2, 3:
+		return 25
+	case 4:
+		return 42
+	default:
+		return 0
+	}
+}
+
 // ScoreEntry computes total points and goals for a single entry based on
-// current tournament data.
+// current tournament data. When no actual result exists yet, it falls back to
+// estimatedGroupPoints so every team with a known group position contributes
+// something to the leaderboard estimate.
 func ScoreEntry(entry Entry, data TournamentData) EntryResult {
 	result := EntryResult{Entry: entry}
 	for i, teamName := range entry.Teams {
@@ -266,7 +286,11 @@ func ScoreEntry(entry Entry, data TournamentData) EntryResult {
 			state = TeamState{Name: teamName}
 		}
 		result.TeamStates[i] = state
-		result.TotalPoints += PlacementPoints(state.FinalPlace) + ThirdPlaceGroupBonus(state.ThirdPlaceGroupRank)
+		pts := PlacementPoints(state.FinalPlace) + ThirdPlaceGroupBonus(state.ThirdPlaceGroupRank)
+		if pts == 0 {
+			pts = estimatedGroupPoints(state)
+		}
+		result.TotalPoints += pts
 		result.TotalGoals += state.GoalsFor
 	}
 	return result

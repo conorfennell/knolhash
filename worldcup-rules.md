@@ -13,7 +13,7 @@
 Each of your 4 teams earns points based on how far they go in the tournament. The further they go, the **fewer** points they give you. Points from all 4 teams are added together.
 
 | Stage eliminated | Points |
-|-----------------|--------|
+| --- | --- |
 | Group stage — 4th in group | 42 |
 | Group stage — 3rd place, not qualifying (ranked 9th–12th of 12) | 33–36 (see below) |
 | Round of 32 | 25 |
@@ -24,8 +24,6 @@ Each of your 4 teams earns points based on how far they go in the tournament. Th
 | Runner-up | 2 |
 | **Champion** | **1** |
 
-Teams finishing 1st or 2nd in their group score **0 points** until their knockout results are decided.
-
 ---
 
 ## Third-place teams
@@ -35,7 +33,7 @@ The 2026 World Cup has 12 groups. The **best 8 of the 12 third-place teams** adv
 Third-place teams are ranked using FIFA's tiebreaker rules (points, goal difference, goals scored, etc.). Their ranking determines points:
 
 | 3rd-place rank | Result | Points |
-|---------------|--------|--------|
+| --- | --- | --- |
 | 1st (best) | Advances — bonus 1 pt on top of knockout result | 1 bonus pt |
 | 2nd | Advances — bonus 2 pts | 2 bonus pts |
 | 3rd–8th | Advances — bonus 3–8 pts | 3–8 bonus pts |
@@ -52,19 +50,24 @@ For advancing 3rd-place teams, the bonus points are added on top of whatever the
 
 ## Estimated points during the group stage
 
-While groups are still being played, the leaderboard shows **estimated** points based on current standings:
+While the tournament is still in progress, the leaderboard shows **estimated** points based on current standings:
 
-- **Currently 4th** in a group → estimated 42 pts
-- **Currently 3rd and advancing** (ranked 1st–8th among 3rd-place teams) → estimated bonus pts (1–8) with knockout contribution at 0 until played
-- **Currently 3rd and eliminated** (ranked 9th–12th) → 33–36 pts
-- **Currently 1st or 2nd** → 0 pts until their knockout results are in
+| Current group position | Estimated points |
+| --- | --- |
+| 1st or 2nd | 25 pts (R32 floor — they'll lose here at the earliest) |
+| 3rd (not yet ranked) | 25 pts (most 3rd-place teams advance to R32) |
+| 3rd, ranked 1st–8th | Bonus pts only (1–8) while knockouts are live |
+| 3rd, ranked 9th–12th | 33–36 pts (eliminated) |
+| 4th | 42 pts (eliminated) |
+
+Estimates are replaced by actual points as knockout results come in.
 
 ---
 
 ## Prizes
 
 | Prize | Amount | Awarded to |
-|-------|--------|-----------|
+| --- | --- | --- |
 | Least Points | €42.50 | Entry with the **fewest** combined points |
 | World Cup Winner | €37.50 | Entry containing the tournament champion |
 | Most Points | €5 | Entry with the **most** combined points |

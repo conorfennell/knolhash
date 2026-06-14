@@ -55,6 +55,10 @@
         .chart-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
         .chart-wrap { position: relative; height: 280px; margin-bottom: 2rem; }
 
+        .page-header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; padding: 1rem 0 1.2rem; border-bottom: 2px solid var(--pico-muted-border-color); margin-bottom: 1.5rem; }
+        .page-title { font-size: 1.3rem; font-weight: 800; margin: 0; }
+        .page-chips { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+        .page-chip { font-size: 0.75rem; font-weight: 600; padding: 0.18rem 0.55rem; border-radius: 1rem; background: #f3f4f6; color: #6b7280; }
         .section-title { margin-top: 1.5rem; margin-bottom: 0.5rem; }
         .meta { font-size: 0.8rem; color: var(--pico-muted-color); text-align: right; margin-top: 1.2rem; }
         .tbd  { color: var(--pico-muted-color); font-style: italic; }
@@ -68,15 +72,15 @@
 </head>
 <body>
     <main class="container">
-        <nav>
-            <ul><li><strong>World Cup 2026</strong></li></ul>
-        </nav>
-
-        <h2>World Cup 2026 — Sweepstake</h2>
-        <p>18 entries &middot; &euro;{{.TotalPot}} pot</p>
+        <div class="page-header">
+            <span class="page-title">⚽ World Cup 2026 Sweepstake</span>
+            <div class="page-chips">
+                <span class="page-chip">18 entries</span>
+                <span class="page-chip">&euro;{{.TotalPot}} pot</span>
+            </div>
+        </div>
 
         {{if or .UpcomingMatches .RecentMatches}}
-        <h3 class="section-title">Matches</h3>
         <div class="grid">
             <article>
                 <header><strong>Fixtures</strong></header>

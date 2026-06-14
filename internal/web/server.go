@@ -167,10 +167,14 @@ func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
 				return ""
 			}
 			state := r.TeamStates[j]
-			pts := worldcup.PlacementPoints(state.FinalPlace) + worldcup.ThirdPlaceGroupBonus(state.ThirdPlaceGroupRank)
-			estimated := pts == 0 || state.Provisional
-			if pts == 0 {
+			var pts int
+			estimated := false
+			if state.FinalPlace > 0 {
+				pts = worldcup.PlacementPoints(state.FinalPlace) + worldcup.ThirdPlaceGroupBonus(state.ThirdPlaceGroupRank)
+				estimated = state.Provisional
+			} else {
 				pts = worldcup.EstimatedGroupPoints(state)
+				estimated = true
 			}
 			if pts == 0 {
 				return "—"

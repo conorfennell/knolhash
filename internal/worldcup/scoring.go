@@ -205,24 +205,10 @@ func TopOverallWinner(results []EntryResult, data TournamentData, n int) []Entry
 		return out
 	}
 
-	seen := make(map[string]bool)
-	var out []EntryResult
-	for _, r := range results {
-		if seen[r.Entry.Name] {
-			continue
-		}
-		for _, teamName := range r.Entry.Teams {
-			if state, ok := data.Teams[teamName]; ok && state.GroupPosition == 1 && state.FinalPlace == 0 {
-				out = append(out, r)
-				seen[r.Entry.Name] = true
-				break
-			}
-		}
+	if len(results) > n {
+		return results[:n]
 	}
-	if len(out) > n {
-		return out[:n]
-	}
-	return out
+	return results
 }
 
 // PlacementPoints returns the points for a final tournament placement.

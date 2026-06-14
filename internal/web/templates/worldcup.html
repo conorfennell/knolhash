@@ -174,6 +174,25 @@
         <div class="grid section-gap">
             <div class="prize-block">
                 <div class="pb-header">
+                    <span class="pb-title">Most Goals</span>
+                    <span class="pb-amount">&euro;{{printf "%.2f" .Prizes.MostGoals.Amount}}</span>
+                </div>
+                <table class="pb-table">
+                    <thead><tr><th class="pb-rank">#</th><th>Entry</th><th></th><th class="pb-stat">⚽</th></tr></thead>
+                    <tbody>
+                        {{range $i, $r := .TopGoals}}
+                        <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
+                            <td class="pb-rank">{{add1 $i}}</td>
+                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a></td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
+                            <td class="pb-stat">{{$r.TotalGoals}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="prize-block">
+                <div class="pb-header">
                     <span class="pb-title">Most Points</span>
                     <span class="pb-amount">&euro;{{printf "%.2f" .Prizes.MostPoints.Amount}}</span>
                 </div>
@@ -186,25 +205,6 @@
                             <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a></td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalPoints}}</td>
                             <td class="pb-substat">{{$r.TotalGoals}}</td>
-                        </tr>
-                        {{end}}
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="prize-block">
-                <div class="pb-header">
-                    <span class="pb-title">Most Goals</span>
-                    <span class="pb-amount">&euro;{{printf "%.2f" .Prizes.MostGoals.Amount}}</span>
-                </div>
-                <table class="pb-table">
-                    <thead><tr><th class="pb-rank">#</th><th>Entry</th><th></th><th class="pb-stat">⚽</th></tr></thead>
-                    <tbody>
-                        {{range $i, $r := .TopGoals}}
-                        <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
-                            <td class="pb-rank">{{add1 $i}}</td>
-                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a></td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
-                            <td class="pb-stat">{{$r.TotalGoals}}</td>
                         </tr>
                         {{end}}
                     </tbody>

@@ -29,6 +29,12 @@ var trustedPeople = map[string]TrustedPerson{
 		Name:   "Conor Fennell",
 		Topics: []TrustedTopic{
 			{
+				Topic: "Final Fantasy VII",
+				Sources: []TrustedSource{
+					{Label: "Maximilian Dood", URL: "https://www.youtube.com/@Maximilian_Dood", Type: "youtube-channel"},
+				},
+			},
+			{
 				Topic: "Personal Finance",
 				Sources: []TrustedSource{
 					{Label: "r/irishpersonalfinance", URL: "https://www.reddit.com/r/irishpersonalfinance/", Type: "forum"},

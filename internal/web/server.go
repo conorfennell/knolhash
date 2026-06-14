@@ -57,7 +57,7 @@ func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
 			return worldcup.TeamFlags[team]
 		},
 		"teamClass": func(state worldcup.TeamState) string {
-			if state.FinalPlace > 0 {
+			if state.FinalPlace > 0 || state.GroupPosition == 4 {
 				return "eliminated"
 			}
 			switch state.GroupPosition {
@@ -67,8 +67,6 @@ func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
 				return "pos-2"
 			case 3:
 				return "pos-3"
-			case 4:
-				return "pos-4"
 			}
 			return ""
 		},
@@ -170,14 +168,48 @@ func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
 			}
 			state := r.TeamStates[j]
 			pts := worldcup.PlacementPoints(state.FinalPlace) + worldcup.ThirdPlaceGroupBonus(state.ThirdPlaceGroupRank)
+			estimated := pts == 0 || state.Provisional
 			if pts == 0 {
-				goals := state.GoalsFor
-				if goals == 0 {
-					return ""
-				}
-				return fmt.Sprintf(" (%dg)", goals)
+				pts = worldcup.EstimatedGroupPoints(state)
 			}
-			return fmt.Sprintf(" (%dpts)", pts)
+			if pts == 0 {
+				return "—"
+			}
+			if estimated {
+				return "~" + fmt.Sprintf("%d", pts)
+			}
+			return fmt.Sprintf("%d", pts)
+		},
+		"teamPosLabel": func(state worldcup.TeamState) string {
+			if state.FinalPlace > 0 {
+				if state.Provisional {
+					return "~Out"
+				}
+				return "Out"
+			}
+			if state.GroupPosition == 4 {
+				return "~Out"
+			}
+			provisional := state.Played < 3
+			switch state.GroupPosition {
+			case 1:
+				if provisional {
+					return "~1st"
+				}
+				return "1st"
+			case 2:
+				if provisional {
+					return "~2nd"
+				}
+				return "2nd"
+			case 3:
+				if provisional {
+					return "~3rd"
+				}
+				return "3rd"
+			default:
+				return "—"
+			}
 		},
 	}
 

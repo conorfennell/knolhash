@@ -131,8 +131,9 @@ func parseGroupTables(doc *html.Node) map[string]TeamState {
 //   - ranks 9–12 (eliminated):             FinalPlace = rank+24  (→ positions 33–36, scoring 33–36 pts)
 //
 // The table is identified by having a "Grp" column, which group tables lack.
-// Rows where the team name cannot be resolved to a known entry team are skipped
-// (e.g. "Third place Group E" when that group hasn't finished yet).
+// When fewer than 12 groups have completed (some rows still say "Third place Group X"),
+// eliminated teams (ranks 9–12) are marked Provisional=true because groups yet to
+// finish could produce a better 3rd-place team that pushes them back into qualification.
 func applyThirdPlaceRankings(doc *html.Node, teams map[string]TeamState) {
 	knownTeams := entryTeamSet()
 	for _, table := range findWikitables(doc) {
@@ -148,6 +149,28 @@ func applyThirdPlaceRankings(doc *html.Node, teams map[string]TeamState) {
 		if teamIdx < 0 {
 			teamIdx = 2
 		}
+
+		// Count how many of the 12 positions have a resolved (known) team.
+		// If any row has an unrecognised name the group stage isn't fully done.
+		resolvedCount := 0
+		totalRows := 0
+		for _, row := range rows[1:] {
+			cells := cellTexts(row)
+			if len(cells) <= teamIdx {
+				continue
+			}
+			pos, err := strconv.Atoi(strings.TrimSpace(cells[0]))
+			if err != nil || pos < 1 || pos > 12 {
+				continue
+			}
+			totalRows++
+			name := normalizeTeamName(cells[teamIdx])
+			if knownTeams[name] {
+				resolvedCount++
+			}
+		}
+		rankingComplete := totalRows == 12 && resolvedCount == 12
+
 		for _, row := range rows[1:] {
 			cells := cellTexts(row)
 			if len(cells) <= teamIdx {
@@ -165,9 +188,11 @@ func applyThirdPlaceRankings(doc *html.Node, teams map[string]TeamState) {
 			if pos <= 8 {
 				state.ThirdPlaceGroupRank = pos
 				state.FinalPlace = 0
+				state.Provisional = !rankingComplete
 			} else {
 				state.FinalPlace = pos + 24
 				state.ThirdPlaceGroupRank = 0
+				state.Provisional = !rankingComplete
 			}
 			teams[name] = state
 		}

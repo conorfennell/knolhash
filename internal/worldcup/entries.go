@@ -11,11 +11,12 @@ type Entry struct {
 // TeamState holds tournament progress for one team.
 type TeamState struct {
 	Name                string
-	GoalsFor            int // goals scored across all tournament matches
-	GroupPosition       int // current position within their group (1–4), 0 = unknown
-	Played              int // group-stage games played
-	FinalPlace          int // 1–48 when eliminated/finished; 0 = still active
-	ThirdPlaceGroupRank int // 1–8 for 3rd-placed teams that advance to knockouts; 0 otherwise
+	GoalsFor            int  // goals scored across all tournament matches
+	GroupPosition       int  // current position within their group (1–4), 0 = unknown
+	Played              int  // group-stage games played
+	FinalPlace          int  // 1–48 when eliminated/finished; 0 = still active
+	ThirdPlaceGroupRank int  // 1–8 for 3rd-placed teams that advance to knockouts; 0 otherwise
+	Provisional         bool // true when placement/rank is based on incomplete group stage data
 }
 
 // Match represents one tournament fixture.

@@ -71,10 +71,9 @@
         .pos-4 { color: #888; }
         .eliminated { text-decoration: line-through; color: #aaa; }
 
-        /* ── Charts ───────────────────────────────────────────────────── */
-        .chart-section { margin-top: 1.5rem; }
-        .chart-label { font-size: 0.85rem; font-weight: 700; margin: 1rem 0 0.3rem; color: #444; }
-        .chart-wrap { position: relative; height: 260px; margin-bottom: 1.5rem; }
+        /* ── Entry breakdown grid ─────────────────────────────────────── */
+        .breakdown-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; margin-bottom: 1rem; }
+        @media (max-width: 600px) { .breakdown-grid { grid-template-columns: 1fr; } }
 
         /* ── Misc ─────────────────────────────────────────────────────── */
         .rank-up   { color: #2d8a4e; font-size: 0.7rem; vertical-align: super; margin-left: 0.1rem; }
@@ -244,17 +243,30 @@
             </div>
         </div>
 
-        {{if .History}}
-        <div class="chart-section">
-            <p style="font-size:0.78rem;color:var(--pico-muted-color);margin-bottom:0">Rank after each match — rank 1 leads the prize. Click a name to isolate.</p>
-            <div class="chart-label">⚽ Most Goals</div>
-            <div class="chart-wrap"><canvas id="chartGoals"></canvas></div>
-            <div class="chart-label">🏆 Least Points</div>
-            <div class="chart-wrap"><canvas id="chartLeast"></canvas></div>
-            <div class="chart-label">🍽 Most Points</div>
-            <div class="chart-wrap"><canvas id="chartMost"></canvas></div>
-        </div>
+        <div class="breakdown-grid">
+        {{range $i, $r := .Results}}
+            <div class="prize-block">
+                <div class="pb-header">
+                    <span class="pb-title">{{add1 $i}}. {{$r.Entry.Name}}</span>
+                    <span class="pb-amount">{{$r.TotalPoints}}pts &middot; {{$r.TotalGoals}}⚽</span>
+                </div>
+                <table class="pb-table">
+                    <thead><tr><th>Team</th><th class="pb-stat">Pos</th><th class="pb-stat">⚽</th><th class="pb-stat">Pts</th></tr></thead>
+                    <tbody>
+                    {{range $j, $team := $r.Entry.Teams}}
+                    {{$state := index $r.TeamStates $j}}
+                    <tr>
+                        <td><span class="{{teamClass $state}}">{{flagEmoji $team}} {{$team}}</span></td>
+                        <td class="pb-stat">{{teamPosLabel $state}}</td>
+                        <td class="pb-stat">{{$state.GoalsFor}}</td>
+                        <td class="pb-stat">{{teamPts $r $j}}</td>
+                    </tr>
+                    {{end}}
+                    </tbody>
+                </table>
+            </div>
         {{end}}
+        </div>
 
         <p class="meta">
             {{if .FetchedAt.IsZero}}
@@ -300,84 +312,5 @@
     })();
     </script>
 
-    {{if .History}}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-    <script>
-    (function() {
-        var history = {{historyJSON .History}};
-        var entries = {{entryNamesJSON .EntryNames}};
-        var labels  = history.map(function(s) { return s.Label; });
-
-        function hslColor(i, n) {
-            return 'hsl(' + Math.round(i * 360 / n) + ',60%,48%)';
-        }
-
-        function datasets(key) {
-            var lastSnap = history.length > 0 ? history[history.length - 1] : null;
-            return entries.map(function(name, i) {
-                var rank = lastSnap && lastSnap[key][name] ? ' #' + lastSnap[key][name] : '';
-                return {
-                    label: name + rank,
-                    data: history.map(function(s) { return s[key][name] != null ? s[key][name] : null; }),
-                    borderColor: hslColor(i, entries.length),
-                    backgroundColor: 'transparent',
-                    borderWidth: 1.5,
-                    pointRadius: 2,
-                    tension: 0.3,
-                };
-            });
-        }
-
-        var baseOpts = {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'bottom',
-                    labels: { boxWidth: 12, font: { size: 11 } }
-                }
-            },
-            scales: {
-                x: { ticks: { font: { size: 10 }, maxRotation: 45 } },
-                y: {
-                    reverse: true,
-                    min: 1,
-                    ticks: { stepSize: 1, precision: 0 },
-                    title: { display: true, text: 'Rank', font: { size: 11 } }
-                }
-            }
-        };
-
-        function isolateClick(e, legendItem, legend) {
-            var chart = legend.chart;
-            var idx = legendItem.datasetIndex;
-            var visibleCount = 0;
-            chart.data.datasets.forEach(function(ds, i) {
-                if (!chart.getDatasetMeta(i).hidden) visibleCount++;
-            });
-            if (visibleCount === 1 && !chart.getDatasetMeta(idx).hidden) {
-                chart.data.datasets.forEach(function(ds, i) { chart.getDatasetMeta(i).hidden = false; });
-            } else {
-                chart.data.datasets.forEach(function(ds, i) { chart.getDatasetMeta(i).hidden = i !== idx; });
-            }
-            chart.update();
-        }
-
-        function makeChart(id, key) {
-            var ctx = document.getElementById(id);
-            if (!ctx) return;
-            var opts = JSON.parse(JSON.stringify(baseOpts));
-            opts.plugins.legend.onClick = isolateClick;
-            new Chart(ctx, { type: 'line', data: { labels: labels, datasets: datasets(key) }, options: opts });
-        }
-
-        makeChart('chartGoals', 'GoalRanks');
-        makeChart('chartLeast', 'LeastRanks');
-        makeChart('chartMost',  'MostRanks');
-    })();
-    </script>
-    {{end}}
 </body>
 </html>{{end}}

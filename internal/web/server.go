@@ -100,47 +100,50 @@ func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
 			}
 			return t.In(loc).Format("Mon 02 Jan 15:04")
 		},
-		"matchEntries": func(m worldcup.Match, entries []worldcup.Entry) string {
-			var names []string
+		"matchEntries": func(m worldcup.Match, entries []worldcup.Entry) template.HTML {
+			var parts []string
 			seen := make(map[string]bool)
 			for _, e := range entries {
 				for _, t := range e.Teams {
 					if (t == m.HomeTeam || t == m.AwayTeam) && !seen[e.Name] {
-						names = append(names, e.Name)
+						slug := strings.ToLower(strings.ReplaceAll(e.Name, " ", "-"))
+						parts = append(parts, `<a href="/worldcup/entry/`+slug+`" style="color:inherit">`+template.HTMLEscapeString(e.Name)+`</a>`)
 						seen[e.Name] = true
 						break
 					}
 				}
 			}
-			return strings.Join(names, ", ")
+			return template.HTML(strings.Join(parts, ", "))
 		},
-		"homeMatchEntries": func(m worldcup.Match, entries []worldcup.Entry) string {
-			var names []string
+		"homeMatchEntries": func(m worldcup.Match, entries []worldcup.Entry) template.HTML {
+			var parts []string
 			seen := make(map[string]bool)
 			for _, e := range entries {
 				for _, t := range e.Teams {
 					if t == m.HomeTeam && !seen[e.Name] {
-						names = append(names, e.Name)
+						slug := strings.ToLower(strings.ReplaceAll(e.Name, " ", "-"))
+						parts = append(parts, `<a href="/worldcup/entry/`+slug+`" style="color:inherit">`+template.HTMLEscapeString(e.Name)+`</a>`)
 						seen[e.Name] = true
 						break
 					}
 				}
 			}
-			return strings.Join(names, ", ")
+			return template.HTML(strings.Join(parts, ", "))
 		},
-		"awayMatchEntries": func(m worldcup.Match, entries []worldcup.Entry) string {
-			var names []string
+		"awayMatchEntries": func(m worldcup.Match, entries []worldcup.Entry) template.HTML {
+			var parts []string
 			seen := make(map[string]bool)
 			for _, e := range entries {
 				for _, t := range e.Teams {
 					if t == m.AwayTeam && !seen[e.Name] {
-						names = append(names, e.Name)
+						slug := strings.ToLower(strings.ReplaceAll(e.Name, " ", "-"))
+						parts = append(parts, `<a href="/worldcup/entry/`+slug+`" style="color:inherit">`+template.HTMLEscapeString(e.Name)+`</a>`)
 						seen[e.Name] = true
 						break
 					}
 				}
 			}
-			return strings.Join(names, ", ")
+			return template.HTML(strings.Join(parts, ", "))
 		},
 		"historyJSON": func(h []worldcup.MatchSnapshot) template.JS {
 			if len(h) == 0 {

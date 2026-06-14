@@ -194,6 +194,39 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache) *Serv
 			b, _ := json.Marshal(names)
 			return template.JS(b)
 		},
+		"urlDomain": func(u string) string {
+			u = strings.TrimPrefix(u, "https://")
+			u = strings.TrimPrefix(u, "http://")
+			u = strings.TrimPrefix(u, "www.")
+			if i := strings.Index(u, "/"); i != -1 {
+				u = u[:i]
+			}
+			return u
+		},
+		"typeLabel": func(t string) string {
+			switch t {
+			case "youtube-channel":
+				return "YouTube"
+			case "research":
+				return "Research"
+			case "newsletter":
+				return "Newsletter"
+			case "newspaper":
+				return "Newspaper"
+			case "journalist":
+				return "Journalist"
+			case "twitter":
+				return "Twitter"
+			case "podcast":
+				return "Podcast"
+			case "news-aggregator":
+				return "Aggregator"
+			case "forum":
+				return "Forum"
+			default:
+				return t
+			}
+		},
 		"inDangerZone": func(r worldcup.EntryResult) bool {
 			for _, state := range r.TeamStates {
 				if state.GroupPosition == 4 && state.FinalPlace == 0 && state.Played > 0 {
@@ -310,6 +343,9 @@ func (s *Server) routes() {
 
 	s.router.Handle("/static/", http.StripPrefix("/static/", fileServer))
 	s.router.Handle("/", fileServer)
+
+	// Trusted sources
+	s.router.HandleFunc("/trusted/", s.handleGetTrusted())
 
 	// World Cup leaderboard
 	s.router.HandleFunc("/worldcup", s.handleGetWorldcup())

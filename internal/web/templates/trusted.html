@@ -1,0 +1,136 @@
+{{define "trusted"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Name}} · Trusted Sources</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+            -webkit-font-smoothing: antialiased;
+        }
+        a { text-decoration: none; color: inherit; }
+
+        /* ── Hero ─────────────────────────────────────────────────────── */
+        .hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+            padding: 2.2rem 0 2rem;
+        }
+        .container { max-width: 680px; margin: 0 auto; padding: 0 1.25rem; }
+        .hero-label {
+            font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em;
+            text-transform: uppercase; color: rgba(255,255,255,0.4);
+            margin-bottom: 0.5rem;
+        }
+        .hero-name {
+            font-size: 2.4rem; font-weight: 900; letter-spacing: -0.03em;
+            color: #fff; margin: 0 0 0.65rem; line-height: 1;
+        }
+        .hero-meta { font-size: 0.8rem; color: rgba(255,255,255,0.4); }
+        .hero-meta strong { color: rgba(255,255,255,0.7); font-weight: 600; }
+
+        /* ── Page body ────────────────────────────────────────────────── */
+        .page { max-width: 680px; margin: 0 auto; padding: 1.75rem 1.25rem 4rem; }
+
+        /* ── Topic section ────────────────────────────────────────────── */
+        .topic { margin-bottom: 1.75rem; }
+        .topic-header {
+            display: flex; align-items: center; gap: 0.5rem;
+            margin-bottom: 0.55rem;
+        }
+        .topic-name {
+            font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
+            text-transform: uppercase; color: #64748b;
+        }
+        .topic-count {
+            font-size: 0.65rem; font-weight: 600; color: #cbd5e1;
+            background: #e2e8f0; border-radius: 9999px;
+            padding: 0.05rem 0.4rem; line-height: 1.6;
+        }
+
+        /* ── Source block ─────────────────────────────────────────────── */
+        .sources {
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+        }
+        .source {
+            display: flex; align-items: center; gap: 0;
+            background: #fff;
+            border-bottom: 1px solid #f1f5f9;
+            border-left: 3px solid #e2e8f0;
+            transition: background 0.1s;
+        }
+        .source:last-child { border-bottom: none; }
+        .source:hover { background: #f8fafc; }
+
+        /* left accent per type */
+        .source.t-youtube-channel  { border-left-color: #ef4444; }
+        .source.t-research         { border-left-color: #3b82f6; }
+        .source.t-newsletter       { border-left-color: #10b981; }
+        .source.t-newspaper        { border-left-color: #f59e0b; }
+        .source.t-journalist       { border-left-color: #8b5cf6; }
+        .source.t-twitter          { border-left-color: #0ea5e9; }
+        .source.t-podcast          { border-left-color: #ec4899; }
+        .source.t-news-aggregator  { border-left-color: #14b8a6; }
+        .source.t-forum            { border-left-color: #f97316; }
+
+        .source-body { flex: 1; min-width: 0; padding: 0.85rem 0.9rem; }
+        .source-name { font-size: 0.93rem; font-weight: 600; color: #1e293b; margin-bottom: 0.15rem; }
+        .source-domain { font-size: 0.73rem; color: #94a3b8; }
+
+        .badge {
+            flex-shrink: 0; margin-right: 0.9rem;
+            font-size: 0.63rem; font-weight: 700; letter-spacing: 0.03em;
+            padding: 0.22rem 0.55rem; border-radius: 9999px;
+            background: #f1f5f9; color: #64748b;
+        }
+        .badge-youtube-channel  { background: #fee2e2; color: #b91c1c; }
+        .badge-research         { background: #dbeafe; color: #1d4ed8; }
+        .badge-newsletter       { background: #d1fae5; color: #065f46; }
+        .badge-newspaper        { background: #fef3c7; color: #92400e; }
+        .badge-journalist       { background: #ede9fe; color: #5b21b6; }
+        .badge-twitter          { background: #e0f2fe; color: #0369a1; }
+        .badge-podcast          { background: #fce7f3; color: #9d174d; }
+        .badge-news-aggregator  { background: #ccfbf1; color: #0f766e; }
+        .badge-forum            { background: #ffedd5; color: #c2410c; }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <div class="container">
+            <div class="hero-label">Trusted Sources</div>
+            <h1 class="hero-name">{{.Name}}</h1>
+            <div class="hero-meta">
+                <strong>{{.TotalSources}}</strong> sources across <strong>{{.TotalTopics}}</strong> topics
+            </div>
+        </div>
+    </div>
+    <div class="page">
+        {{range .Topics}}
+        <div class="topic">
+            <div class="topic-header">
+                <span class="topic-name">{{.Topic}}</span>
+                <span class="topic-count">{{len .Sources}}</span>
+            </div>
+            <div class="sources">
+                {{range .Sources}}
+                <a href="{{.URL}}" target="_blank" rel="noopener noreferrer" class="source t-{{.Type}}">
+                    <div class="source-body">
+                        <div class="source-name">{{.Label}}</div>
+                        <div class="source-domain">{{urlDomain .URL}}</div>
+                    </div>
+                    <span class="badge badge-{{.Type}}">{{typeLabel .Type}}</span>
+                </a>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+    </div>
+</body>
+</html>
+{{end}}

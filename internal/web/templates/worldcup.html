@@ -42,7 +42,10 @@
         .mf-mid { min-width: 2.8rem; text-align: center; flex-shrink: 0; }
         .mf-v { color: var(--pico-muted-color); font-size: 0.82rem; font-weight: 600; }
         .mf-score { font-weight: 800; font-size: 1rem; color: #166534; }
-        .match-meta { display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin-top: 0.25rem; font-size: 0.75rem; color: var(--pico-muted-color); }
+        .match-meta { display: flex; align-items: center; margin-top: 0.2rem; font-size: 0.75rem; color: var(--pico-muted-color); }
+        .meta-home { flex: 1; text-align: right; padding-right: 0.6rem; }
+        .meta-away { flex: 1; text-align: left; padding-left: 0.6rem; }
+        .meta-mid { min-width: 2.8rem; flex-shrink: 0; }
         .ml-badge { font-size: 0.68rem; font-weight: 700; padding: 0.12rem 0.45rem; border-radius: 0.9rem; flex-shrink: 0; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
         .ml-time-up   { background: #dbeafe; color: #1d4ed8; }
         .ml-time-done { background: #e5e7eb; color: #6b7280; }
@@ -86,7 +89,7 @@
                         <span class="mf-mid"><span class="mf-v">v</span></span>
                         <span class="mf-away">{{flagEmoji .AwayTeam}} {{.AwayTeam}}</span>
                     </div>
-                    <div class="match-meta"><span>{{matchEntries . $.Entries}}</span></div>
+                    <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries}}</span></div>
                 </div>
                 {{end}}
                 {{else}}
@@ -105,7 +108,7 @@
                         <span class="mf-mid"><span class="mf-score">{{.HomeScore}}–{{.AwayScore}}</span></span>
                         <span class="mf-away">{{flagEmoji .AwayTeam}} {{.AwayTeam}}</span>
                     </div>
-                    <div class="match-meta"><span>{{matchEntries . $.Entries}}</span></div>
+                    <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries}}</span></div>
                 </div>
                 {{end}}
                 {{else}}

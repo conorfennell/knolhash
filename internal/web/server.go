@@ -96,6 +96,34 @@ func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
 			}
 			return strings.Join(names, ", ")
 		},
+		"homeMatchEntries": func(m worldcup.Match, entries []worldcup.Entry) string {
+			var names []string
+			seen := make(map[string]bool)
+			for _, e := range entries {
+				for _, t := range e.Teams {
+					if t == m.HomeTeam && !seen[e.Name] {
+						names = append(names, e.Name)
+						seen[e.Name] = true
+						break
+					}
+				}
+			}
+			return strings.Join(names, ", ")
+		},
+		"awayMatchEntries": func(m worldcup.Match, entries []worldcup.Entry) string {
+			var names []string
+			seen := make(map[string]bool)
+			for _, e := range entries {
+				for _, t := range e.Teams {
+					if t == m.AwayTeam && !seen[e.Name] {
+						names = append(names, e.Name)
+						seen[e.Name] = true
+						break
+					}
+				}
+			}
+			return strings.Join(names, ", ")
+		},
 		"historyJSON": func(h []worldcup.MatchSnapshot) template.JS {
 			if len(h) == 0 {
 				return template.JS("[]")

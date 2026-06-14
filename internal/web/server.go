@@ -70,6 +70,15 @@ func NewServer(db *storage.DB, wc *worldcup.Cache) *Server {
 			}
 			return ""
 		},
+		"flagClass": func(state worldcup.TeamState) string {
+			if state.FinalPlace > 0 && !state.Provisional {
+				return "flag-eliminated"
+			}
+			if state.FinalPlace > 0 || state.GroupPosition == 4 {
+				return "flag-provisional"
+			}
+			return ""
+		},
 		"irishTime": func(t time.Time) string {
 			if t.IsZero() {
 				return ""

@@ -3,94 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>World Cup 2026 — Sweepstake</title>
+    <title>Kevin's World Cup 2026 Sweepstake</title>
     <link rel="stylesheet" href="/static/pico.min.css">
     <link rel="stylesheet" href="/static/custom.css">
     <style>
+        body { padding: 0 !important; margin: 0; }
+
+        /* ── Hero ─────────────────────────────────────────────────────── */
+        .page-hero {
+            background: linear-gradient(135deg, #0f2744 0%, #164d30 100%);
+            color: #fff;
+            padding: 1rem 0 0.9rem;
+        }
+        .hero-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+        .hero-eyebrow { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.65; margin-bottom: 0.25rem; }
+        .hero-title { font-size: 1.9rem; font-weight: 900; line-height: 1.05; letter-spacing: -0.02em; margin: 0; color: #fff; }
+        .hero-right { text-align: right; }
+        .hero-pot { font-size: 1.9rem; font-weight: 900; line-height: 1.05; }
+        .hero-pot-label { font-size: 0.78rem; font-weight: 600; opacity: 0.65; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.15rem; }
+
+        /* ── Layout ───────────────────────────────────────────────────── */
+        main.container { padding-top: 0.6rem; padding-bottom: 1.5rem; }
+        .section-gap { margin-bottom: 0.6rem; }
+
+        /* ── Match cards ──────────────────────────────────────────────── */
+        .match-card { border: 1px solid var(--pico-muted-border-color); border-radius: 0.5rem; overflow: hidden; }
+        .match-card-head { padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #444; background: #f0f2f4; border-bottom: 1px solid var(--pico-muted-border-color); }
+        .match-card-body { padding: 0.1rem 0.9rem 0.4rem; }
+
+        .match-row { padding: 0.55rem 0; border-bottom: 1px solid var(--pico-muted-border-color); }
+        .match-row:last-child { border-bottom: none; }
+        .match-when { text-align: center; margin-bottom: 0.25rem; }
+        .match-fixture { display: flex; align-items: center; }
+        .mf-home { flex: 1; text-align: right; font-weight: 700; font-size: 1.05rem; padding-right: 0.6rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mf-away { flex: 1; text-align: left; font-weight: 700; font-size: 1.05rem; padding-left: 0.6rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mf-mid { min-width: 2.8rem; text-align: center; flex-shrink: 0; }
+        .mf-v { color: var(--pico-muted-color); font-size: 0.82rem; font-weight: 600; }
+        .mf-score { font-weight: 800; font-size: 1rem; color: #166534; }
+        .match-meta { display: flex; align-items: center; margin-top: 0.2rem; font-size: 0.82rem; color: var(--pico-muted-color); }
+        .meta-home { flex: 1; text-align: right; padding-right: 0.6rem; }
+        .meta-away { flex: 1; text-align: left; padding-left: 0.6rem; }
+        .meta-mid { min-width: 2.8rem; flex-shrink: 0; }
+        .ml-badge { font-size: 0.78rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 0.9rem; flex-shrink: 0; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+        .ml-time-up   { background: #dbeafe; color: #1d4ed8; }
+        .ml-time-done { background: #e5e7eb; color: #6b7280; }
+
+        /* ── Prize blocks ─────────────────────────────────────────────── */
+        .prize-block { border: 1px solid var(--pico-muted-border-color); border-radius: 0.5rem; overflow: hidden; }
+        .pb-header { background: #1e3a5f; color: #fff; padding: 0.5rem 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+        .pb-title { font-size: 1rem; font-weight: 700; }
+        .pb-amount { font-size: 1.05rem; font-weight: 800; }
+        .pb-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+        .pb-table thead th { padding: 0.32rem 0.7rem; font-size: 0.76rem; font-weight: 700; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--pico-muted-border-color); background: #f8f9fa; }
+        .pb-table tbody td { padding: 0.45rem 0.7rem; border-bottom: 1px solid #f4f4f4; }
+        .pb-table tbody tr:last-child td { border-bottom: none; }
+        .pb-leader td { background: #edf7f0; }
+        .pb-cutoff td { border-top: 2px dashed #d0d0d0 !important; }
+        .pb-rank { width: 2rem; text-align: center; color: var(--pico-muted-color); font-size: 0.86rem; }
+        .pb-flags { white-space: nowrap; font-size: 1.05rem; }
+        .pb-stat { text-align: right; font-weight: 700; }
+        .pb-substat { text-align: right; color: var(--pico-muted-color); }
+
+        /* ── Team chips ───────────────────────────────────────────────── */
         .pos-1 { color: #2d8a4e; font-weight: 600; }
         .pos-2 { color: #a07800; }
         .pos-3 { color: #c05000; }
         .pos-4 { color: #888; }
         .eliminated { text-decoration: line-through; color: #aaa; }
 
+        /* ── Charts ───────────────────────────────────────────────────── */
+        .chart-section { margin-top: 1.5rem; }
+        .chart-label { font-size: 0.85rem; font-weight: 700; margin: 1rem 0 0.3rem; color: #444; }
+        .chart-wrap { position: relative; height: 260px; margin-bottom: 1.5rem; }
+
+        /* ── Misc ─────────────────────────────────────────────────────── */
         .rank-up   { color: #2d8a4e; font-size: 0.7rem; vertical-align: super; margin-left: 0.1rem; }
         .rank-down { color: #c0392b; font-size: 0.7rem; vertical-align: super; margin-left: 0.1rem; }
         .rank-same { color: #aaa;    font-size: 0.7rem; vertical-align: super; margin-left: 0.1rem; }
-
-        .leaderboard th, .leaderboard td { padding: 0.4rem 0.6rem; font-size: 0.9rem; }
-        .leaderboard .rank  { text-align: center; font-weight: bold; color: var(--pico-muted-color); width: 2.5rem; white-space: nowrap; }
-        .leaderboard .points { text-align: center; font-weight: bold; }
-        .leaderboard .goals  { text-align: center; }
-        .team-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-        .team-chip { padding: 0.15rem 0.5rem; border-radius: 1rem; border: 1px solid currentColor; white-space: nowrap; font-size: 0.8rem; }
-        .show-mobile { display: none; }
-
-        .prize-block { border: 1px solid var(--pico-muted-border-color); border-radius: 0.5rem; overflow: hidden; }
-        .pb-header { background: #1e3a5f; color: #fff; padding: 0.5rem 0.75rem; display: flex; justify-content: space-between; align-items: center; }
-        .pb-title { font-size: 0.88rem; font-weight: 700; }
-        .pb-amount { font-size: 0.95rem; font-weight: 800; }
-        .pb-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-        .pb-table thead th { padding: 0.28rem 0.6rem; font-size: 0.7rem; font-weight: 700; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--pico-muted-border-color); background: #f8f9fa; }
-        .pb-table tbody td { padding: 0.38rem 0.6rem; border-bottom: 1px solid #f4f4f4; }
-        .pb-table tbody tr:last-child td { border-bottom: none; }
-        .pb-leader td { background: #edf7f0; }
-        .pb-cutoff td { border-top: 2px dashed #d0d0d0 !important; }
-        .pb-rank { width: 1.8rem; text-align: center; color: var(--pico-muted-color); font-size: 0.78rem; }
-        .pb-flags { white-space: nowrap; font-size: 1rem; }
-        .pb-stat { text-align: right; font-weight: 700; }
-        .pb-substat { text-align: right; color: var(--pico-muted-color); }
-
-        .match-row { padding: 0.6rem 0; border-bottom: 1px solid var(--pico-muted-border-color); }
-        .match-row:last-child { border-bottom: none; }
-        .match-when { text-align: center; margin-bottom: 0.3rem; }
-        .match-fixture { display: flex; align-items: center; }
-        .mf-home { flex: 1; text-align: right; font-weight: 700; font-size: 0.95rem; padding-right: 0.6rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .mf-away { flex: 1; text-align: left; font-weight: 700; font-size: 0.95rem; padding-left: 0.6rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .mf-mid { min-width: 2.8rem; text-align: center; flex-shrink: 0; }
-        .mf-v { color: var(--pico-muted-color); font-size: 0.82rem; font-weight: 600; }
-        .mf-score { font-weight: 800; font-size: 1rem; color: #166534; }
-        .match-meta { display: flex; align-items: center; margin-top: 0.2rem; font-size: 0.75rem; color: var(--pico-muted-color); }
-        .meta-home { flex: 1; text-align: right; padding-right: 0.6rem; }
-        .meta-away { flex: 1; text-align: left; padding-left: 0.6rem; }
-        .meta-mid { min-width: 2.8rem; flex-shrink: 0; }
-        .ml-badge { font-size: 0.68rem; font-weight: 700; padding: 0.12rem 0.45rem; border-radius: 0.9rem; flex-shrink: 0; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
-        .ml-time-up   { background: #dbeafe; color: #1d4ed8; }
-        .ml-time-done { background: #e5e7eb; color: #6b7280; }
-        .dim { color: var(--pico-muted-color); font-size: 0.82rem; }
-
-        .chart-section { margin-top: 2rem; }
-        .chart-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
-        .chart-wrap { position: relative; height: 280px; margin-bottom: 2rem; }
-
-        .page-header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; padding: 1rem 0 1.2rem; border-bottom: 2px solid var(--pico-muted-border-color); margin-bottom: 1.5rem; }
-        .page-title { font-size: 1.3rem; font-weight: 800; margin: 0; }
-        .page-chips { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-        .page-chip { font-size: 0.75rem; font-weight: 600; padding: 0.18rem 0.55rem; border-radius: 1rem; background: #f3f4f6; color: #6b7280; }
-        .section-title { margin-top: 1.5rem; margin-bottom: 0.5rem; }
-        .meta { font-size: 0.8rem; color: var(--pico-muted-color); text-align: right; margin-top: 1.2rem; }
         .tbd  { color: var(--pico-muted-color); font-style: italic; }
         .leader-note { font-size: 0.75rem; color: var(--pico-muted-color); margin-top: 0.25rem; }
+        .meta { font-size: 0.75rem; color: var(--pico-muted-color); text-align: right; margin-top: 1rem; }
 
         @media (max-width: 600px) {
-            .hide-mobile { display: none; }
-            .show-mobile { display: table-cell; }
+            .hero-title { font-size: 1.3rem; }
+            .hero-pot   { font-size: 1.3rem; }
         }
     </style>
 </head>
 <body>
-    <main class="container">
-        <div class="page-header">
-            <span class="page-title">⚽ World Cup 2026 Sweepstake</span>
-            <div class="page-chips">
-                <span class="page-chip">18 entries</span>
-                <span class="page-chip">&euro;{{.TotalPot}} pot</span>
+    <div class="page-hero">
+        <div class="container">
+            <div class="hero-inner">
+                <div>
+                    <div class="hero-eyebrow">⚽ 2026 FIFA World Cup</div>
+                    <h1 class="hero-title">Kevin's Sweepstake</h1>
+                </div>
+                <div class="hero-right">
+                    <div class="hero-pot">&euro;{{.TotalPot}}</div>
+                    <div class="hero-pot-label">18 entries · pot</div>
+                </div>
             </div>
         </div>
+    </div>
+
+    <main class="container">
 
         {{if or .UpcomingMatches .RecentMatches}}
-        <div class="grid">
-            <article>
-                <header><strong>Fixtures</strong></header>
+        <div class="grid section-gap">
+            <div class="match-card">
+                <div class="match-card-head">Upcoming</div>
+                <div class="match-card-body">
                 {{if .UpcomingMatches}}
                 {{range .UpcomingMatches}}
                 <div class="match-row">
@@ -104,12 +126,14 @@
                 </div>
                 {{end}}
                 {{else}}
-                <p class="tbd">No upcoming matches found</p>
+                <p class="tbd" style="padding:0.5rem 0">No upcoming matches found</p>
                 {{end}}
-            </article>
+                </div>
+            </div>
 
-            <article>
-                <header><strong>Results</strong></header>
+            <div class="match-card">
+                <div class="match-card-head">Results</div>
+                <div class="match-card-body">
                 {{if .RecentMatches}}
                 {{range .RecentMatches}}
                 <div class="match-row">
@@ -123,14 +147,14 @@
                 </div>
                 {{end}}
                 {{else}}
-                <p class="tbd">No completed matches found</p>
+                <p class="tbd" style="padding:0.5rem 0">No completed matches found</p>
                 {{end}}
-            </article>
+                </div>
+            </div>
         </div>
         {{end}}
 
-        <h3 class="section-title">Prizes</h3>
-        <div class="grid">
+        <div class="grid section-gap">
             <div class="prize-block">
                 <div class="pb-header">
                     <span class="pb-title">Most Points</span>
@@ -171,7 +195,7 @@
             </div>
         </div>
 
-        <div class="grid">
+        <div class="grid section-gap">
             <div class="prize-block">
                 <div class="pb-header">
                     <span class="pb-title">Least Points</span>
@@ -220,18 +244,14 @@
             </div>
         </div>
 
-{{if .History}}
+        {{if .History}}
         <div class="chart-section">
-            <h3 class="section-title">Prize Movements</h3>
-            <p style="font-size:0.82rem;color:var(--pico-muted-color)">Rank after each match — rank 1 is leading the prize. Click legend to toggle entries.</p>
-
-            <div class="chart-title">⚽ Most Goals</div>
+            <p style="font-size:0.78rem;color:var(--pico-muted-color);margin-bottom:0">Rank after each match — rank 1 leads the prize. Click a name to isolate.</p>
+            <div class="chart-label">⚽ Most Goals</div>
             <div class="chart-wrap"><canvas id="chartGoals"></canvas></div>
-
-            <div class="chart-title">🏆 Least Points</div>
+            <div class="chart-label">🏆 Least Points</div>
             <div class="chart-wrap"><canvas id="chartLeast"></canvas></div>
-
-            <div class="chart-title">🍽 Most Points</div>
+            <div class="chart-label">🍽 Most Points</div>
             <div class="chart-wrap"><canvas id="chartMost"></canvas></div>
         </div>
         {{end}}
@@ -240,14 +260,12 @@
             {{if .FetchedAt.IsZero}}
                 Data not yet loaded.
             {{else}}
-                Last updated: {{.FetchedAt.Format "02 Jan 2006 15:04 UTC"}} &middot;
-                Next update in <span id="countdown">–</span>
+                Updated {{.FetchedAt.Format "02 Jan 15:04"}} &middot; next in <span id="countdown">–</span>
             {{end}}
         </p>
     </main>
 
     <script>
-    // ── Countdown ──────────────────────────────────────────────────────────────
     (function() {
         var next = {{.NextRefreshUnix}};
         function tick() {
@@ -262,7 +280,6 @@
         setInterval(tick, 1000);
     })();
 
-    // ── Rank arrows (localStorage) ─────────────────────────────────────────────
     (function() {
         var KEY = 'wc2026_ranks_v1';
         var prev = {};
@@ -340,15 +357,10 @@
             chart.data.datasets.forEach(function(ds, i) {
                 if (!chart.getDatasetMeta(i).hidden) visibleCount++;
             });
-            // If this is already the only visible line, restore all.
             if (visibleCount === 1 && !chart.getDatasetMeta(idx).hidden) {
-                chart.data.datasets.forEach(function(ds, i) {
-                    chart.getDatasetMeta(i).hidden = false;
-                });
+                chart.data.datasets.forEach(function(ds, i) { chart.getDatasetMeta(i).hidden = false; });
             } else {
-                chart.data.datasets.forEach(function(ds, i) {
-                    chart.getDatasetMeta(i).hidden = i !== idx;
-                });
+                chart.data.datasets.forEach(function(ds, i) { chart.getDatasetMeta(i).hidden = i !== idx; });
             }
             chart.update();
         }
@@ -358,11 +370,7 @@
             if (!ctx) return;
             var opts = JSON.parse(JSON.stringify(baseOpts));
             opts.plugins.legend.onClick = isolateClick;
-            new Chart(ctx, {
-                type: 'line',
-                data: { labels: labels, datasets: datasets(key) },
-                options: opts
-            });
+            new Chart(ctx, { type: 'line', data: { labels: labels, datasets: datasets(key) }, options: opts });
         }
 
         makeChart('chartGoals', 'GoalRanks');

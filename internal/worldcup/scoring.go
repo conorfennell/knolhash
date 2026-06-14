@@ -180,6 +180,47 @@ func TopByMostGoals(results []EntryResult, n int) []EntryResult {
 	return sorted
 }
 
+// GroupLeader represents a team currently top of its group and the entries that contain it.
+type GroupLeader struct {
+	Team       string
+	EntryNames []string
+}
+
+// ComputeGroupLeaders groups teams currently leading their group (GroupPosition==1, not yet placed)
+// by team, and returns a sorted list plus the entry names with no group-leading team.
+func ComputeGroupLeaders(results []EntryResult, data TournamentData) (leaders []GroupLeader, noLeader []string) {
+	leading := make(map[string]bool)
+	for name, s := range data.Teams {
+		if s.GroupPosition == 1 && s.FinalPlace == 0 {
+			leading[name] = true
+		}
+	}
+
+	teamEntries := make(map[string][]string)
+	entryHasLeader := make(map[string]bool)
+	for _, r := range results {
+		for _, t := range r.Entry.Teams {
+			if leading[t] {
+				teamEntries[t] = append(teamEntries[t], r.Entry.Name)
+				entryHasLeader[r.Entry.Name] = true
+			}
+		}
+	}
+	for _, r := range results {
+		if !entryHasLeader[r.Entry.Name] {
+			noLeader = append(noLeader, r.Entry.Name)
+		}
+	}
+
+	for team, entries := range teamEntries {
+		leaders = append(leaders, GroupLeader{Team: team, EntryNames: entries})
+	}
+	sort.Slice(leaders, func(i, j int) bool {
+		return leaders[i].Team < leaders[j].Team
+	})
+	return leaders, noLeader
+}
+
 // TopOverallWinner returns entries in contention for the Overall Winner prize.
 // If a champion is known (FinalPlace==1), returns entries containing that team.
 // Otherwise returns entries with at least one team currently leading its group

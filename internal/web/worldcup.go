@@ -37,6 +37,8 @@ type worldcupTemplateData struct {
 	TopWorst        []worldcup.EntryResult
 	TopGoals        []worldcup.EntryResult
 	TopLeaders      []worldcup.EntryResult
+	GroupLeaders    []worldcup.GroupLeader
+	NoLeaderEntries []string
 	Teams           map[string]worldcup.TeamState
 	Entries         []worldcup.Entry
 	Prizes          worldcup.PrizeSummary
@@ -98,12 +100,15 @@ func (s *Server) handleGetWorldcup() http.HandlerFunc {
 			}
 		}
 
+		groupLeaders, noLeaderEntries := worldcup.ComputeGroupLeaders(results, data)
 		td := worldcupTemplateData{
 			Results:         results,
 			TopBest:         results,
 			TopWorst:        worldcup.TopByMostPoints(results, len(results)),
 			TopGoals:        worldcup.TopByMostGoals(results, len(results)),
 			TopLeaders:      worldcup.TopOverallWinner(results, data, len(results)),
+			GroupLeaders:    groupLeaders,
+			NoLeaderEntries: noLeaderEntries,
 			Teams:           data.Teams,
 			Entries:         worldcup.Entries,
 			Prizes:          prizes,

@@ -129,7 +129,7 @@ func (s *Server) handleGetWorldcup() http.HandlerFunc {
 			UpcomingMatches: worldcup.UpcomingMatches(data.Matches, 4),
 			History:         worldcup.ComputeHistory(data.Matches, worldcup.Entries, data),
 			EntryNames:      entryNames,
-			NextRefreshUnix: data.FetchedAt.Add(15 * time.Minute).Unix(),
+			NextRefreshUnix: data.FetchedAt.Add(1 * time.Minute).Unix(),
 			DangerEntries:   dangerEntries,
 			LiveMatches:     lives,
 		}
@@ -235,7 +235,7 @@ func (s *Server) handleGetWorldcupEntry() http.HandlerFunc {
 			Teams:            data.Teams,
 			LiveMatches:      lives,
 			FetchedAt:        data.FetchedAt,
-			NextRefreshUnix:  data.FetchedAt.Add(15 * time.Minute).Unix(),
+			NextRefreshUnix:  data.FetchedAt.Add(1 * time.Minute).Unix(),
 			TotalPot:         worldcup.TotalPot,
 			LeastPtsRank:     leastPtsRank,
 			LeastPtsGap:      leastPtsGap,

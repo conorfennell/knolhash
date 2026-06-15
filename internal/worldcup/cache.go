@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const refreshInterval = 15 * time.Minute
+const refreshInterval = 1 * time.Minute
 
 // Cache holds the most recently fetched TournamentData and refreshes it
 // in the background every 15 minutes.

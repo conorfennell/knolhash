@@ -30,6 +30,7 @@
             font-size: 2.4rem; font-weight: 900; letter-spacing: -0.03em;
             color: #fff; margin: 0 0 0.65rem; line-height: 1;
         }
+        .hero-tagline { font-size: 0.95rem; color: rgba(255,255,255,0.65); margin-bottom: 0.5rem; }
         .hero-meta { font-size: 0.8rem; color: rgba(255,255,255,0.4); }
         .hero-meta strong { color: rgba(255,255,255,0.7); font-weight: 600; }
 
@@ -105,8 +106,9 @@
         <div class="container">
             <div class="hero-label">Trusted Sources</div>
             <h1 class="hero-name">{{.Name}}</h1>
+            {{if .Tagline}}<div class="hero-tagline">{{.Tagline}}</div>{{end}}
             <div class="hero-meta">
-                <strong>{{.TotalSources}}</strong> sources across <strong>{{.TotalTopics}}</strong> topics
+                <strong>{{.TotalSources}}</strong> trusted sources across <strong>{{.TotalTopics}}</strong> topics
             </div>
         </div>
     </div>

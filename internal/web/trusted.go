@@ -18,16 +18,18 @@ type TrustedTopic struct {
 }
 
 type TrustedPerson struct {
-	Handle string
-	Name   string
-	Topics []TrustedTopic
+	Handle  string
+	Name    string
+	Tagline string
+	Topics  []TrustedTopic
 }
 
 var trustedPeople = map[string]TrustedPerson{
 	"cfennell": {
-		Handle: "cfennell",
-		Name:   "Conor Fennell",
-		Topics: []TrustedTopic{
+		Handle:  "cfennell",
+		Name:    "Conor Fennell",
+		Tagline: "Sources I actually trust — organised by topic.",
+		Topics:  []TrustedTopic{
 			{
 				Topic: "Final Fantasy VII",
 				Sources: []TrustedSource{

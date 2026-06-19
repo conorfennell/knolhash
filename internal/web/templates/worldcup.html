@@ -67,6 +67,15 @@
         .pb-flags { white-space: nowrap; font-size: 1.05rem; }
         .pb-stat { text-align: right; font-weight: 700; }
         .pb-substat { text-align: right; color: var(--pico-muted-color); }
+        /* ── Side bets ─────────────────────────────────────────────────── */
+        .sb-card { display:flex; align-items:center; padding:0.9rem 1rem; gap:0.5rem; }
+        .sb-side { flex:1; display:flex; flex-direction:column; gap:0.25rem; }
+        .sb-side-right { align-items:flex-end; }
+        .sb-team { font-size:1.05rem; font-weight:700; }
+        .sb-bettor { font-size:0.82rem; color:var(--pico-muted-color); }
+        .sb-centre { display:flex; flex-direction:column; align-items:center; gap:0.3rem; min-width:70px; }
+        .sb-stake { font-size:0.8rem; color:var(--pico-muted-color); font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
+        .sb-result { font-size:1.1rem; font-weight:800; }
 
         /* ── Team chips ───────────────────────────────────────────────── */
         .pos-1 { color: #2d8a4e; font-weight: 600; }
@@ -260,6 +269,34 @@
                 {{end}}
             </div>
         </div>
+
+        {{if .SideBets}}
+        <div class="grid section-gap" style="--pico-grid-column-count:1">
+            <div class="prize-block">
+                <div class="pb-header">
+                    <span class="pb-title">Side Bets</span>
+                </div>
+                {{range .SideBets}}
+                {{$winner := .Winner}}{{$played := .Played}}
+                {{$b0 := index .Bets 0}}{{$b1 := index .Bets 1}}
+                <div class="sb-card">
+                    <div class="sb-side">
+                        <div class="sb-team">{{flagEmoji $b0.Pick}} {{$b0.Pick}}</div>
+                        <div class="sb-bettor">{{$b0.EntryName}}</div>
+                    </div>
+                    <div class="sb-centre">
+                        <div class="sb-stake">&euro;{{printf "%.0f" $b0.Amount}} each{{if $played}} · {{.HomeTeam}} {{.HomeScore}}–{{.AwayScore}} {{.AwayTeam}}{{end}}</div>
+                        <div class="sb-result">{{if not $played}}⏳ Pending{{else if eq $winner ""}}🤝 Draw{{else}}{{range .Bets}}{{if eq .Pick $winner}}✅ {{.EntryName}} wins{{end}}{{end}}{{end}}</div>
+                    </div>
+                    <div class="sb-side sb-side-right">
+                        <div class="sb-team">{{flagEmoji $b1.Pick}} {{$b1.Pick}}</div>
+                        <div class="sb-bettor">{{$b1.EntryName}}</div>
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
 
         <div class="breakdown-grid">
         {{range $i, $r := .Results}}

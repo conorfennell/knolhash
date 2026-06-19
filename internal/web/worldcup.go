@@ -51,6 +51,7 @@ type worldcupTemplateData struct {
 	NextRefreshUnix int64
 	DangerEntries   []worldcup.EntryResult
 	LiveMatches     []worldcup.LiveMatch
+	SideBets        []worldcup.ResolvedSideBet
 }
 
 // applyLiveGoals overlays current in-play goals onto a copy of TournamentData
@@ -132,6 +133,7 @@ func (s *Server) handleGetWorldcup() http.HandlerFunc {
 			NextRefreshUnix: data.FetchedAt.Add(1 * time.Minute).Unix(),
 			DangerEntries:   dangerEntries,
 			LiveMatches:     lives,
+			SideBets:        worldcup.ResolveSideBets(worldcup.SideBets, data.Matches),
 		}
 		if err := s.templates.ExecuteTemplate(w, "worldcup", td); err != nil {
 			slog.Error("worldcup: template error", "error", err)

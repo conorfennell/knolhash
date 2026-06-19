@@ -95,5 +95,5 @@ var Entries = []Entry{
 	{Name: "Niamh", Teams: [4]string{"France", "Croatia", "Sweden", "Paraguay"}},
 	{Name: "Steve", Teams: [4]string{"France", "Morocco", "Scotland", "Paraguay"}},
 	{Name: "Ann", Teams: [4]string{"Spain", "South Korea", "Norway", "Uzbekistan"}},
-	{Name: "Seamus", Teams: [4]string{"Haiti", "Norway", "Argentina", "Colombia"}},
+	{Name: "Seamus", Teams: [4]string{"Argentina", "Colombia", "Norway", "Haiti"}},
 }

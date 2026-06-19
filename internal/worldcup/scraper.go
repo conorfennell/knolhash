@@ -353,8 +353,10 @@ func normalizeTeamName(raw string) string {
 		return r
 	}, raw)
 	name = strings.TrimSpace(name)
-	name = strings.TrimSuffix(name, " (H)")
-	name = strings.TrimSpace(name)
+	// Strip any trailing parenthetical qualifier: "(H)", "(Q)", "(H, Q)", etc.
+	if i := strings.LastIndex(name, " ("); i >= 0 && strings.HasSuffix(name, ")") {
+		name = strings.TrimSpace(name[:i])
+	}
 	if mapped, ok := wikiToEntry[name]; ok {
 		return mapped
 	}

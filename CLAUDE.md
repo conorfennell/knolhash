@@ -91,8 +91,8 @@ Golf scoring — lower total points wins. See `worldcup-rules.md` for the full t
 
 Uses Alpine + `Dockerfile`. The `_ "time/tzdata"` blank import in `main.go` embeds the timezone DB — without it, `time.LoadLocation("Europe/Dublin")` silently returns UTC on Alpine.
 
-## Prizes (18 entries × €5 = €90 pot)
-- **Least Points** (best): €5 + 37.50 = €42.50
-- **Overall Winner** (champion's entry): €37.50
+## Prizes (20 entries × €5 = €100 pot)
+- **Least Points** (best): €5 + 42.50 = €47.50
+- **Overall Winner** (champion's entry): €42.50
 - **Most Points** (worst): €5
 - **Most Goals**: €5

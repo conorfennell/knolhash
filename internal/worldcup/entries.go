@@ -60,8 +60,8 @@ type PrizeSummary struct {
 	OverallWinner PrizeResult
 }
 
-// TotalPot is the prize pool: 18 entries × €5.
-const TotalPot = 90
+// TotalPot is the prize pool: 20 entries × €5.
+const TotalPot = 100
 
 // wikiToEntry maps Wikipedia team names to the canonical names used in Entries.
 // Only entries that differ need to be listed here.
@@ -74,7 +74,7 @@ var wikiToEntry = map[string]string{
 	"United States":           "USA",
 }
 
-// Entries is the complete, locked list of 18 sweepstake entries.
+// Entries is the complete, locked list of 20 sweepstake entries.
 var Entries = []Entry{
 	{Name: "James P", Teams: [4]string{"Spain", "Senegal", "Egypt", "Paraguay"}},
 	{Name: "Paul", Teams: [4]string{"Switzerland", "Colombia", "Australia", "Tunisia"}},
@@ -94,4 +94,6 @@ var Entries = []Entry{
 	{Name: "Paul 2", Teams: [4]string{"USA", "Iran", "Panama", "Haiti"}},
 	{Name: "Niamh", Teams: [4]string{"France", "Croatia", "Norway", "Paraguay"}},
 	{Name: "Steve", Teams: [4]string{"France", "Morocco", "Scotland", "Paraguay"}},
+	{Name: "Ann", Teams: [4]string{"Spain", "South Korea", "Norway", "Uzbekistan"}},
+	{Name: "Seamus", Teams: [4]string{"Haiti", "Norway", "Argentina", "Colombia"}},
 }

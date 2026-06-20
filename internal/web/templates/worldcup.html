@@ -67,6 +67,9 @@
         .pb-flags { white-space: nowrap; font-size: 1.05rem; }
         .pb-stat { text-align: right; font-weight: 700; }
         .pb-substat { text-align: right; color: var(--pico-muted-color); }
+        .leader-best  { color: #9a7209 !important; font-weight: 600; }
+        .leader-goals { color: #1565c0 !important; font-weight: 600; }
+        .leader-worst { color: #9e2a2b !important; font-weight: 600; }
         /* ── Side bets ─────────────────────────────────────────────────── */
         .sb-card { display:flex; align-items:center; padding:0.9rem 1rem; gap:0.5rem; }
         .sb-side { flex:1; display:flex; flex-direction:column; gap:0.25rem; }
@@ -146,7 +149,7 @@
                         <span class="mf-mid">{{with liveScore . $.LiveMatches}}<span class="mf-score">{{.}}</span>{{else}}<span class="mf-v">v</span>{{end}}</span>
                         <span class="mf-away">{{flagEmoji .AwayTeam}} {{.AwayTeam}}</span>
                     </div>
-                    <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries}}</span></div>
+                    <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries $.EntryIcons $.EntryClasses}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries $.EntryIcons $.EntryClasses}}</span></div>
                     {{if .Venue}}<div class="match-venue">{{.Venue}}</div>{{end}}
                 </div>
                 {{end}}
@@ -168,7 +171,7 @@
                         <span class="mf-mid"><span class="mf-score">{{.HomeScore}}–{{.AwayScore}}</span></span>
                         <span class="mf-away">{{flagEmoji .AwayTeam}} {{.AwayTeam}}</span>
                     </div>
-                    <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries}}</span></div>
+                    <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries $.EntryIcons $.EntryClasses}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries $.EntryIcons $.EntryClasses}}</span></div>
                     {{if .Venue}}<div class="match-venue">{{.Venue}}</div>{{end}}
                 </div>
                 {{end}}
@@ -192,7 +195,7 @@
                         {{range $i, $r := .TopGoals}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a></td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
+                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{index $.EntryClasses $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalGoals}}</td>
                         </tr>
                         {{end}}
@@ -211,7 +214,7 @@
                         {{range $i, $r := .TopWorst}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a></td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
+                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{index $.EntryClasses $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalPoints}}</td>
                             <td class="pb-substat">{{$r.TotalGoals}}</td>
                         </tr>
@@ -233,7 +236,7 @@
                         {{range $i, $r := .TopBest}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a></td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
+                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{index $.EntryClasses $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalPoints}}</td>
                             <td class="pb-substat">{{$r.TotalGoals}}</td>
                         </tr>
@@ -282,7 +285,7 @@
                 <div class="sb-card">
                     <div class="sb-side">
                         <div class="sb-team">{{flagEmoji $b0.Pick}} {{$b0.Pick}}</div>
-                        <div class="sb-bettor">{{$b0.EntryName}}</div>
+                        <div class="sb-bettor"><span class="{{index $.EntryClasses $b0.EntryName}}">{{$b0.EntryName}}</span>{{index $.EntryIcons $b0.EntryName}}</div>
                     </div>
                     <div class="sb-centre">
                         <div class="sb-stake">&euro;{{printf "%.0f" $b0.Amount}} each{{if $played}} · {{.HomeTeam}} {{.HomeScore}}–{{.AwayScore}} {{.AwayTeam}}{{end}}</div>
@@ -290,7 +293,7 @@
                     </div>
                     <div class="sb-side sb-side-right">
                         <div class="sb-team">{{flagEmoji $b1.Pick}} {{$b1.Pick}}</div>
-                        <div class="sb-bettor">{{$b1.EntryName}}</div>
+                        <div class="sb-bettor"><span class="{{index $.EntryClasses $b1.EntryName}}">{{$b1.EntryName}}</span>{{index $.EntryIcons $b1.EntryName}}</div>
                     </div>
                 </div>
                 {{end}}
@@ -302,8 +305,8 @@
         {{range $i, $r := .Results}}
             <div class="prize-block">
                 <div class="pb-header">
-                    <span class="pb-title">{{add1 $i}}. <a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a></span>
-                    <span class="pb-amount">{{$r.TotalPoints}}pts &middot; {{$r.TotalGoals}}⚽</span>
+                    <span class="pb-title">{{add1 $i}}. <a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{index $.EntryClasses $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</span>
+                    <span class="pb-amount">{{$r.TotalPoints}}pts &middot; {{$r.TotalGoals}} ⚽</span>
                 </div>
                 <table class="pb-table">
                     <thead><tr><th>Team</th><th class="pb-stat">Pos</th><th class="pb-stat">⚽</th><th class="pb-stat">Pts</th></tr></thead>

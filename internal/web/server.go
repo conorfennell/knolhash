@@ -148,37 +148,39 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache) *Serv
 					}
 				}
 			}
-			return template.HTML(strings.Join(parts, ", "))
+			return template.HTML(strings.Join(parts, " · "))
 		},
-		"homeMatchEntries": func(m worldcup.Match, entries []worldcup.Entry) template.HTML {
+		"homeMatchEntries": func(m worldcup.Match, entries []worldcup.Entry, icons map[string]string, classes map[string]string) template.HTML {
 			var parts []string
 			seen := make(map[string]bool)
 			for _, e := range entries {
 				for _, t := range e.Teams {
 					if t == m.HomeTeam && !seen[e.Name] {
 						slug := strings.ToLower(strings.ReplaceAll(e.Name, " ", "-"))
-						parts = append(parts, `<a href="/worldcup/entry/`+slug+`" style="color:inherit">`+template.HTMLEscapeString(e.Name)+`</a>`)
+						cls := classes[e.Name]
+						parts = append(parts, `<a href="/worldcup/entry/`+slug+`" class="`+cls+`" style="color:inherit">`+template.HTMLEscapeString(e.Name)+icons[e.Name]+`</a>`)
 						seen[e.Name] = true
 						break
 					}
 				}
 			}
-			return template.HTML(strings.Join(parts, ", "))
+			return template.HTML(strings.Join(parts, " · "))
 		},
-		"awayMatchEntries": func(m worldcup.Match, entries []worldcup.Entry) template.HTML {
+		"awayMatchEntries": func(m worldcup.Match, entries []worldcup.Entry, icons map[string]string, classes map[string]string) template.HTML {
 			var parts []string
 			seen := make(map[string]bool)
 			for _, e := range entries {
 				for _, t := range e.Teams {
 					if t == m.AwayTeam && !seen[e.Name] {
 						slug := strings.ToLower(strings.ReplaceAll(e.Name, " ", "-"))
-						parts = append(parts, `<a href="/worldcup/entry/`+slug+`" style="color:inherit">`+template.HTMLEscapeString(e.Name)+`</a>`)
+						cls := classes[e.Name]
+						parts = append(parts, `<a href="/worldcup/entry/`+slug+`" class="`+cls+`" style="color:inherit">`+template.HTMLEscapeString(e.Name)+icons[e.Name]+`</a>`)
 						seen[e.Name] = true
 						break
 					}
 				}
 			}
-			return template.HTML(strings.Join(parts, ", "))
+			return template.HTML(strings.Join(parts, " · "))
 		},
 		"historyJSON": func(h []worldcup.MatchSnapshot) template.JS {
 			if len(h) == 0 {

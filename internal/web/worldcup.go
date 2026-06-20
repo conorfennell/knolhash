@@ -52,6 +52,8 @@ type worldcupTemplateData struct {
 	DangerEntries   []worldcup.EntryResult
 	LiveMatches     []worldcup.LiveMatch
 	SideBets        []worldcup.ResolvedSideBet
+	EntryIcons      map[string]string
+	EntryClasses    map[string]string
 }
 
 // applyLiveGoals overlays current in-play goals onto a copy of TournamentData
@@ -134,12 +136,46 @@ func (s *Server) handleGetWorldcup() http.HandlerFunc {
 			DangerEntries:   dangerEntries,
 			LiveMatches:     lives,
 			SideBets:        worldcup.ResolveSideBets(worldcup.SideBets, data.Matches),
+			EntryIcons:      buildEntryIcons(prizes),
+			EntryClasses:    buildEntryClasses(prizes),
 		}
 		if err := s.templates.ExecuteTemplate(w, "worldcup", td); err != nil {
 			slog.Error("worldcup: template error", "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 	}
+}
+
+func buildEntryClasses(prizes worldcup.PrizeSummary) map[string]string {
+	classes := map[string]string{}
+	if n := prizes.LeastPoints.EntryName; n != "" && n != "TBD" {
+		classes[n] = "leader-best"
+	}
+	if n := prizes.MostGoals.EntryName; n != "" && n != "TBD" {
+		if classes[n] == "" {
+			classes[n] = "leader-goals"
+		}
+	}
+	if n := prizes.MostPoints.EntryName; n != "" && n != "TBD" {
+		if classes[n] == "" {
+			classes[n] = "leader-worst"
+		}
+	}
+	return classes
+}
+
+func buildEntryIcons(prizes worldcup.PrizeSummary) map[string]string {
+	icons := map[string]string{}
+	if n := prizes.LeastPoints.EntryName; n != "" && n != "TBD" {
+		icons[n] += " 👑"
+	}
+	if n := prizes.MostGoals.EntryName; n != "" && n != "TBD" {
+		icons[n] += " ⚽"
+	}
+	if n := prizes.MostPoints.EntryName; n != "" && n != "TBD" {
+		icons[n] += " 🥄"
+	}
+	return icons
 }
 
 func entrySlug(name string) string {

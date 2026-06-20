@@ -44,7 +44,7 @@
         .match-venue { text-align: center; font-size: 0.72rem; color: #bbb; margin-top: 0.15rem; }
         .meta-home { flex: 1; text-align: right; padding-right: 0.6rem; }
         .meta-away { flex: 1; text-align: left; padding-left: 0.6rem; }
-        .meta-mid { min-width: 2.8rem; flex-shrink: 0; }
+        .meta-mid { min-width: 2.8rem; flex-shrink: 0; text-align: center; }
         .ml-badge { font-size: 0.78rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 0.9rem; flex-shrink: 0; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
         .ml-time-up   { background: #dbeafe; color: #1d4ed8; }
         .ml-time-done { background: #e5e7eb; color: #6b7280; }
@@ -282,19 +282,16 @@
                 {{range .SideBets}}
                 {{$winner := .Winner}}{{$played := .Played}}
                 {{$b0 := index .Bets 0}}{{$b1 := index .Bets 1}}
-                <div class="sb-card">
-                    <div class="sb-side">
-                        <div class="sb-team">{{flagEmoji $b0.Pick}} {{$b0.Pick}}</div>
-                        <div class="sb-bettor"><span class="{{index $.EntryClasses $b0.EntryName}}">{{$b0.EntryName}}</span>{{index $.EntryIcons $b0.EntryName}}</div>
-                    </div>
-                    <div class="sb-centre">
-                        <div class="sb-stake">&euro;{{printf "%.0f" $b0.Amount}} each{{if $played}} · {{.HomeTeam}} {{.HomeScore}}–{{.AwayScore}} {{.AwayTeam}}{{end}}</div>
-                        <div class="sb-result">{{if not $played}}⏳ Pending{{else if eq $winner ""}}🤝 Draw{{else}}{{range .Bets}}{{if eq .Pick $winner}}✅ {{.EntryName}} wins{{end}}{{end}}{{end}}</div>
-                    </div>
-                    <div class="sb-side sb-side-right">
-                        <div class="sb-team">{{flagEmoji $b1.Pick}} {{$b1.Pick}}</div>
-                        <div class="sb-bettor"><span class="{{index $.EntryClasses $b1.EntryName}}">{{$b1.EntryName}}</span>{{index $.EntryIcons $b1.EntryName}}</div>
-                    </div>
+                {{if not .KickOff.IsZero}}<div class="match-when"><span class="ml-badge {{if $played}}ml-time-done{{else}}ml-time-up{{end}}">{{irishTime .KickOff}}</span></div>{{end}}
+                <div class="match-fixture">
+                    <span class="mf-home">{{$b0.Pick}} {{flagEmoji $b0.Pick}}</span>
+                    <span class="mf-mid"><span class="{{if $played}}mf-score{{else}}mf-v{{end}}">{{if $played}}{{.HomeScore}}–{{.AwayScore}}{{else}}v{{end}}</span></span>
+                    <span class="mf-away">{{flagEmoji $b1.Pick}} {{$b1.Pick}}</span>
+                </div>
+                <div class="match-meta">
+                    <span class="meta-home"><span class="{{index $.EntryClasses $b0.EntryName}}">{{$b0.EntryName}}</span>{{index $.EntryIcons $b0.EntryName}}</span>
+                    <span class="meta-mid"><span class="sb-stake">{{if $played}}{{if eq $winner ""}}🤝 Draw{{else}}{{range .Bets}}{{if eq .Pick $winner}}✅ {{.EntryName}}{{end}}{{end}}{{end}}{{else}}&euro;{{printf "%.0f" $b0.Amount}}{{end}}</span></span>
+                    <span class="meta-away"><span class="{{index $.EntryClasses $b1.EntryName}}">{{$b1.EntryName}}</span>{{index $.EntryIcons $b1.EntryName}}</span>
                 </div>
                 {{end}}
             </div>

@@ -1,5 +1,7 @@
 package worldcup
 
+import "time"
+
 // IndividualBet is one person's wager on a specific team in a match.
 type IndividualBet struct {
 	EntryName string
@@ -21,7 +23,8 @@ type ResolvedSideBet struct {
 	HomeScore int
 	AwayScore int
 	Played    bool
-	Winner    string // canonical team name, or "" for draw / not played
+	Winner    string    // canonical team name, or "" for draw / not played
+	KickOff   time.Time // zero if unknown
 	Bets      []IndividualBet
 }
 
@@ -52,6 +55,7 @@ func ResolveSideBets(bets []SideBet, matches []Match) []ResolvedSideBet {
 			sbHome := canonicalTeam(sb.HomeTeam)
 			sbAway := canonicalTeam(sb.AwayTeam)
 			if (home == sbHome && away == sbAway) || (home == sbAway && away == sbHome) {
+				r.KickOff = m.KickOff
 				if m.Played {
 					r.Played = true
 					// normalise scores to sb ordering

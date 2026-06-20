@@ -301,30 +301,6 @@
         </div>
         {{end}}
 
-        <div class="breakdown-grid">
-        {{range $i, $r := .Results}}
-            <div class="prize-block">
-                <div class="pb-header">
-                    <span class="pb-title">{{add1 $i}}. <a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{index $.EntryClasses $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</span>
-                    <span class="pb-amount">{{$r.TotalPoints}}pts &middot; {{$r.TotalGoals}} ⚽</span>
-                </div>
-                <table class="pb-table">
-                    <thead><tr><th>Team</th><th class="pb-stat">Pos</th><th class="pb-stat">⚽</th><th class="pb-stat">Pts</th></tr></thead>
-                    <tbody>
-                    {{range $j, $team := $r.Entry.Teams}}
-                    {{$state := index $r.TeamStates $j}}
-                    <tr>
-                        <td><span class="{{flagClass $state}}">{{flagEmoji $team}}</span><span class="{{teamClass $state}}"> {{$team}}</span></td>
-                        <td class="pb-stat">{{teamPosLabel $state}}</td>
-                        <td class="pb-stat">{{$state.GoalsFor}}</td>
-                        <td class="pb-stat">{{teamPts $r $j}}</td>
-                    </tr>
-                    {{end}}
-                    </tbody>
-                </table>
-            </div>
-        {{end}}
-        </div>
 
         <p class="meta">
             {{if .FetchedAt.IsZero}}

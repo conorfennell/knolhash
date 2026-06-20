@@ -153,7 +153,7 @@
                 <thead><tr><th>Prize</th><th class="pb-stat">Rank</th><th class="pb-stat">Gap</th></tr></thead>
                 <tbody>
                     <tr{{if eq .LeastPtsRank 1}} class="prize-leading"{{end}}>
-                        <td>🏅 Least Points <small style="color:#888">(best score)</small></td>
+                        <td>👑 Least Points <small style="color:#888">(best score)</small></td>
                         <td class="pb-stat">{{.LeastPtsRank}} / {{.TotalEntries}}</td>
                         <td class="pb-substat">
                             {{if eq .LeastPtsRank 1}}<span class="gap-ok">Leading</span>
@@ -161,7 +161,7 @@
                         </td>
                     </tr>
                     <tr{{if eq .MostPtsRank 1}} class="prize-leading"{{end}}>
-                        <td>💀 Most Points <small style="color:#888">(worst score)</small></td>
+                        <td>🥄 Most Points <small style="color:#888">(worst score)</small></td>
                         <td class="pb-stat">{{.MostPtsRank}} / {{.TotalEntries}}</td>
                         <td class="pb-substat">
                             {{if eq .MostPtsRank 1}}<span class="gap-ok">Leading</span>

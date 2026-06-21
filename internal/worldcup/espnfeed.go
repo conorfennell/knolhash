@@ -104,7 +104,9 @@ func FetchLiveMatchesESPN() ([]LiveMatch, int, error) {
 		}
 		comp := event.Competitions[0]
 		status := comp.Status.Type.Name
-		if status != "STATUS_IN_PLAY" && status != "STATUS_HALFTIME" {
+		switch status {
+		case "STATUS_IN_PLAY", "STATUS_HALFTIME", "STATUS_FIRST_HALF", "STATUS_SECOND_HALF":
+		default:
 			continue
 		}
 

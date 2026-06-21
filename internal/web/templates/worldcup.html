@@ -155,7 +155,7 @@
                         <span class="mf-mid">{{with liveScore . $.LiveMatches}}<span class="mf-score">{{.}}</span>{{else}}<span class="mf-v">v</span>{{end}}</span>
                         <span class="mf-away">{{if isLive . $.LiveMatches}}{{liveCards . $.LiveMatches "away"}} {{end}}<span class="{{flagClass (index $.Teams .AwayTeam)}}">{{flagEmoji .AwayTeam}}</span> {{.AwayTeam}}</span>
                     </div>
-                    <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries $.EntryIcons $.EntryClasses $.LiveEntries}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries $.EntryIcons $.EntryClasses $.LiveEntries}}</span></div>
+                    <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries $.EntryIcons $.EntryClasses nil}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries $.EntryIcons $.EntryClasses nil}}</span></div>
                     {{if .Venue}}<div class="match-venue">{{.Venue}}</div>{{end}}
                 </div>
                 {{end}}
@@ -177,7 +177,7 @@
                         <span class="mf-mid"><span class="mf-score">{{.HomeScore}}–{{.AwayScore}}</span></span>
                         <span class="mf-away"><span class="{{flagClass (index $.Teams .AwayTeam)}}">{{flagEmoji .AwayTeam}}</span> {{.AwayTeam}}</span>
                     </div>
-                    <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries $.EntryIcons $.EntryClasses $.LiveEntries}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries $.EntryIcons $.EntryClasses $.LiveEntries}}</span></div>
+                    <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries $.EntryIcons $.EntryClasses nil}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries $.EntryIcons $.EntryClasses nil}}</span></div>
                     {{if .Venue}}<div class="match-venue">{{.Venue}}</div>{{end}}
                 </div>
                 {{end}}

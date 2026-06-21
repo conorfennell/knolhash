@@ -138,8 +138,8 @@ func (s *Server) handleGetWorldcup() http.HandlerFunc {
 			DangerEntries:   dangerEntries,
 			LiveMatches:     lives,
 			SideBets:        worldcup.ResolveSideBets(worldcup.SideBets, data.Matches),
-			EntryIcons:      buildEntryIcons(prizes),
-			EntryClasses:    buildEntryClasses(prizes),
+			EntryIcons:      buildEntryIcons(results),
+			EntryClasses:    buildEntryClasses(results),
 			Commit:          s.commit,
 			BuildDate:       s.buildDate,
 		}
@@ -150,34 +150,68 @@ func (s *Server) handleGetWorldcup() http.HandlerFunc {
 	}
 }
 
-func buildEntryClasses(prizes worldcup.PrizeSummary) map[string]string {
+func buildEntryClasses(results []worldcup.EntryResult) map[string]string {
 	classes := map[string]string{}
-	if n := prizes.LeastPoints.EntryName; n != "" && n != "TBD" {
-		classes[n] = "leader-best"
+	if len(results) == 0 {
+		return classes
 	}
-	if n := prizes.MostGoals.EntryName; n != "" && n != "TBD" {
-		if classes[n] == "" {
-			classes[n] = "leader-goals"
+	bestPts := results[0].TotalPoints
+	for _, r := range results {
+		if r.TotalPoints == bestPts {
+			classes[r.Entry.Name] = "leader-best"
 		}
 	}
-	if n := prizes.MostPoints.EntryName; n != "" && n != "TBD" {
-		if classes[n] == "" {
-			classes[n] = "leader-worst"
+	worstPts := results[len(results)-1].TotalPoints
+	for _, r := range results {
+		if r.TotalPoints == worstPts {
+			if classes[r.Entry.Name] == "" {
+				classes[r.Entry.Name] = "leader-worst"
+			}
+		}
+	}
+	maxGoals := 0
+	for _, r := range results {
+		if r.TotalGoals > maxGoals {
+			maxGoals = r.TotalGoals
+		}
+	}
+	for _, r := range results {
+		if r.TotalGoals == maxGoals {
+			if classes[r.Entry.Name] == "" {
+				classes[r.Entry.Name] = "leader-goals"
+			}
 		}
 	}
 	return classes
 }
 
-func buildEntryIcons(prizes worldcup.PrizeSummary) map[string]string {
+func buildEntryIcons(results []worldcup.EntryResult) map[string]string {
 	icons := map[string]string{}
-	if n := prizes.LeastPoints.EntryName; n != "" && n != "TBD" {
-		icons[n] += " 👑"
+	if len(results) == 0 {
+		return icons
 	}
-	if n := prizes.MostGoals.EntryName; n != "" && n != "TBD" {
-		icons[n] += " ⚽"
+	bestPts := results[0].TotalPoints
+	for _, r := range results {
+		if r.TotalPoints == bestPts {
+			icons[r.Entry.Name] += " 👑"
+		}
 	}
-	if n := prizes.MostPoints.EntryName; n != "" && n != "TBD" {
-		icons[n] += " 🥄"
+	worstPts := results[len(results)-1].TotalPoints
+	for _, r := range results {
+		if r.TotalPoints == worstPts {
+			icons[r.Entry.Name] += " 🥄"
+		}
+	}
+	maxGoals := 0
+	for _, r := range results {
+		if r.TotalGoals > maxGoals {
+			maxGoals = r.TotalGoals
+		}
+	}
+	for _, r := range results {
+		if r.TotalGoals == maxGoals {
+			icons[r.Entry.Name] += " ⚽"
+		}
 	}
 	return icons
 }

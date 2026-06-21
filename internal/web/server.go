@@ -110,6 +110,27 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, commi
 			}
 			return ""
 		},
+		"liveCards": func(m worldcup.Match, lives []worldcup.LiveMatch, side string) template.HTML {
+			for _, lm := range lives {
+				if lm.HomeTeam == m.HomeTeam && lm.AwayTeam == m.AwayTeam {
+					var yellow, red int
+					if side == "home" {
+						yellow, red = lm.HomeYellow, lm.HomeRed
+					} else {
+						yellow, red = lm.AwayYellow, lm.AwayRed
+					}
+					var s string
+					for i := 0; i < yellow; i++ {
+						s += `<span style="display:inline-block;width:0.55em;height:0.75em;background:#f5c518;border-radius:1px;margin:0 1px;vertical-align:middle"></span>`
+					}
+					for i := 0; i < red; i++ {
+						s += `<span style="display:inline-block;width:0.55em;height:0.75em;background:#dc2626;border-radius:1px;margin:0 1px;vertical-align:middle"></span>`
+					}
+					return template.HTML(s)
+				}
+			}
+			return ""
+		},
 		"isEntryTeam": func(teamName string, entry worldcup.Entry) bool {
 			for _, t := range entry.Teams {
 				if t == teamName {

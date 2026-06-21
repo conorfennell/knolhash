@@ -12,12 +12,16 @@ const fdoBaseURL = "https://api.football-data.org/v4"
 
 // LiveMatch holds the current in-play state of a match from football-data.org.
 type LiveMatch struct {
-	HomeTeam  string
-	AwayTeam  string
-	HomeScore int
-	AwayScore int
-	Status    string // IN_PLAY, PAUSED
-	Minute    int
+	HomeTeam    string
+	AwayTeam    string
+	HomeScore   int
+	AwayScore   int
+	Status      string // IN_PLAY, PAUSED
+	Minute      int
+	HomeYellow  int
+	HomeRed     int
+	AwayYellow  int
+	AwayRed     int
 }
 
 // fdoToEntry maps football-data.org team names that differ from our canonical names.

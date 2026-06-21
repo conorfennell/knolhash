@@ -47,24 +47,31 @@ func (c *LiveCache) run() {
 }
 
 func (c *LiveCache) poll() time.Duration {
-	matches, remaining, err := FetchLiveMatches(c.apiKey)
+	// Try ESPN first (no quota, faster).
+	matches, _, err := FetchLiveMatchesESPN()
+	source := "espn"
 	if err != nil {
-		slog.Warn("worldcup: live fetch failed", "error", err)
-		return 2 * time.Minute
+		slog.Warn("worldcup: ESPN live fetch failed, falling back to football-data.org", "error", err)
+		if c.apiKey != "" {
+			matches, _, err = FetchLiveMatches(c.apiKey)
+			source = "football-data.org"
+			if err != nil {
+				slog.Warn("worldcup: live fetch failed", "error", err)
+				return 2 * time.Minute
+			}
+		} else {
+			return 2 * time.Minute
+		}
 	}
 
 	c.mu.Lock()
 	c.matches = matches
 	c.mu.Unlock()
 
-	slog.Info("worldcup: live poll", "live", len(matches), "quota_remaining", remaining)
+	slog.Info("worldcup: live poll", "live", len(matches), "source", source)
 
-	if remaining < 3 {
-		slog.Warn("worldcup: live feed quota low, backing off", "remaining", remaining)
-		return 90 * time.Second
-	}
 	if len(matches) > 0 {
-		return 60 * time.Second
+		return 10 * time.Second
 	}
-	return 5 * time.Minute
+	return 3 * time.Minute
 }

@@ -213,6 +213,7 @@ func buildEntryIcons(results []worldcup.EntryResult) map[string]string {
 			icons[r.Entry.Name] += " ⚽"
 		}
 	}
+	icons["Niamh"] += " ❤️"
 	return icons
 }
 

@@ -257,6 +257,22 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, commi
 			}
 			return strings.Join(leaders, ", ")
 		},
+		"teamPtsPlain": func(r worldcup.EntryResult, j int) string {
+			if j < 0 || j >= 4 {
+				return ""
+			}
+			state := r.TeamStates[j]
+			var pts int
+			if state.FinalPlace > 0 {
+				pts = worldcup.PlacementPoints(state.FinalPlace) + worldcup.ThirdPlaceGroupBonus(state.ThirdPlaceGroupRank)
+			} else {
+				pts = worldcup.EstimatedGroupPoints(state)
+			}
+			if pts == 0 {
+				return "—"
+			}
+			return fmt.Sprintf("%d", pts)
+		},
 		"teamPts": func(r worldcup.EntryResult, j int) string {
 			if j < 0 || j >= 4 {
 				return ""

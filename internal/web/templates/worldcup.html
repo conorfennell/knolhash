@@ -59,14 +59,15 @@
         .pb-header { background: linear-gradient(135deg, #0f2744 0%, #164d30 100%); color: #fff; padding: 0.5rem 0.75rem; display: flex; justify-content: space-between; align-items: center; }
         .pb-title { font-size: 1rem; font-weight: 700; }
         .pb-amount { font-size: 1.05rem; font-weight: 800; }
-        .pb-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+        .pb-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; table-layout: fixed; }
         .pb-table thead th { padding: 0.32rem 0.7rem; font-size: 0.76rem; font-weight: 700; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--pico-muted-border-color); background: #f8f9fa; }
         .pb-table tbody td { padding: 0.45rem 0.7rem; border-bottom: 1px solid #f4f4f4; }
+        .pb-table td:nth-child(2) { width: 40%; }
         .pb-table tbody tr:last-child td { border-bottom: none; }
         .pb-leader td { background: #edf7f0; }
         .pb-cutoff td { border-top: 2px dashed #d0d0d0 !important; }
-        .pb-rank { width: 2rem; text-align: center; color: var(--pico-muted-color); font-size: 0.86rem; }
-        .pb-flags { white-space: nowrap; font-size: 0.95rem; padding-right: 2.5rem; }
+        .pb-rank { width: 2.5rem; min-width: 2.5rem; text-align: center; color: var(--pico-muted-color); font-size: 0.86rem; }
+        .pb-flags { white-space: nowrap; font-size: 0.95rem; text-align: center; }
         .pb-flags span { margin-right: 0.1rem; color: #2d8a4e !important; }
         .pb-flags span:last-child { margin-right: 0; }
         .pb-stat { text-align: right; font-weight: 700; min-width: 2.5rem; padding-left: 0.4rem; }
@@ -218,7 +219,7 @@
                         {{range $i, $r := .TopWorst}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{index $.EntryClasses $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
+                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{index $.EntryClasses $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span><span style="font-size:0.8em">{{teamPtsPlain $r $j}}</span></span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalPoints}}</td>
                         </tr>
                         {{end}}
@@ -239,7 +240,7 @@
                         {{range $i, $r := .TopBest}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{index $.EntryClasses $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
+                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{index $.EntryClasses $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span><span style="font-size:0.8em">{{teamPtsPlain $r $j}}</span></span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalPoints}}</td>
                         </tr>
                         {{end}}

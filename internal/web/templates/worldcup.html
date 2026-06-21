@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="/static/custom.css">
     <style>
         body { padding: 0 !important; margin: 0; }
-        img.emoji { height: 1em; width: 1em; margin: 0 0.05em 0 0.1em; vertical-align: -0.1em; }
+        img.emoji { height: 1em !important; width: 1em !important; margin: 0 0.05em 0 0.1em !important; vertical-align: -0.1em !important; display: inline !important; }
 
         /* ── Hero ─────────────────────────────────────────────────────── */
         .page-hero {
@@ -67,7 +67,7 @@
         .pb-cutoff td { border-top: 2px dashed #d0d0d0 !important; }
         .pb-rank { width: 2rem; text-align: center; color: var(--pico-muted-color); font-size: 0.86rem; }
         .pb-flags { white-space: nowrap; font-size: 1.05rem; }
-        .pb-stat { text-align: right; font-weight: 700; }
+        .pb-stat { text-align: right; font-weight: 700; min-width: 2.5rem; }
         .pb-substat { text-align: right; color: var(--pico-muted-color); }
         .leader-best  { color: #9a7209 !important; font-weight: 600; }
         .leader-goals { color: #1565c0 !important; font-weight: 600; }

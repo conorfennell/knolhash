@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/static/custom.css">
     <style>
         body { padding: 0 !important; margin: 0; }
+        img.emoji { height: 1em; width: 1em; margin: 0 0.05em 0 0.1em; vertical-align: -0.1em; }
 
         /* ── Hero ─────────────────────────────────────────────────────── */
         .page-hero {
@@ -214,5 +215,7 @@
         setInterval(tick, 1000);
     })();
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
+    <script>twemoji.parse(document.body, {folder: 'svg', ext: '.svg'});</script>
 </body>
 </html>{{end}}

@@ -306,7 +306,7 @@
             {{if .FetchedAt.IsZero}}
                 Data not yet loaded.
             {{else}}
-                Updated {{.FetchedAt.Format "02 Jan 15:04"}} &middot; next in <span id="countdown">–</span>{{if .Commit}} &middot; {{.Commit}} ({{.BuildDate}}){{end}}
+                Updated {{.FetchedAt.Format "02 Jan 15:04"}} &middot; next in <span id="countdown">–</span>{{if .Commit}} &middot; deployed {{.Commit}} · {{.BuildDate}}{{end}}
             {{end}}
         </p>
     </main>

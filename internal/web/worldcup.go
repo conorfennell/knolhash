@@ -140,8 +140,8 @@ func (s *Server) handleGetWorldcup() http.HandlerFunc {
 			SideBets:        worldcup.ResolveSideBets(worldcup.SideBets, data.Matches),
 			EntryIcons:      buildEntryIcons(results),
 			EntryClasses:    buildEntryClasses(results),
-			Commit:          s.commit,
-			BuildDate:       s.buildDate,
+			Commit:          shortCommit(s.commit),
+			BuildDate:       shortBuildDate(s.buildDate),
 		}
 		if err := s.templates.ExecuteTemplate(w, "worldcup", td); err != nil {
 			slog.Error("worldcup: template error", "error", err)
@@ -183,6 +183,21 @@ func buildEntryClasses(results []worldcup.EntryResult) map[string]string {
 		}
 	}
 	return classes
+}
+
+func shortCommit(c string) string {
+	if len(c) > 7 {
+		return c[:7]
+	}
+	return c
+}
+
+func shortBuildDate(d string) string {
+	t, err := time.Parse(time.RFC3339, d)
+	if err != nil {
+		return d
+	}
+	return t.UTC().Format("02 Jan 15:04")
 }
 
 func buildEntryIcons(results []worldcup.EntryResult) map[string]string {

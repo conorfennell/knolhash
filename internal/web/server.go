@@ -170,7 +170,7 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, commi
 			}
 			return template.HTML(strings.Join(parts, " · "))
 		},
-		"homeMatchEntries": func(m worldcup.Match, entries []worldcup.Entry, icons map[string]string, classes map[string]string) template.HTML {
+		"homeMatchEntries": func(m worldcup.Match, entries []worldcup.Entry, icons map[string]string, classes map[string]string, live map[string]bool) template.HTML {
 			var parts []string
 			seen := make(map[string]bool)
 			for _, e := range entries {
@@ -178,6 +178,9 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, commi
 					if t == m.HomeTeam && !seen[e.Name] {
 						slug := strings.ToLower(strings.ReplaceAll(e.Name, " ", "-"))
 						cls := classes[e.Name]
+						if live[e.Name] {
+							cls = "entry-live"
+						}
 						parts = append(parts, `<a href="/worldcup/entry/`+slug+`" class="`+cls+`" style="color:inherit">`+template.HTMLEscapeString(e.Name)+icons[e.Name]+`</a>`)
 						seen[e.Name] = true
 						break
@@ -186,7 +189,7 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, commi
 			}
 			return template.HTML(strings.Join(parts, " · "))
 		},
-		"awayMatchEntries": func(m worldcup.Match, entries []worldcup.Entry, icons map[string]string, classes map[string]string) template.HTML {
+		"awayMatchEntries": func(m worldcup.Match, entries []worldcup.Entry, icons map[string]string, classes map[string]string, live map[string]bool) template.HTML {
 			var parts []string
 			seen := make(map[string]bool)
 			for _, e := range entries {
@@ -194,6 +197,9 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, commi
 					if t == m.AwayTeam && !seen[e.Name] {
 						slug := strings.ToLower(strings.ReplaceAll(e.Name, " ", "-"))
 						cls := classes[e.Name]
+						if live[e.Name] {
+							cls = "entry-live"
+						}
 						parts = append(parts, `<a href="/worldcup/entry/`+slug+`" class="`+cls+`" style="color:inherit">`+template.HTMLEscapeString(e.Name)+icons[e.Name]+`</a>`)
 						seen[e.Name] = true
 						break

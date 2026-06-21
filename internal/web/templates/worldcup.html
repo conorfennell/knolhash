@@ -73,6 +73,7 @@
         .pb-stat { text-align: right; font-weight: 700; min-width: 2.5rem; padding-left: 0.4rem; }
         .pb-substat { text-align: right; color: var(--pico-muted-color); }
         .leader-best  { color: #9a7209 !important; font-weight: 600; }
+        .entry-live   { color: #dc2626 !important; font-weight: 600; animation: live-pulse 1.4s ease-in-out infinite; }
         .leader-goals { color: #2471a3 !important; font-weight: 600; }
         .leader-worst { color: #784212 !important; font-weight: 600; }
         /* ── Side bets ─────────────────────────────────────────────────── */
@@ -154,7 +155,7 @@
                         <span class="mf-mid">{{with liveScore . $.LiveMatches}}<span class="mf-score">{{.}}</span>{{else}}<span class="mf-v">v</span>{{end}}</span>
                         <span class="mf-away">{{if isLive . $.LiveMatches}}{{liveCards . $.LiveMatches "away"}} {{end}}<span class="{{flagClass (index $.Teams .AwayTeam)}}">{{flagEmoji .AwayTeam}}</span> {{.AwayTeam}}</span>
                     </div>
-                    <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries $.EntryIcons $.EntryClasses}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries $.EntryIcons $.EntryClasses}}</span></div>
+                    <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries $.EntryIcons $.EntryClasses $.LiveEntries}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries $.EntryIcons $.EntryClasses $.LiveEntries}}</span></div>
                     {{if .Venue}}<div class="match-venue">{{.Venue}}</div>{{end}}
                 </div>
                 {{end}}
@@ -176,7 +177,7 @@
                         <span class="mf-mid"><span class="mf-score">{{.HomeScore}}–{{.AwayScore}}</span></span>
                         <span class="mf-away"><span class="{{flagClass (index $.Teams .AwayTeam)}}">{{flagEmoji .AwayTeam}}</span> {{.AwayTeam}}</span>
                     </div>
-                    <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries $.EntryIcons $.EntryClasses}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries $.EntryIcons $.EntryClasses}}</span></div>
+                    <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries $.EntryIcons $.EntryClasses $.LiveEntries}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries $.EntryIcons $.EntryClasses $.LiveEntries}}</span></div>
                     {{if .Venue}}<div class="match-venue">{{.Venue}}</div>{{end}}
                 </div>
                 {{end}}
@@ -200,7 +201,7 @@
                         {{range $i, $r := .TopGoals}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{index $.EntryClasses $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
+                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{if index $.LiveEntries $r.Entry.Name}}entry-live{{else}}{{index $.EntryClasses $r.Entry.Name}}{{end}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span>{{$state.GoalsFor}}</span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalGoals}}</td>
                         </tr>
                         {{end}}
@@ -219,7 +220,7 @@
                         {{range $i, $r := .TopWorst}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{index $.EntryClasses $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span><span style="font-size:0.8em">{{teamPtsPlain $r $j}}</span></span>{{end}}</td>
+                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{if index $.LiveEntries $r.Entry.Name}}entry-live{{else}}{{index $.EntryClasses $r.Entry.Name}}{{end}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span><span style="font-size:0.8em">{{teamPtsPlain $r $j}}</span></span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalPoints}}</td>
                         </tr>
                         {{end}}
@@ -240,7 +241,7 @@
                         {{range $i, $r := .TopBest}}
                         <tr{{if eq $i 0}} class="pb-leader"{{else if eq $i 1}} class="pb-cutoff"{{end}}>
                             <td class="pb-rank">{{add1 $i}}</td>
-                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{index $.EntryClasses $r.Entry.Name}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span><span style="font-size:0.8em">{{teamPtsPlain $r $j}}</span></span>{{end}}</td>
+                            <td><a href="/worldcup/entry/{{entrySlug $r.Entry.Name}}" class="{{if index $.LiveEntries $r.Entry.Name}}entry-live{{else}}{{index $.EntryClasses $r.Entry.Name}}{{end}}" style="color:inherit;text-decoration:none;">{{$r.Entry.Name}}</a>{{index $.EntryIcons $r.Entry.Name}}</td><td class="pb-flags">{{range $j, $team := $r.Entry.Teams}}{{$state := index $r.TeamStates $j}}<span class="{{teamClass $state}}"><span class="{{flagClass $state}}">{{flagEmoji $team}}</span><span style="font-size:0.8em">{{teamPtsPlain $r $j}}</span></span>{{end}}</td>
                             <td class="pb-stat">{{$r.TotalPoints}}</td>
                         </tr>
                         {{end}}

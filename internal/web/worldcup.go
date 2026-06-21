@@ -57,6 +57,7 @@ type worldcupTemplateData struct {
 	Commit          string
 	BuildDate       string
 	MatchStakes     []worldcup.MatchStake
+	LiveEntries     map[string]bool
 }
 
 // applyLiveGoals overlays current in-play goals onto a copy of TournamentData
@@ -144,6 +145,7 @@ func (s *Server) handleGetWorldcup() http.HandlerFunc {
 			Commit:          shortCommit(s.commit),
 			BuildDate:       shortBuildDate(s.buildDate),
 			MatchStakes:     worldcup.ComputeMatchStakes(data.Matches, data),
+			LiveEntries:     buildLiveEntries(lives),
 		}
 		if err := s.templates.ExecuteTemplate(w, "worldcup", td); err != nil {
 			slog.Error("worldcup: template error", "error", err)
@@ -200,6 +202,27 @@ func shortBuildDate(d string) string {
 		return d
 	}
 	return t.UTC().Format("02 Jan 15:04")
+}
+
+func buildLiveEntries(lives []worldcup.LiveMatch) map[string]bool {
+	if len(lives) == 0 {
+		return nil
+	}
+	liveTeams := map[string]bool{}
+	for _, lm := range lives {
+		liveTeams[lm.HomeTeam] = true
+		liveTeams[lm.AwayTeam] = true
+	}
+	out := map[string]bool{}
+	for _, e := range worldcup.Entries {
+		for _, t := range e.Teams {
+			if liveTeams[t] {
+				out[e.Name] = true
+				break
+			}
+		}
+	}
+	return out
 }
 
 func buildEntryIcons(results []worldcup.EntryResult) map[string]string {

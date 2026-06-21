@@ -74,6 +74,7 @@ type espnStatus struct {
 
 type espnStatusType struct {
 	Name   string `json:"name"`
+	State  string `json:"state"`
 	Detail string `json:"detail"`
 }
 
@@ -104,9 +105,8 @@ func FetchLiveMatchesESPN() ([]LiveMatch, int, error) {
 		}
 		comp := event.Competitions[0]
 		status := comp.Status.Type.Name
-		switch status {
-		case "STATUS_IN_PLAY", "STATUS_HALFTIME", "STATUS_FIRST_HALF", "STATUS_SECOND_HALF":
-		default:
+		// Use state field ("in" = in progress) rather than enumerating status names.
+		if comp.Status.Type.State != "in" {
 			continue
 		}
 
@@ -148,7 +148,7 @@ func FetchLiveMatchesESPN() ([]LiveMatch, int, error) {
 		minute := parseESPNClock(comp.Status.DisplayClock)
 
 		liveStatus := "IN_PLAY"
-		if status == "STATUS_HALFTIME" {
+		if status == "STATUS_HALFTIME" || comp.Status.Type.Detail == "HT" {
 			liveStatus = "PAUSED"
 		}
 

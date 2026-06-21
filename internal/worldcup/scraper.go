@@ -98,18 +98,23 @@ func parseGroupTables(doc *html.Node) map[string]TeamState {
 			if err != nil || pos < 1 || pos > 4 {
 				continue
 			}
+			wikiElim := isWikiEliminated(cells[1])
 			name := normalizeTeamName(cells[1])
 			if name == "" || !knownTeams[name] {
 				continue
 			}
 			gf, _ := strconv.Atoi(strings.TrimSpace(cells[gfIdx]))
 			pld, _ := strconv.Atoi(strings.TrimSpace(cells[pldIdx]))
-			teams[name] = TeamState{
+			state := TeamState{
 				Name:          name,
 				GoalsFor:      gf,
 				GroupPosition: pos,
 				Played:        pld,
 			}
+			if wikiElim {
+				state.FinalPlace = 40
+			}
+			teams[name] = state
 		}
 	}
 
@@ -185,14 +190,15 @@ func applyThirdPlaceRankings(doc *html.Node, teams map[string]TeamState) {
 				continue
 			}
 			state := teams[name]
+			groupDone := state.Played == 3
 			if pos <= 8 {
 				state.ThirdPlaceGroupRank = pos
 				state.FinalPlace = 0
-				state.Provisional = !rankingComplete
+				state.Provisional = !rankingComplete || !groupDone
 			} else {
 				state.FinalPlace = pos + 24
 				state.ThirdPlaceGroupRank = 0
-				state.Provisional = !rankingComplete
+				state.Provisional = !rankingComplete || !groupDone
 			}
 			teams[name] = state
 		}
@@ -361,6 +367,17 @@ func normalizeTeamName(raw string) string {
 		return mapped
 	}
 	return name
+}
+
+// isWikiEliminated returns true when the raw Wikipedia cell text has an "(E)"
+// qualifier, meaning the team is definitively eliminated per Wikipedia.
+func isWikiEliminated(raw string) bool {
+	s := strings.TrimSpace(raw)
+	if i := strings.LastIndex(s, " ("); i >= 0 && strings.HasSuffix(s, ")") {
+		qualifier := s[i+2 : len(s)-1]
+		return qualifier == "E"
+	}
+	return false
 }
 
 // cellInfo holds text and class for one table cell.

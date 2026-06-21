@@ -56,6 +56,7 @@ type worldcupTemplateData struct {
 	EntryClasses    map[string]string
 	Commit          string
 	BuildDate       string
+	MatchStakes     []worldcup.MatchStake
 }
 
 // applyLiveGoals overlays current in-play goals onto a copy of TournamentData
@@ -142,6 +143,7 @@ func (s *Server) handleGetWorldcup() http.HandlerFunc {
 			EntryClasses:    buildEntryClasses(results),
 			Commit:          shortCommit(s.commit),
 			BuildDate:       shortBuildDate(s.buildDate),
+			MatchStakes:     worldcup.ComputeMatchStakes(data.Matches, data),
 		}
 		if err := s.templates.ExecuteTemplate(w, "worldcup", td); err != nil {
 			slog.Error("worldcup: template error", "error", err)

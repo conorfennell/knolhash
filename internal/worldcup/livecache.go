@@ -6,17 +6,14 @@ import (
 	"time"
 )
 
-// LiveCache polls football-data.org for live match scores.
-// It polls every 60 seconds when matches are in progress and backs off
-// to every 5 minutes when nothing is live, to conserve API quota.
+// LiveCache polls ESPN for live match scores.
 type LiveCache struct {
 	mu      sync.RWMutex
 	matches []LiveMatch
-	apiKey  string
 }
 
-func NewLiveCache(apiKey string) *LiveCache {
-	return &LiveCache{apiKey: apiKey}
+func NewLiveCache() *LiveCache {
+	return &LiveCache{}
 }
 
 // Get returns the current live matches (empty slice when nothing is live).
@@ -28,12 +25,8 @@ func (c *LiveCache) Get() []LiveMatch {
 	return out
 }
 
-// Start launches the background polling goroutine. No-ops if no API key is set.
+// Start launches the background polling goroutine.
 func (c *LiveCache) Start() {
-	if c.apiKey == "" {
-		slog.Info("worldcup: live feed disabled (no football_data_api_key in config)")
-		return
-	}
 	go c.run()
 	slog.Info("worldcup: live feed started")
 }
@@ -47,28 +40,17 @@ func (c *LiveCache) run() {
 }
 
 func (c *LiveCache) poll() time.Duration {
-	// Try ESPN first (no quota, faster).
 	matches, _, err := FetchLiveMatchesESPN()
-	source := "espn"
 	if err != nil {
-		slog.Warn("worldcup: ESPN live fetch failed, falling back to football-data.org", "error", err)
-		if c.apiKey != "" {
-			matches, _, err = FetchLiveMatches(c.apiKey)
-			source = "football-data.org"
-			if err != nil {
-				slog.Warn("worldcup: live fetch failed", "error", err)
-				return 2 * time.Minute
-			}
-		} else {
-			return 2 * time.Minute
-		}
+		slog.Warn("worldcup: ESPN live fetch failed", "error", err)
+		return 2 * time.Minute
 	}
 
 	c.mu.Lock()
 	c.matches = matches
 	c.mu.Unlock()
 
-	slog.Info("worldcup: live poll", "live", len(matches), "source", source)
+	slog.Info("worldcup: live poll", "live", len(matches), "source", "espn")
 
 	if len(matches) > 0 {
 		return 10 * time.Second

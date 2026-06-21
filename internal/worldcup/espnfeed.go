@@ -11,6 +11,20 @@ import (
 
 const espnScoreboardURL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard"
 
+// LiveMatch holds the current in-play state of a match.
+type LiveMatch struct {
+	HomeTeam   string
+	AwayTeam   string
+	HomeScore  int
+	AwayScore  int
+	Status     string // IN_PLAY, PAUSED
+	Minute     int
+	HomeYellow int
+	HomeRed    int
+	AwayYellow int
+	AwayRed    int
+}
+
 var espnToEntry = map[string]string{
 	"United States":       "USA",
 	"Curaçao":             "Curacao",

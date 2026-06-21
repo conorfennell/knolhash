@@ -37,10 +37,12 @@ type Server struct {
 	markdown      goldmark.Markdown
 	worldcupCache *worldcup.Cache
 	liveCache     *worldcup.LiveCache
+	commit        string
+	buildDate     string
 }
 
 // NewServer creates and configures a new server.
-func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache) *Server {
+func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, commit, buildDate string) *Server {
 	md := goldmark.New(
 		goldmark.WithExtensions(),
 	)
@@ -324,6 +326,8 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache) *Serv
 		markdown:      md,
 		worldcupCache: wc,
 		liveCache:     lc,
+		commit:        commit,
+		buildDate:     buildDate,
 	}
 	s.routes()
 	return s

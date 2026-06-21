@@ -123,7 +123,7 @@ func runWebServer(db *storage.DB, addr string, grpcAddr string, syncInterval tim
 		}
 	}()
 
-	server := web.NewServer(db, wc, lc)
+	server := web.NewServer(db, wc, lc, commit, buildDate)
 	slog.Info("Starting web server", "addr", addr)
 	if err := http.ListenAndServe(addr, server); err != nil {
 		slog.Error("Failed to start web server", "error", err)

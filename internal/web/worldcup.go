@@ -54,6 +54,8 @@ type worldcupTemplateData struct {
 	SideBets        []worldcup.ResolvedSideBet
 	EntryIcons      map[string]string
 	EntryClasses    map[string]string
+	Commit          string
+	BuildDate       string
 }
 
 // applyLiveGoals overlays current in-play goals onto a copy of TournamentData
@@ -138,6 +140,8 @@ func (s *Server) handleGetWorldcup() http.HandlerFunc {
 			SideBets:        worldcup.ResolveSideBets(worldcup.SideBets, data.Matches),
 			EntryIcons:      buildEntryIcons(prizes),
 			EntryClasses:    buildEntryClasses(prizes),
+			Commit:          s.commit,
+			BuildDate:       s.buildDate,
 		}
 		if err := s.templates.ExecuteTemplate(w, "worldcup", td); err != nil {
 			slog.Error("worldcup: template error", "error", err)

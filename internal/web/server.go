@@ -290,7 +290,7 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, commi
 			if state.FinalPlace > 0 {
 				pts = worldcup.PlacementPoints(state.FinalPlace) + worldcup.ThirdPlaceGroupBonus(state.ThirdPlaceGroupRank)
 			} else {
-				pts = worldcup.EstimatedGroupPoints(state)
+				pts = worldcup.EstimatedGroupPoints(state) + worldcup.ThirdPlaceGroupBonus(state.ThirdPlaceGroupRank)
 			}
 			if pts == 0 {
 				return "—"
@@ -308,7 +308,7 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, commi
 				pts = worldcup.PlacementPoints(state.FinalPlace) + worldcup.ThirdPlaceGroupBonus(state.ThirdPlaceGroupRank)
 				estimated = state.Provisional
 			} else {
-				pts = worldcup.EstimatedGroupPoints(state)
+				pts = worldcup.EstimatedGroupPoints(state) + worldcup.ThirdPlaceGroupBonus(state.ThirdPlaceGroupRank)
 				estimated = true
 			}
 			if pts == 0 {

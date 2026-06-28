@@ -317,8 +317,7 @@ func EstimatedGroupPoints(state TeamState) int {
 
 // ScoreEntry computes total points and goals for a single entry based on
 // current tournament data. When a team is still active (FinalPlace==0), it uses
-// EstimatedGroupPoints as the floor — ThirdPlaceGroupBonus is only meaningful
-// once a team has been eliminated and combined with their actual placement points.
+// EstimatedGroupPoints as the floor plus any ThirdPlaceGroupBonus already earned.
 func ScoreEntry(entry Entry, data TournamentData) EntryResult {
 	result := EntryResult{Entry: entry}
 	for i, teamName := range entry.Teams {
@@ -331,7 +330,7 @@ func ScoreEntry(entry Entry, data TournamentData) EntryResult {
 		if state.FinalPlace > 0 {
 			pts = PlacementPoints(state.FinalPlace) + ThirdPlaceGroupBonus(state.ThirdPlaceGroupRank)
 		} else {
-			pts = EstimatedGroupPoints(state)
+			pts = EstimatedGroupPoints(state) + ThirdPlaceGroupBonus(state.ThirdPlaceGroupRank)
 		}
 		result.TotalPoints += pts
 		result.TotalGoals += state.GoalsFor

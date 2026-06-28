@@ -113,10 +113,10 @@ func TestScoreEntry_ThirdPlaceBonus(t *testing.T) {
 		},
 		FetchedAt: time.Now(),
 	}
-	// TeamA: place=1 → 1pt, bonus rank=5 → 5pt; total = 6 (matches example in rules)
-	// TeamB: place=0 → 0pt
+	// TeamA: place=1 → 1pt, bonus rank=5 → 5pt; total = 6
+	// TeamB: place=0, no group position → 0pt
 	// TeamC: place=40 → 42pt (group eliminated)
-	// TeamD: place=0 → 0pt
+	// TeamD: place=0, no group position → 0pt
 	// Total points: 6 + 0 + 42 + 0 = 48
 	// Total goals: 10 + 3 + 2 + 1 = 16
 	result := ScoreEntry(entry, data)
@@ -125,5 +125,32 @@ func TestScoreEntry_ThirdPlaceBonus(t *testing.T) {
 	}
 	if result.TotalGoals != 16 {
 		t.Errorf("TotalGoals = %d, want 16", result.TotalGoals)
+	}
+}
+
+func TestScoreEntry_ActiveThirdPlaceRankBonus(t *testing.T) {
+	// Advancing 3rd-place teams still in the knockout stage must show
+	// EstimatedGroupPoints (25) + their group rank bonus, not a flat 25.
+	entry := Entry{
+		Name:  "Test",
+		Teams: [4]string{"DRCongo", "Sweden", "Senegal", "Iran"},
+	}
+	data := TournamentData{
+		Teams: map[string]TeamState{
+			// 1st-ranked advancing 3rd-place team, still active → 25 + 1 = 26
+			"DRCongo": {Name: "DRCongo", FinalPlace: 0, GroupPosition: 3, ThirdPlaceGroupRank: 1},
+			// 2nd-ranked advancing 3rd-place team, still active → 25 + 2 = 27
+			"Sweden": {Name: "Sweden", FinalPlace: 0, GroupPosition: 3, ThirdPlaceGroupRank: 2},
+			// 8th-ranked advancing 3rd-place team, still active → 25 + 8 = 33
+			"Senegal": {Name: "Senegal", FinalPlace: 0, GroupPosition: 3, ThirdPlaceGroupRank: 8},
+			// 9th-ranked 3rd-place team, eliminated (FinalPlace=33) → 33
+			"Iran": {Name: "Iran", FinalPlace: 33, ThirdPlaceGroupRank: 9},
+		},
+		FetchedAt: time.Now(),
+	}
+	// 26 + 27 + 33 + 33 = 119
+	result := ScoreEntry(entry, data)
+	if result.TotalPoints != 119 {
+		t.Errorf("TotalPoints = %d, want 119", result.TotalPoints)
 	}
 }

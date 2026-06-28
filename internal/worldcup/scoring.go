@@ -297,14 +297,20 @@ func ThirdPlaceGroupBonus(rank int) int {
 	return rank
 }
 
-// EstimatedGroupPoints returns a rough point estimate for a team that has no
-// confirmed result yet (FinalPlace==0, ThirdPlaceGroupRank==0). It uses the
-// team's current group position as a floor:
-//   - 1st or 2nd: 25 pts (minimum once they lose in R32)
-//   - 3rd (unranked): 25 pts (most 3rd-place teams advance to R32)
-//   - 4th (mid-group, not yet finalized): 42 pts
-//   - unknown: 0
+// EstimatedGroupPoints returns the minimum point floor for a team still active
+// (FinalPlace==0). Once a team wins a knockout match their KnockoutRound advances
+// and their floor rises to the worst placement still possible.
 func EstimatedGroupPoints(state TeamState) int {
+	switch state.KnockoutRound {
+	case 16:
+		return 12 // won R32; worst case is R16 loser (9th–16th = 12 pts)
+	case 8:
+		return 6 // won R16; worst case is QF loser (5th–8th = 6 pts)
+	case 4:
+		return 4 // won QF; worst case is SF loser / 4th place (4 pts)
+	case 2:
+		return 2 // won SF; worst case is runner-up (2 pts)
+	}
 	switch state.GroupPosition {
 	case 1, 2, 3:
 		return 25

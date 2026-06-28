@@ -206,27 +206,131 @@ func applyThirdPlaceRankings(doc *html.Node, teams map[string]TeamState) {
 	}
 }
 
-// applyKnockoutEliminations attempts to assign FinalPlace values to teams
-// eliminated in the knockout rounds by parsing the round-specific sections.
-// This is a best-effort parse; data will be absent until each round is played.
+// applyKnockoutEliminations walks the Wikipedia page tracking section headings,
+// and for each div.footballbox found under a knockout-round heading, parses the
+// result and updates team state: losers get FinalPlace set, winners get
+// KnockoutRound advanced so their estimated floor rises correctly.
 func applyKnockoutEliminations(doc *html.Node, teams map[string]TeamState) {
-	// Each knockout round has a heading like "Round of 32", "Round of 16", etc.
-	// Wikipedia updates the page with match results once they're played.
-	// We scan all wikitables for rows that contain two known team names and a score,
-	// then mark the loser with the appropriate FinalPlace.
-	//
-	// Round of 32 losers: places 17–32 (42 pts in scoring, but score is 25)
-	// Round of 16 losers: places 9–16
-	// Quarterfinal losers: places 5–8
-	// Semifinal losers:    places 3–4 (3rd place match determines 3 vs 4)
-	// Final:               places 1–2
-	//
-	// The page structure for individual match results uses tables with a
-	// home/score/away layout. We look for those patterns here.
-	// This will be populated as the tournament progresses — during group stage
-	// this function is a no-op because no knockout tables exist yet.
-	_ = doc
-	_ = teams
+	knownTeams := entryTeamSet()
+
+	type roundCfg struct {
+		loserPlace  int // FinalPlace for the loser
+		winnerPlace int // FinalPlace for the winner (>0 means tournament over for them)
+		nextRound   int // KnockoutRound to set for the winner if winnerPlace==0
+	}
+	// Checked in order — more-specific keywords before "final" to avoid
+	// "quarter-final" / "semi-final" matching the final catch-all.
+	roundRules := []struct {
+		keyword string
+		cfg     roundCfg
+	}{
+		{"round of 32", roundCfg{loserPlace: 25, nextRound: 16}},
+		{"round of 16", roundCfg{loserPlace: 12, nextRound: 8}},
+		{"quarter", roundCfg{loserPlace: 6, nextRound: 4}},
+		{"third place", roundCfg{loserPlace: 4, winnerPlace: 3}},
+		{"semi", roundCfg{loserPlace: 4, nextRound: 2}},
+		{"final", roundCfg{loserPlace: 2, winnerPlace: 1}},
+	}
+
+	// Walk the entire DOM, tracking the most-recently-seen heading text.
+	// Collect every div.footballbox together with that heading context.
+	type taggedBox struct {
+		node    *html.Node
+		heading string
+	}
+	var boxes []taggedBox
+	var currentHeading string
+
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		if n.Type == html.ElementNode {
+			switch n.Data {
+			case "h2", "h3", "h4":
+				currentHeading = strings.ToLower(strings.TrimSpace(extractText(n)))
+				// fall through to recurse into heading children
+			case "div":
+				for _, a := range n.Attr {
+					if a.Key == "class" {
+						for _, c := range strings.Fields(a.Val) {
+							if c == "footballbox" {
+								boxes = append(boxes, taggedBox{n, currentHeading})
+								return // don't descend inside the box
+							}
+						}
+						break
+					}
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(doc)
+
+	for _, box := range boxes {
+		var cfg roundCfg
+		var matched bool
+		for _, rule := range roundRules {
+			if strings.Contains(box.heading, rule.keyword) {
+				cfg = rule.cfg
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			continue
+		}
+
+		homeNode := findNodeByClass(box.node, "th", "fhome")
+		awayNode := findNodeByClass(box.node, "th", "faway")
+		scoreNode := findNodeByClass(box.node, "th", "fscore")
+		if homeNode == nil || awayNode == nil || scoreNode == nil {
+			continue
+		}
+
+		home := normalizeTeamName(firstAnchorText(homeNode))
+		away := normalizeTeamName(firstAnchorText(awayNode))
+		if !knownTeams[home] && !knownTeams[away] {
+			continue
+		}
+
+		scoreText := strings.TrimSpace(extractText(scoreNode))
+		sub := scoreRe.FindStringSubmatch(scoreText)
+		if sub == nil {
+			continue
+		}
+		homeScore, _ := strconv.Atoi(sub[1])
+		awayScore, _ := strconv.Atoi(sub[2])
+		if homeScore == awayScore {
+			// Draw resolved by penalties — skip until penalty parsing is added.
+			continue
+		}
+
+		var winner, loser string
+		if homeScore > awayScore {
+			winner, loser = home, away
+		} else {
+			winner, loser = away, home
+		}
+
+		if knownTeams[loser] {
+			if s, ok := teams[loser]; ok && s.FinalPlace == 0 {
+				s.FinalPlace = cfg.loserPlace
+				teams[loser] = s
+			}
+		}
+		if knownTeams[winner] {
+			if s, ok := teams[winner]; ok {
+				if cfg.winnerPlace > 0 {
+					s.FinalPlace = cfg.winnerPlace
+				} else if cfg.nextRound > 0 {
+					s.KnockoutRound = cfg.nextRound
+				}
+				teams[winner] = s
+			}
+		}
+	}
 }
 
 // isGroupTable returns true when the set of rows looks like a group standings

@@ -17,6 +17,7 @@ type TeamState struct {
 	FinalPlace          int  // 1–48 when eliminated/finished; 0 = still active
 	ThirdPlaceGroupRank int  // 1–8 for 3rd-placed teams that advance to knockouts; 0 otherwise
 	Provisional         bool // true when placement/rank is based on incomplete group stage data
+	KnockoutRound       int  // round the team has advanced to: 16=R16, 8=QF, 4=SF, 2=Final; 0=group/R32
 }
 
 // Match represents one tournament fixture.

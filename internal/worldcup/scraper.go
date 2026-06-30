@@ -302,16 +302,22 @@ func applyKnockoutEliminations(doc *html.Node, teams map[string]TeamState) {
 		}
 		homeScore, _ := strconv.Atoi(sub[1])
 		awayScore, _ := strconv.Atoi(sub[2])
-		if homeScore == awayScore {
-			// Draw resolved by penalties — skip until penalty parsing is added.
-			continue
-		}
-
 		var winner, loser string
 		if homeScore > awayScore {
 			winner, loser = home, away
-		} else {
+		} else if awayScore > homeScore {
 			winner, loser = away, home
+		} else {
+			// Draw — resolved by penalty shootout; count scored penalties per side.
+			w := penaltyWinner(box.node, home, away)
+			if w == "" {
+				continue // result not yet available
+			}
+			if w == home {
+				winner, loser = home, away
+			} else {
+				winner, loser = away, home
+			}
 		}
 
 		if knownTeams[loser] {
@@ -331,6 +337,77 @@ func applyKnockoutEliminations(doc *html.Node, teams map[string]TeamState) {
 			}
 		}
 	}
+}
+
+// penaltyWinner determines the winner of a penalty shootout within a footballbox
+// div. Returns "" if the result is not yet available.
+func penaltyWinner(box *html.Node, home, away string) string {
+	h, a := countPenalties(box)
+	if h > a {
+		return home
+	}
+	if a > h {
+		return away
+	}
+	return ""
+}
+
+// countPenalties returns the number of penalty shootout goals scored by each
+// side within a footballbox div, by counting "Penalty scored" spans that appear
+// after the "Penalties" section header.
+func countPenalties(box *html.Node) (home, away int) {
+	afterHeader := false
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		if n.Type == html.ElementNode {
+			if n.Data == "th" && strings.Contains(strings.ToLower(extractText(n)), "penalties") {
+				afterHeader = true
+			}
+			if afterHeader && n.Data == "td" {
+				isHome, isAway := false, false
+				for _, a := range n.Attr {
+					if a.Key == "class" {
+						isHome = strings.Contains(a.Val, "fhgoal")
+						isAway = strings.Contains(a.Val, "fagoal")
+					}
+				}
+				if isHome || isAway {
+					count := countSpanTitles(n, "Penalty scored")
+					if isHome {
+						home += count
+					} else {
+						away += count
+					}
+					return
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(box)
+	return
+}
+
+// countSpanTitles counts <span title="t"> elements anywhere within n.
+func countSpanTitles(n *html.Node, title string) int {
+	count := 0
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "span" {
+			for _, a := range n.Attr {
+				if a.Key == "title" && a.Val == title {
+					count++
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(n)
+	return count
 }
 
 // isGroupTable returns true when the set of rows looks like a group standings
@@ -674,6 +751,9 @@ func parseFootballBoxes(doc *html.Node, knownTeams map[string]bool) []Match {
 			m.HomeScore, _ = strconv.Atoi(sub[1])
 			m.AwayScore, _ = strconv.Atoi(sub[2])
 			m.Played = true
+			if strings.Contains(scoreText, "a.e.t.") {
+				m.PenaltyHome, m.PenaltyAway = countPenalties(box)
+			}
 		}
 		if fright := findNodeByClass(box, "div", "fright"); fright != nil {
 			if loc := findNodeByAttr(fright, "span", "itemprop", "name address"); loc != nil {

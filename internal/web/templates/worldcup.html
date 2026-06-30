@@ -42,6 +42,7 @@
         .mf-mid { min-width: 2.8rem; text-align: center; flex-shrink: 0; }
         .mf-v { color: var(--pico-muted-color); font-size: 0.82rem; font-weight: 600; }
         .mf-score { font-weight: 800; font-size: 1rem; color: #166534; }
+        .mf-pens { font-weight: 500; font-size: 0.78rem; color: var(--pico-muted-color); }
         .match-meta { display: flex; align-items: center; margin-top: 0.2rem; font-size: 0.82rem; color: var(--pico-muted-color); }
         .match-venue { text-align: center; font-size: 0.72rem; color: #bbb; margin-top: 0.15rem; }
         .meta-home { flex: 1; text-align: right; padding-right: 0.6rem; }
@@ -174,7 +175,7 @@
                     {{if not .KickOff.IsZero}}<div class="match-when"><span class="ml-badge ml-time-done">{{irishTime .KickOff}}</span></div>{{end}}
                     <div class="match-fixture">
                         <span class="mf-home">{{.HomeTeam}} <span class="{{flagClass (index $.Teams .HomeTeam)}}">{{flagEmoji .HomeTeam}}</span></span>
-                        <span class="mf-mid"><span class="mf-score">{{.HomeScore}}–{{.AwayScore}}</span></span>
+                        <span class="mf-mid"><span class="mf-score">{{if .PenaltyHome}}<span class="mf-pens">({{.PenaltyHome}})</span>{{end}}{{.HomeScore}}–{{.AwayScore}}{{if .PenaltyAway}}<span class="mf-pens">({{.PenaltyAway}})</span>{{end}}</span></span>
                         <span class="mf-away"><span class="{{flagClass (index $.Teams .AwayTeam)}}">{{flagEmoji .AwayTeam}}</span> {{.AwayTeam}}</span>
                     </div>
                     <div class="match-meta"><span class="meta-home">{{homeMatchEntries . $.Entries $.EntryIcons $.EntryClasses nil}}</span><span class="meta-mid"></span><span class="meta-away">{{awayMatchEntries . $.Entries $.EntryIcons $.EntryClasses nil}}</span></div>

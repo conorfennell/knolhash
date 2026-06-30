@@ -22,14 +22,16 @@ type TeamState struct {
 
 // Match represents one tournament fixture.
 type Match struct {
-	HomeTeam  string
-	AwayTeam  string
-	KickOff   time.Time // UTC; zero if unknown
-	HomeScore int
-	AwayScore int
-	Played    bool
-	Group     string
-	Venue     string // e.g. "NRG Stadium, Houston"
+	HomeTeam     string
+	AwayTeam     string
+	KickOff      time.Time // UTC; zero if unknown
+	HomeScore    int
+	AwayScore    int
+	PenaltyHome  int // penalty shootout goals; 0 if not decided by penalties
+	PenaltyAway  int
+	Played       bool
+	Group        string
+	Venue        string // e.g. "NRG Stadium, Houston"
 }
 
 // TournamentData is the full scraped state of the tournament.

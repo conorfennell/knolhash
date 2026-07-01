@@ -320,6 +320,20 @@ func applyKnockoutEliminations(doc *html.Node, teams map[string]TeamState) {
 			}
 		}
 
+		// Add regulation/AET goals to each team's running total.
+		if knownTeams[home] {
+			if s, ok := teams[home]; ok {
+				s.GoalsFor += homeScore
+				teams[home] = s
+			}
+		}
+		if knownTeams[away] {
+			if s, ok := teams[away]; ok {
+				s.GoalsFor += awayScore
+				teams[away] = s
+			}
+		}
+
 		if knownTeams[loser] {
 			if s, ok := teams[loser]; ok && s.FinalPlace == 0 {
 				s.FinalPlace = cfg.loserPlace

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/conorfennell/knolhash/internal/fpl"
@@ -13,7 +14,7 @@ import (
 type fplSideView struct {
 	Entry     int
 	Name      string
-	Icons     string
+	Icons     []fplStatusIcon
 	TeamName  string
 	Points    int
 	Outcome   string // "win", "loss", "draw" or "" when not yet played
@@ -73,7 +74,7 @@ type fplAwardColumn struct {
 // with fplAwardColumns.
 type fplAwardTally struct {
 	Name   string
-	Icons  string
+	Icons  []fplStatusIcon
 	Counts []int
 	Fame   int
 	Shame  int
@@ -83,7 +84,7 @@ type fplMoneyRow struct {
 	Rank     int
 	Move     int // places climbed since the previous gameweek
 	Name     string
-	Icons    string
+	Icons    []fplStatusIcon
 	TeamName string
 	Halves   [2]string
 	Season   string
@@ -101,7 +102,7 @@ type fplConcernView struct {
 
 type fplAvailabilityView struct {
 	Name     string
-	Icons    string
+	Icons    []fplStatusIcon
 	TeamName string
 	Concerns []fplConcernView
 	Missing  bool // team couldn't be fetched
@@ -125,8 +126,8 @@ type fplTemplateData struct {
 	Past            []*fplEventView // settled gameweeks, newest first
 	NamingRights    *fplNamingView
 	Availability    []fplAvailabilityView
-	TeamsEvent      int            // gameweek the availability teams are from
-	Icons           map[int]string // entry → status icons, as on the World Cup page
+	TeamsEvent      int                     // gameweek the availability teams are from
+	Icons           map[int][]fplStatusIcon // entry → status icons, as on the World Cup page
 	AwardTally      []fplAwardTally
 	AwardColumns    []fplAwardColumn
 	FetchedAt       time.Time
@@ -223,7 +224,7 @@ func fplApplyAwards(ev *fplEventView, data fpl.LeagueData, awards []fpl.Award) {
 
 // buildFPLAwardTally counts each manager's awards over the season, most
 // decorated (fame minus shame) first. Managers with no awards are left out.
-func buildFPLAwardTally(data fpl.LeagueData, awards map[int][]fpl.Award, icons map[int]string) []fplAwardTally {
+func buildFPLAwardTally(data fpl.LeagueData, awards map[int][]fpl.Award, icons map[int][]fplStatusIcon) []fplAwardTally {
 	col := map[string]int{}
 	for i, c := range fplAwardColumns {
 		col[c.Title] = i
@@ -280,11 +281,23 @@ const (
 	fplIconInjured = "🚑"  // a ruled-out player in the starting XI
 )
 
+// fplStatusIcon is a status icon beside a manager's name; tapping it shows
+// what it means.
+type fplStatusIcon struct {
+	Icon   string
+	Title  string
+	Detail string // "Eoghan: top of the H2H table on 21 pts"
+	Bad    bool
+}
+
 // buildFPLIcons gives each manager their current status icons. Like the
 // World Cup page, icons reflect standings now, not a particular gameweek.
-func buildFPLIcons(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData) map[int]string {
-	icons := map[int]string{}
-	add := func(entry int, icon string) { icons[entry] += " " + icon }
+func buildFPLIcons(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData) map[int][]fplStatusIcon {
+	names := fplNameMap(data)
+	icons := map[int][]fplStatusIcon{}
+	add := func(entry int, icon, title, detail string, bad bool) {
+		icons[entry] = append(icons[entry], fplStatusIcon{Icon: icon, Title: title, Detail: names[entry] + ": " + detail, Bad: bad})
+	}
 
 	if len(data.Standings) > 0 {
 		var top fpl.Standing
@@ -296,7 +309,7 @@ func buildFPLIcons(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData) map[int
 		}
 		for _, s := range data.Standings {
 			if !s.Side.IsAverage() && s.Total == top.Total && s.PointsFor == top.PointsFor {
-				add(s.Side.Entry, fplIconLeague)
+				add(s.Side.Entry, fplIconLeague, "League leader", fmt.Sprintf("top of the H2H table on %d pts", s.Total), false)
 			}
 		}
 	}
@@ -306,40 +319,48 @@ func buildFPLIcons(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData) map[int
 			for _, r := range l.Rows {
 				switch r.Season() {
 				case best:
-					add(r.Manager.Entry, fplIconMoney)
+					add(r.Manager.Entry, fplIconMoney, "Most money", r.Season().String()+" this season", false)
 				case worst:
-					add(r.Manager.Entry, fplIconSpoon)
+					add(r.Manager.Entry, fplIconSpoon, "Wooden spoon", r.Season().String()+" this season, bottom of the money table", true)
 				}
 			}
 		}
-		for _, e := range l.Gameweeks[len(l.Gameweeks)-1].TopScorers {
-			add(e, fplIconStar)
+		g := l.Gameweeks[len(l.Gameweeks)-1]
+		for _, e := range g.TopScorers {
+			add(e, fplIconStar, "Top scorer", fmt.Sprintf("highest score in Gameweek %d with %d", g.Event, g.Weeks[e].Points), false)
 		}
 	}
-	for entry, n := range fplStreaks(data) {
-		switch {
+	streaks := fplStreaks(data)
+	for _, m := range data.Managers {
+		switch n := streaks[m.Entry]; {
 		case n >= 3:
-			add(entry, fplIconStreak)
+			add(m.Entry, fplIconStreak, "On fire", fmt.Sprintf("%d H2H wins in a row", n), false)
 		case n <= -3:
-			add(entry, fplIconSlump)
+			add(m.Entry, fplIconSlump, "Ice cold", fmt.Sprintf("%d H2H losses in a row", -n), true)
 		}
 	}
 	if nr, ok := fpl.BiggestMargin(data); ok {
-		add(nr.Winner.Entry, fplIconNaming)
+		add(nr.Winner.Entry, fplIconNaming, "Naming rights",
+			fmt.Sprintf("names %s's team next year (won by %d in Gameweek %d)", nr.Loser.Name, nr.Margin, nr.Event), false)
 	}
-	for entry, picks := range live.Picks {
+	for _, m := range data.Managers {
+		picks, ok := live.Picks[m.Entry]
+		if !ok {
+			continue
+		}
+		var out []string
 		for _, c := range fpl.Concerns(picks, data.Players) {
 			if c.Player.Out() && !c.Bench {
-				add(entry, fplIconInjured)
-				break
+				out = append(out, c.Player.Name)
 			}
+		}
+		if len(out) > 0 {
+			add(m.Entry, fplIconInjured, "Starter ruled out", strings.Join(out, ", "), true)
 		}
 	}
 	return icons
 }
 
-// fplWinStreaks counts each manager's consecutive H2H wins, most recent
-// settled gameweek backwards.
 // fplStreaks counts each manager's current run of consecutive H2H results,
 // most recent settled gameweek backwards: positive for wins, negative for
 // losses. A draw ends a run.
@@ -375,7 +396,7 @@ func fplStreaks(data fpl.LeagueData) map[int]int {
 	return streaks
 }
 
-func buildFPLAvailability(data fpl.LeagueData, live fpl.LiveData, icons map[int]string) []fplAvailabilityView {
+func buildFPLAvailability(data fpl.LeagueData, live fpl.LiveData, icons map[int][]fplStatusIcon) []fplAvailabilityView {
 	var out []fplAvailabilityView
 	for _, m := range data.Managers {
 		v := fplAvailabilityView{Name: m.DisplayName, Icons: icons[m.Entry], TeamName: m.TeamName}
@@ -404,7 +425,7 @@ func buildFPLAvailability(data fpl.LeagueData, live fpl.LiveData, icons map[int]
 	return out
 }
 
-func buildFPLMoney(l fpl.Ledger, moves map[int]int, icons map[int]string) []fplMoneyRow {
+func buildFPLMoney(l fpl.Ledger, moves map[int]int, icons map[int][]fplStatusIcon) []fplMoneyRow {
 	var rows []fplMoneyRow
 	ranks := l.Ranks()
 	for _, r := range l.Rows {
@@ -422,7 +443,7 @@ func buildFPLMoney(l fpl.Ledger, moves map[int]int, icons map[int]string) []fplM
 	return rows
 }
 
-func buildFPLEvent(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData, icons map[int]string, e fpl.Event) *fplEventView {
+func buildFPLEvent(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData, icons map[int][]fplStatusIcon, e fpl.Event) *fplEventView {
 	ev := &fplEventView{ID: e.ID, Name: e.Name, Deadline: e.Deadline, Status: e.Status()}
 	ev.Live = ev.Status == "live" && live.Event == e.ID
 	g, settled := l.Gameweek(e.ID)

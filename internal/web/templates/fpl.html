@@ -93,6 +93,9 @@
         .aw-badge { all: unset; display: inline-block; font-size: 0.8rem; line-height: 1; padding: 0.14rem 0.3rem; border-radius: 0.6rem; margin: 0 0.15rem 0 0; vertical-align: 0.05em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         .aw-badge:focus-visible { outline: 2px solid #6d28d9; outline-offset: 1px; }
         .aw-badge.open { box-shadow: 0 0 0 2px #6d28d9; }
+        .st-badge { all: unset; cursor: pointer; margin-left: 0.2rem; padding: 0 0.05rem; border-radius: 0.3rem; -webkit-tap-highlight-color: transparent; }
+        .st-badge:focus-visible { outline: 2px solid #6d28d9; outline-offset: 1px; }
+        .st-badge.open { box-shadow: 0 0 0 2px #6d28d9; }
         .aw-pop { position: absolute; z-index: 20; max-width: 15rem; background: #1f2937; color: #fff; border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.82rem; line-height: 1.35; box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
         .aw-pop[hidden] { display: none; }
         .aw-pop-title { font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.1rem; }
@@ -136,7 +139,7 @@
                 {{range .Money}}
                 <tr>
                     <td class="rank">{{.Rank}}{{template "fpl_move" .Move}}</td>
-                    <td>{{.Name}}{{.Icons}}<span class="who-team">{{.TeamName}}</span></td>
+                    <td>{{.Name}}{{template "fpl_icons" .Icons}}<span class="who-team">{{.TeamName}}</span></td>
                     <td class="num{{if eq $half 0}} cur{{end}}">{{index .Halves 0}}</td>
                     <td class="num{{if eq $half 1}} cur{{end}}">{{index .Halves 1}}</td>
                     <td class="num pts {{if gt .Sign 0}}pos{{else if lt .Sign 0}}neg{{else}}zero{{end}}">{{.Season}}</td>
@@ -170,7 +173,7 @@
                 <tbody>
                 {{range .AwardTally}}
                 <tr>
-                    <td class="who">{{.Name}}{{.Icons}}</td>
+                    <td class="who">{{.Name}}{{template "fpl_icons" .Icons}}</td>
                     {{range $i, $n := .Counts}}{{$c := index $cols $i}}<td class="aw {{if $c.Shame}}aw-shame{{else}}aw-fame{{end}}">{{if $n}}{{$n}}{{end}}</td>{{end}}
                 </tr>
                 {{end}}
@@ -191,7 +194,7 @@
                 {{range .Standings}}
                 <tr{{if .Side.IsAverage}} class="avg"{{end}}>
                     <td class="rank">{{.Rank}}{{template "fpl_move" .Move}}</td>
-                    <td>{{.Side.Name}}{{index $.Icons .Side.Entry}}{{if not .Side.IsAverage}}<span class="who-team">{{.Side.TeamName}}</span>{{end}}</td>
+                    <td>{{.Side.Name}}{{template "fpl_icons" (index $.Icons .Side.Entry)}}{{if not .Side.IsAverage}}<span class="who-team">{{.Side.TeamName}}</span>{{end}}</td>
                     <td class="num">{{.Won}}</td>
                     <td class="num">{{.Drawn}}</td>
                     <td class="num">{{.Lost}}</td>
@@ -223,7 +226,7 @@
             <div class="card-body">
                 {{range .Availability}}
                 <div class="av-mgr">
-                    <div class="av-name">{{.Name}}{{.Icons}} <span class="fx-team" style="display:inline">· {{.TeamName}}</span></div>
+                    <div class="av-name">{{.Name}}{{template "fpl_icons" .Icons}} <span class="fx-team" style="display:inline">· {{.TeamName}}</span></div>
                     <ul class="av-list">
                         {{if .Missing}}<li class="av-news">Couldn't load this team from FPL. It will retry within a minute.</li>{{end}}
                         {{range .Concerns}}
@@ -292,7 +295,7 @@
             current = btn;
         }
         document.addEventListener('click', function(e) {
-            var btn = e.target.closest('.aw-badge');
+            var btn = e.target.closest('.aw-badge, .st-badge');
             if (btn) { e.preventDefault(); btn === current ? close() : open(btn); return; }
             if (!pop.contains(e.target)) close();
         });
@@ -318,7 +321,7 @@
         {{range .Fixtures}}
         <div class="fx-row">
             <div class="fx-side fx-home fx-{{.Home.Outcome}}{{if .Home.IsAverage}} fx-avg{{end}}">
-                <div class="fx-name">{{if .Home.Chip}}<span class="tag tag-chip">{{.Home.Chip}}</span>{{end}}{{.Home.Name}}{{.Home.Icons}}</div>
+                <div class="fx-name">{{if .Home.Chip}}<span class="tag tag-chip">{{.Home.Chip}}</span>{{end}}{{.Home.Name}}{{template "fpl_icons" .Home.Icons}}</div>
                 {{if not .Home.IsAverage}}<div class="fx-team">{{.Home.TeamName}}</div>{{end}}
                 {{template "fpl_money" .Home}}
             </div>
@@ -326,7 +329,7 @@
                 {{if eq $status "upcoming"}}<span class="fx-v">v</span>{{else if $live}}~{{.Home.Points}} – ~{{.Away.Points}}{{else}}{{.Home.Points}} – {{.Away.Points}}{{end}}
             </div>
             <div class="fx-side fx-away fx-{{.Away.Outcome}}{{if .Away.IsAverage}} fx-avg{{end}}">
-                <div class="fx-name">{{.Away.Name}}{{.Away.Icons}}{{if .Away.Chip}}<span class="tag tag-chip">{{.Away.Chip}}</span>{{end}}</div>
+                <div class="fx-name">{{.Away.Name}}{{template "fpl_icons" .Away.Icons}}{{if .Away.Chip}}<span class="tag tag-chip">{{.Away.Chip}}</span>{{end}}</div>
                 {{if not .Away.IsAverage}}<div class="fx-team">{{.Away.TeamName}}</div>{{end}}
                 {{template "fpl_money" .Away}}
             </div>
@@ -343,3 +346,5 @@
 {{define "fpl_money"}}{{if .Money}}<div class="fx-money">{{if .Top}}<span class="tag tag-top">Top</span>{{end}}{{if .Bottom}}<span class="tag tag-bottom">Bottom 2</span>{{end}}{{if .Capped}}<span class="tag tag-cap">Capped</span>{{end}}{{range .Awards}}<button type="button" class="aw-badge {{if .Shame}}aw-badge-shame{{else}}aw-badge-fame{{end}}" data-title="{{.Icon}} {{.Title}}" data-detail="{{.Detail}}" data-shame="{{.Shame}}" aria-label="{{.Title}}: {{.Detail}}">{{.Icon}}</button>{{end}}<span class="{{if gt .MoneySign 0}}pos{{else if lt .MoneySign 0}}neg{{else}}zero{{end}}">{{.Money}}</span></div>{{end}}{{end}}
 
 {{define "fpl_move"}}{{if gt . 0}}<span class="move move-up" title="Up {{.}} since last gameweek">▲{{.}}</span>{{else if lt . 0}}<span class="move move-down" title="Down since last gameweek">▼{{fplAbs .}}</span>{{end}}{{end}}
+
+{{define "fpl_icons"}}{{range .}}<button type="button" class="st-badge" data-title="{{.Icon}} {{.Title}}" data-detail="{{.Detail}}" data-shame="{{.Bad}}" aria-label="{{.Title}}: {{.Detail}}">{{.Icon}}</button>{{end}}{{end}}

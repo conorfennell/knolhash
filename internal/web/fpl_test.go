@@ -1,7 +1,6 @@
 package web
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/conorfennell/knolhash/internal/fpl"
@@ -94,7 +93,7 @@ func TestBuildFPLIcons(t *testing.T) {
 			{Rank: 2, Side: fpl.Side{Name: "AVERAGE"}, Total: 6},
 			{Rank: 3, Side: side(2, 0), Total: 3},
 		},
-		Players: map[int]fpl.Player{10: {Status: "i"}},
+		Players: map[int]fpl.Player{10: {Name: "Saka", Status: "i"}},
 		Matches: []fpl.Match{
 			{Event: 1, Home: side(1, 80), Away: side(4, 20)}, {Event: 1, Home: side(2, 50), Away: side(3, 40)},
 			{Event: 2, Home: side(1, 70), Away: side(3, 60)}, {Event: 2, Home: side(2, 50), Away: side(4, 45)},
@@ -104,23 +103,51 @@ func TestBuildFPLIcons(t *testing.T) {
 	live := fpl.LiveData{Picks: map[int]fpl.Picks{4: {Players: []fpl.Pick{{Element: 10, Multiplier: 1}}}}}
 	icons := buildFPLIcons(data, fpl.BuildLedger(data), live)
 
+	has := func(entry int, icon string) bool {
+		for _, i := range icons[entry] {
+			if i.Icon == icon {
+				return true
+			}
+		}
+		return false
+	}
 	for entry, want := range map[int][]string{
 		1: {fplIconLeague, fplIconMoney, fplIconStar, fplIconStreak, fplIconNaming},
 		4: {fplIconSpoon, fplIconInjured, fplIconSlump},
 	} {
 		for _, icon := range want {
-			if !strings.Contains(icons[entry], icon) {
-				t.Errorf("entry %d icons %q missing %s", entry, icons[entry], icon)
+			if !has(entry, icon) {
+				t.Errorf("entry %d icons %+v missing %s", entry, icons[entry], icon)
 			}
+		}
+	}
+	// Icons explain themselves, and bad news is flagged as such.
+	for _, i := range icons[4] {
+		if len(i.Detail) < 4 || i.Detail[:3] != "D: " {
+			t.Errorf("entry 4 icon %+v", i)
+		}
+		if i.Icon == fplIconInjured && i.Detail != "D: Saka" {
+			t.Errorf("injured detail = %q, want the ruled-out player named", i.Detail)
+		}
+		if (i.Icon == fplIconSpoon || i.Icon == fplIconSlump || i.Icon == fplIconInjured) && !i.Bad {
+			t.Errorf("%s should be marked bad", i.Icon)
+		}
+	}
+	for _, i := range icons[1] {
+		if i.Bad {
+			t.Errorf("entry 1 icon %s marked bad", i.Icon)
+		}
+		if i.Icon == fplIconStreak && i.Detail != "A: 3 H2H wins in a row" {
+			t.Errorf("streak detail = %q", i.Detail)
 		}
 	}
 	// Entry 2 went W, W, L and entry 3 L, L, W: neither has a three-game run.
 	for _, e := range []int{2, 3} {
-		if strings.Contains(icons[e], fplIconStreak) || strings.Contains(icons[e], fplIconSlump) {
-			t.Errorf("entry %d icons %q, want no streak", e, icons[e])
+		if has(e, fplIconStreak) || has(e, fplIconSlump) {
+			t.Errorf("entry %d icons %+v, want no streak", e, icons[e])
 		}
 	}
-	if strings.Contains(icons[0], fplIconLeague) {
+	if has(0, fplIconLeague) {
 		t.Errorf("unexpected icons: %v", icons)
 	}
 }

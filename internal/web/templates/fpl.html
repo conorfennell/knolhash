@@ -140,26 +140,6 @@
         </section>
         {{end}}
 
-        {{if .Availability}}
-        <section class="card section-gap">
-            <div class="card-head"><span>Injuries &amp; suspensions</span><span class="badge badge-done">GW{{.TeamsEvent}} teams</span></div>
-            <div class="card-body">
-                {{range .Availability}}
-                <div class="av-mgr">
-                    <div class="av-name">{{.Name}}{{.Icons}} <span class="fx-team" style="display:inline">· {{.TeamName}}</span></div>
-                    <ul class="av-list">
-                        {{if .Missing}}<li class="av-news">Couldn't load this team from FPL. It will retry within a minute.</li>{{end}}
-                        {{range .Concerns}}
-                        <li><span class="tag tag-{{.Severity}}">{{.Label}}</span>{{if .Bench}}<span class="tag tag-bench">Bench</span>{{end}} <strong>{{.Player}}</strong> ({{.Club}}){{if .News}} <span class="av-news">– {{.News}}</span>{{end}}</li>
-                        {{end}}
-                    </ul>
-                </div>
-                {{end}}
-                <p class="fx-team" style="padding-top:0.4rem;margin:0;white-space:normal">Players in each manager's team from the last deadline. Transfers made since won't show until the next deadline passes.</p>
-            </div>
-        </section>
-        {{end}}
-
         {{if .Standings}}
         <section class="card section-gap">
             <div class="card-head"><span>League table</span></div>
@@ -193,6 +173,26 @@
                 {{template "fpl_event" .}}
             </details>
             {{end}}
+        </section>
+        {{end}}
+
+        {{if .Availability}}
+        <section class="card section-gap">
+            <div class="card-head"><span>Injuries &amp; suspensions</span><span class="badge badge-done">GW{{.TeamsEvent}} teams</span></div>
+            <div class="card-body">
+                {{range .Availability}}
+                <div class="av-mgr">
+                    <div class="av-name">{{.Name}}{{.Icons}} <span class="fx-team" style="display:inline">· {{.TeamName}}</span></div>
+                    <ul class="av-list">
+                        {{if .Missing}}<li class="av-news">Couldn't load this team from FPL. It will retry within a minute.</li>{{end}}
+                        {{range .Concerns}}
+                        <li><span class="tag tag-{{.Severity}}">{{.Label}}</span>{{if .Bench}}<span class="tag tag-bench">Bench</span>{{end}} <strong>{{.Player}}</strong> ({{.Club}}){{if .News}} <span class="av-news">– {{.News}}</span>{{end}}</li>
+                        {{end}}
+                    </ul>
+                </div>
+                {{end}}
+                <p class="fx-team" style="padding-top:0.4rem;margin:0;white-space:normal">Players in each manager's team from the last deadline. Transfers made since won't show until the next deadline passes.</p>
+            </div>
         </section>
         {{end}}
 

@@ -148,6 +148,12 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, fc *f
 			}
 			return ""
 		},
+		"fplAbs": func(n int) int {
+			if n < 0 {
+				return -n
+			}
+			return n
+		},
 		"irishTime": func(t time.Time) string {
 			if t.IsZero() {
 				return ""

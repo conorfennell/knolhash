@@ -37,6 +37,7 @@ type apiStandings struct {
 		HasNext bool `json:"has_next"`
 		Results []struct {
 			Rank       int    `json:"rank"`
+			LastRank   int    `json:"last_rank"`
 			Entry      *int   `json:"entry"`
 			PlayerName string `json:"player_name"`
 			EntryName  string `json:"entry_name"`
@@ -214,7 +215,7 @@ func (c *Client) FetchLeague(leagueID int) (LeagueData, error) {
 	}
 	for _, r := range rawStandings.Standings.Results {
 		data.Standings = append(data.Standings, Standing{
-			Rank: r.Rank, Side: side(deref(r.Entry), 0),
+			Rank: r.Rank, LastRank: r.LastRank, Side: side(deref(r.Entry), 0),
 			Won: r.Won, Drawn: r.Drawn, Lost: r.Lost, Total: r.Total, PointsFor: r.PointsFor,
 		})
 	}

@@ -53,7 +53,10 @@
         .tbl td { padding: 0.42rem 0.5rem; border-bottom: 1px solid #f4f4f4; }
         .tbl tr:last-child td { border-bottom: none; }
         .tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
-        .tbl .rank { width: 2rem; text-align: center; color: var(--pico-muted-color); }
+        .tbl .rank { width: 2.6rem; text-align: center; color: var(--pico-muted-color); white-space: nowrap; }
+        .move { display: block; font-size: 0.66rem; font-weight: 800; line-height: 1; margin-top: 0.1rem; }
+        .move-up { color: #16a34a; }
+        .move-down { color: #dc2626; }
         .tbl .who-team { display: block; font-size: 0.76rem; color: var(--pico-muted-color); }
         .tbl .pts { font-weight: 800; }
         .tbl .avg td { color: #6b7280; font-style: italic; }
@@ -114,7 +117,7 @@
                 <tbody>
                 {{range .Money}}
                 <tr>
-                    <td class="rank">{{.Rank}}</td>
+                    <td class="rank">{{.Rank}}{{template "fpl_move" .Move}}</td>
                     <td>{{.Name}}{{.Icons}}<span class="who-team">{{.TeamName}}</span></td>
                     <td class="num{{if eq $half 0}} cur{{end}}">{{index .Halves 0}}</td>
                     <td class="num{{if eq $half 1}} cur{{end}}">{{index .Halves 1}}</td>
@@ -177,7 +180,7 @@
                 <tbody>
                 {{range .Standings}}
                 <tr{{if .Side.IsAverage}} class="avg"{{end}}>
-                    <td class="rank">{{.Rank}}</td>
+                    <td class="rank">{{.Rank}}{{template "fpl_move" .Move}}</td>
                     <td>{{.Side.Name}}{{index $.Icons .Side.Entry}}{{if not .Side.IsAverage}}<span class="who-team">{{.Side.TeamName}}</span>{{end}}</td>
                     <td class="num">{{.Won}}</td>
                     <td class="num">{{.Drawn}}</td>
@@ -290,3 +293,5 @@
 {{end}}
 
 {{define "fpl_money"}}{{if .Money}}<div class="fx-money">{{if .Top}}<span class="tag tag-top">Top</span>{{end}}{{if .Bottom}}<span class="tag tag-bottom">Bottom 2</span>{{end}}{{if .Capped}}<span class="tag tag-cap">Capped</span>{{end}}<span class="{{if gt .MoneySign 0}}pos{{else if lt .MoneySign 0}}neg{{else}}zero{{end}}">{{.Money}}</span></div>{{end}}{{end}}
+
+{{define "fpl_move"}}{{if gt . 0}}<span class="move move-up" title="Up {{.}} since last gameweek">▲{{.}}</span>{{else if lt . 0}}<span class="move move-down" title="Down since last gameweek">▼{{fplAbs .}}</span>{{end}}{{end}}

@@ -41,6 +41,7 @@ type fplEventView struct {
 
 type fplMoneyRow struct {
 	Rank     int
+	Move     int // places climbed since the previous gameweek
 	Name     string
 	Icons    string
 	TeamName string
@@ -104,7 +105,7 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 		td := fplTemplateData{
 			LeagueName:      data.LeagueName,
 			Standings:       data.Standings,
-			Money:           buildFPLMoney(ledger, icons),
+			Money:           buildFPLMoney(ledger, fpl.MoneyMoves(data), icons),
 			Icons:           icons,
 			FetchedAt:       data.FetchedAt,
 			NextRefreshUnix: s.fplCache.NextRefresh().Unix(),
@@ -281,15 +282,13 @@ func buildFPLAvailability(data fpl.LeagueData, live fpl.LiveData, icons map[int]
 	return out
 }
 
-func buildFPLMoney(l fpl.Ledger, icons map[int]string) []fplMoneyRow {
+func buildFPLMoney(l fpl.Ledger, moves map[int]int, icons map[int]string) []fplMoneyRow {
 	var rows []fplMoneyRow
-	for i, r := range l.Rows {
-		rank := i + 1
-		if i > 0 && r.Season() == l.Rows[i-1].Season() {
-			rank = rows[i-1].Rank
-		}
+	ranks := l.Ranks()
+	for _, r := range l.Rows {
 		rows = append(rows, fplMoneyRow{
-			Rank:     rank,
+			Rank:     ranks[r.Manager.Entry],
+			Move:     moves[r.Manager.Entry],
 			Name:     r.Manager.DisplayName,
 			Icons:    icons[r.Manager.Entry],
 			TeamName: r.Manager.TeamName,

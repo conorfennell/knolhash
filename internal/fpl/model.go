@@ -39,12 +39,22 @@ type Match struct {
 // Standing is a row of the FPL H2H league table.
 type Standing struct {
 	Rank      int
+	LastRank  int // rank after the previous gameweek, 0 when unknown
 	Side      Side
 	Won       int
 	Drawn     int
 	Lost      int
 	Total     int // H2H league points (3 per win, 1 per draw)
 	PointsFor int
+}
+
+// Move is how many places the row climbed since the previous gameweek
+// (negative when it dropped).
+func (s Standing) Move() int {
+	if s.LastRank == 0 {
+		return 0
+	}
+	return s.LastRank - s.Rank
 }
 
 // Event is an FPL gameweek.

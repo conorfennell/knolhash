@@ -67,6 +67,12 @@ func TestFetchLeague(t *testing.T) {
 			avg = &data.Standings[i]
 		}
 	}
+	if top := data.Standings[0]; top.LastRank != 1 || top.Move() != 0 {
+		t.Errorf("leader = %+v, want last rank 1 and no move", top)
+	}
+	if avg == nil || avg.Move() != 2 {
+		t.Errorf("AVERAGE move = %+v, want up 2 (6th → 4th)", avg)
+	}
 	if avg == nil || avg.Side.Name != "AVERAGE" {
 		t.Errorf("AVERAGE row missing or mislabelled: %+v", avg)
 	}

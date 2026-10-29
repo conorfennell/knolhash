@@ -38,8 +38,17 @@ type fplAwardBadge struct {
 }
 
 type fplFixtureView struct {
-	Home fplSideView
-	Away fplSideView
+	Home    fplSideView
+	Away    fplSideView
+	Rivalry *fplRivalryView // nil against AVERAGE
+}
+
+// fplRivalryView is the season's head-to-head record shown under a
+// fixture's score; tapping it shows the meetings.
+type fplRivalryView struct {
+	Summary string // "0–1" from the home side, "1st" before they've met
+	Title   string // "⚔️ Kevin v Paul"
+	Detail  string // one line per fact
 }
 
 type fplEventView struct {
@@ -458,12 +467,46 @@ func buildFPLEvent(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData, icons m
 		if ev.Status != "upcoming" {
 			home.Outcome, away.Outcome = fplOutcome(home.Points, away.Points), fplOutcome(away.Points, home.Points)
 		}
-		ev.Fixtures = append(ev.Fixtures, fplFixtureView{Home: home, Away: away})
+		f := fplFixtureView{Home: home, Away: away}
+		if !m.Home.IsAverage() && !m.Away.IsAverage() {
+			f.Rivalry = buildFPLRivalry(fpl.HeadToHead(data, m.Home.Entry, m.Away.Entry), m.Home.Name, m.Away.Name)
+		}
+		ev.Fixtures = append(ev.Fixtures, f)
 	}
 	if settled {
 		ev.Summary = "Top: " + fplNames(data, g.TopScorers) + " · Bottom two: " + fplNames(data, g.BottomTwo)
 	}
 	return ev
+}
+
+func buildFPLRivalry(r fpl.Rivalry, a, b string) *fplRivalryView {
+	v := &fplRivalryView{Title: "⚔️ " + a + " v " + b, Summary: fmt.Sprintf("%d–%d", r.AWins, r.BWins)}
+	if len(r.Meetings) == 0 {
+		v.Summary = "1st"
+		v.Detail = "First meeting this season."
+		return v
+	}
+	lines := []string{fmt.Sprintf("Season: %s %d · %s %d", a, r.AWins, b, r.BWins)}
+	if r.Draws > 0 {
+		lines[0] += fmt.Sprintf(" · %d drawn", r.Draws)
+	}
+	best, bestBy, bestGW := "", 0, 0
+	for _, m := range r.Meetings {
+		lines = append(lines, fmt.Sprintf("GW%d: %s %d – %d %s", m.Event, a, m.APoints, m.BPoints, b))
+		if d := m.APoints - m.BPoints; d > bestBy || -d > bestBy {
+			bestGW = m.Event
+			if d > 0 {
+				best, bestBy = a, d
+			} else {
+				best, bestBy = b, -d
+			}
+		}
+	}
+	if bestBy > 0 && len(r.Meetings) > 1 {
+		lines = append(lines, fmt.Sprintf("Biggest win: %s by %d (GW%d)", best, bestBy, bestGW))
+	}
+	v.Detail = strings.Join(lines, "\n")
+	return v
 }
 
 func fplSide(s fpl.Side, g fpl.GameweekLedger, settled bool) fplSideView {

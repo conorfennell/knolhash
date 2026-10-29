@@ -96,8 +96,9 @@
         .st-badge { all: unset; cursor: pointer; margin-left: 0.2rem; padding: 0 0.05rem; border-radius: 0.3rem; -webkit-tap-highlight-color: transparent; }
         .st-badge:focus-visible { outline: 2px solid #6d28d9; outline-offset: 1px; }
         .st-badge.open { box-shadow: 0 0 0 2px #6d28d9; }
-        .aw-pop { position: absolute; z-index: 20; max-width: 15rem; background: #1f2937; color: #fff; border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.82rem; line-height: 1.35; box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
+        .aw-pop { position: absolute; z-index: 20; max-width: 15rem; white-space: pre-line; background: #1f2937; color: #fff; border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.82rem; line-height: 1.35; box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
         .aw-pop[hidden] { display: none; }
+        .rv-badge { margin: 0.15rem 0 0; font-size: 0.7rem; font-weight: 700; color: var(--pico-muted-color); padding: 0.05rem 0.3rem; background: #f3f4f6; border-radius: 0.6rem; }
         .aw-pop-title { font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.1rem; }
         .aw-pop-title.fame { color: #86efac; }
         .aw-pop-title.shame { color: #fca5a5; }
@@ -327,6 +328,7 @@
             </div>
             <div class="fx-mid">
                 {{if eq $status "upcoming"}}<span class="fx-v">v</span>{{else if $live}}~{{.Home.Points}} – ~{{.Away.Points}}{{else}}{{.Home.Points}} – {{.Away.Points}}{{end}}
+                {{with .Rivalry}}<div><button type="button" class="st-badge rv-badge" data-title="{{.Title}}" data-detail="{{.Detail}}" data-shame="false" aria-label="Head-to-head record: {{.Detail}}">⚔️ {{.Summary}}</button></div>{{end}}
             </div>
             <div class="fx-side fx-away fx-{{.Away.Outcome}}{{if .Away.IsAverage}} fx-avg{{end}}">
                 <div class="fx-name">{{.Away.Name}}{{template "fpl_icons" .Away.Icons}}{{if .Away.Chip}}<span class="tag tag-chip">{{.Away.Chip}}</span>{{end}}</div>

@@ -191,3 +191,15 @@ func TestFPLApplyAwardsBadgesFixtureRows(t *testing.T) {
 		t.Errorf("unexpected badges: %+v", ev.Fixtures)
 	}
 }
+
+func TestBuildFPLRivalry(t *testing.T) {
+	first := buildFPLRivalry(fpl.Rivalry{}, "Kevin", "Paul")
+	if first.Summary != "1st" || first.Detail != "First meeting this season." {
+		t.Errorf("first meeting = %+v", first)
+	}
+	r := buildFPLRivalry(fpl.Rivalry{BWins: 1, Draws: 1, Meetings: []fpl.Meeting{{Event: 1, APoints: 40, BPoints: 55}, {Event: 5, APoints: 50, BPoints: 50}}}, "Kevin", "Paul")
+	want := "Season: Kevin 0 · Paul 1 · 1 drawn\nGW1: Kevin 40 – 55 Paul\nGW5: Kevin 50 – 50 Paul\nBiggest win: Paul by 15 (GW1)"
+	if r.Summary != "0–1" || r.Detail != want || r.Title != "⚔️ Kevin v Paul" {
+		t.Errorf("rivalry = %+v\nwant detail:\n%s", r, want)
+	}
+}

@@ -115,3 +115,26 @@ func TestLiveCachePoll(t *testing.T) {
 		t.Errorf("after finish: %+v", d)
 	}
 }
+
+func TestHeadToHead(t *testing.T) {
+	d := league([]int{1, 2, 3},
+		week(1, [4]int{1, 40, 2, 55}), // 2 wins
+		week(2, [4]int{2, 50, 1, 50}), // draw, 2 at home
+		week(3, [4]int{1, 70, 3, 20}), // not this rivalry
+		week(4, [4]int{2, 30, 1, 60}), // 1 wins, unsettled
+	)
+	d.Events[3].DataChecked = false
+	r := HeadToHead(d, 1, 2)
+	if r.AWins != 0 || r.BWins != 1 || r.Draws != 1 || len(r.Meetings) != 2 {
+		t.Fatalf("rivalry = %+v, want 0–1 with a draw over two settled meetings", r)
+	}
+	if m := r.Meetings[1]; m.Event != 2 || m.APoints != 50 || m.BPoints != 50 {
+		t.Errorf("GW2 meeting from 1's side = %+v", m)
+	}
+	if m := r.Meetings[0]; m.APoints != 40 || m.BPoints != 55 {
+		t.Errorf("GW1 meeting from 1's side = %+v", m)
+	}
+	if r := HeadToHead(d, 2, 3); len(r.Meetings) != 0 {
+		t.Errorf("2 v 3 never met: %+v", r)
+	}
+}

@@ -26,73 +26,11 @@ func TestBiggestMargin(t *testing.T) {
 	}
 }
 
-func TestWeeklySummaryRecordedGameweek(t *testing.T) {
-	srv := fakeFPL(t)
-	data, err := (&Client{BaseURL: srv.URL, HTTP: srv.Client()}).FetchLeague(LeagueID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, ok := WeeklySummary(data, BuildLedger(data), 8)
-	if !ok {
-		t.Fatal("no summary for settled GW8")
-	}
-	for _, want := range []string{
-		"Gameweek 8\n",
-		"Luke won gameweek 8 and won €10.",
-		"Kevin and Paul lost gameweek 8 and lost €5 each.",
-		"currently holds naming rights to",
-	} {
-		if !strings.Contains(got, want) {
-			t.Errorf("summary missing %q:\n%s", want, got)
-		}
-	}
-	if strings.Contains(got, "−") {
-		t.Errorf("summary uses a Unicode minus; WhatsApp text should use '-':\n%s", got)
-	}
-	if _, ok := WeeklySummary(data, BuildLedger(data), 9); ok {
-		t.Error("summary produced for unplayed GW9")
-	}
-}
-
-func TestWeeklySummaryTiedTop(t *testing.T) {
-	d := league([]int{1, 2, 3, 4}, week(1, [4]int{1, 90, 2, 40}, [4]int{3, 90, 4, 30}))
-	got, _ := WeeklySummary(d, BuildLedger(d), 1)
-	if !strings.Contains(got, "A and C won gameweek 1 and split €10.") {
-		t.Errorf("tied top line wrong:\n%s", got)
-	}
-	if !strings.Contains(got, "A   €10\n") || !strings.Contains(got, "B   -€10\n") {
-		t.Errorf("standings lines wrong:\n%s", got)
-	}
-}
-
-func TestWeeklySummaryThreeWayTie(t *testing.T) {
-	d := league([]int{1, 2, 3, 4, 5, 6}, week(1, [4]int{1, 80, 2, 10}, [4]int{3, 80, 4, 20}, [4]int{5, 80, 6, 50}))
-	got, _ := WeeklySummary(d, BuildLedger(d), 1)
-	if !strings.Contains(got, "A, C and E won gameweek 1 and split €10.") {
-		t.Errorf("three-way tie line wrong:\n%s", got)
-	}
-}
-
 func TestBiggestMarginNoneSettled(t *testing.T) {
 	d := league([]int{1, 2}, week(1, [4]int{1, 80, 2, 40}))
 	d.Events[0].DataChecked = false
 	if _, ok := BiggestMargin(d); ok {
 		t.Error("naming rights from an unsettled gameweek")
-	}
-	if _, ok := WeeklySummary(d, BuildLedger(d), 1); ok {
-		t.Error("summary for an unsettled gameweek")
-	}
-}
-
-func TestJoinNames(t *testing.T) {
-	for in, want := range map[string]string{"": "", "A": "A", "A,B": "A and B", "A,B,C": "A, B and C"} {
-		var names []string
-		if in != "" {
-			names = strings.Split(in, ",")
-		}
-		if got := joinNames(names); got != want {
-			t.Errorf("joinNames(%q) = %q, want %q", in, got, want)
-		}
 	}
 }
 

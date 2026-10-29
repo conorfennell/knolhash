@@ -89,8 +89,6 @@
         .tag-out { background: #fee2e2; color: #b91c1c; }
         .tag-doubt { background: #fef3c7; color: #92400e; }
         .tag-bench { background: #e5e7eb; color: #374151; }
-        .summary-text { width: 100%; min-height: 15rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; margin: 0.6rem 0 0.4rem; }
-        .copy-btn { font-size: 0.8rem; padding: 0.25rem 0.7rem; margin: 0; width: auto; }
         .meta { font-size: 0.8rem; color: var(--pico-muted-color); text-align: center; margin-top: 1rem; }
     </style>
 </head>
@@ -162,15 +160,6 @@
         </section>
         {{end}}
 
-        {{if .Summary}}
-        <section class="card section-gap">
-            <div class="card-head"><span>WhatsApp summary · GW{{.SummaryEvent}}</span><button type="button" class="copy-btn" id="copy-summary">Copy</button></div>
-            <div class="card-body">
-                <textarea class="summary-text" id="summary-text" readonly>{{.Summary}}</textarea>
-            </div>
-        </section>
-        {{end}}
-
         {{if .Standings}}
         <section class="card section-gap">
             <div class="card-head"><span>League table</span></div>
@@ -229,27 +218,6 @@
         }
         tick();
         setInterval(tick, 1000);
-    })();
-
-    (function() {
-        var btn = document.getElementById('copy-summary');
-        var text = document.getElementById('summary-text');
-        if (!btn || !text) return;
-        var show = function(label) { btn.textContent = label; setTimeout(function() { btn.textContent = 'Copy'; }, 1800); };
-        var fallback = function() {
-            text.focus();
-            text.setSelectionRange(0, text.value.length); // iOS ignores select() on readonly fields
-            var ok = false;
-            try { ok = document.execCommand('copy'); } catch (e) {}
-            show(ok ? 'Copied' : 'Select & copy');
-        };
-        btn.addEventListener('click', function() {
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(text.value).then(function() { show('Copied'); }, fallback);
-            } else {
-                fallback();
-            }
-        });
     })();
     </script>
 </body>

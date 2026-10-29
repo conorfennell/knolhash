@@ -83,8 +83,6 @@ type fplTemplateData struct {
 	Money           []fplMoneyRow
 	CurrentHalf     int
 	Past            []*fplEventView // settled gameweeks, newest first
-	Summary         string          // WhatsApp post for the latest settled gameweek
-	SummaryEvent    int
 	NamingRights    *fplNamingView
 	Availability    []fplAvailabilityView
 	TeamsEvent      int            // gameweek the availability teams are from
@@ -121,10 +119,6 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 		}
 		if next, ok := data.NextEvent(); ok && (td.Latest == nil || td.Latest.Status != "live") {
 			td.Upcoming = buildFPLEvent(data, ledger, live, icons, next)
-		}
-		if n := len(ledger.Gameweeks); n > 0 {
-			td.SummaryEvent = ledger.Gameweeks[n-1].Event
-			td.Summary, _ = fpl.WeeklySummary(data, ledger, td.SummaryEvent)
 		}
 		if nr, ok := fpl.BiggestMargin(data); ok {
 			td.NamingRights = &fplNamingView{

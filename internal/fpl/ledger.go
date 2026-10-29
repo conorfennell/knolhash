@@ -70,15 +70,6 @@ type GameweekLedger struct {
 	BottomTwo  []int               // entry ids, sorted
 }
 
-// Pot is the bottom-two payments shared by the top scorer(s).
-func (g GameweekLedger) Pot() Money {
-	var pot Money
-	for _, w := range g.Weeks {
-		pot += w.Top
-	}
-	return pot
-}
-
 // LedgerRow is a manager's running totals.
 type LedgerRow struct {
 	Manager Manager

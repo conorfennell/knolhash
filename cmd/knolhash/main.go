@@ -122,6 +122,9 @@ func runWebServer(db *storage.DB, addr string, grpcAddr string, syncInterval tim
 	fl := fpl.NewLiveCache(fpl.NewClient(), fc)
 	fl.Start()
 
+	fh := fpl.NewHistoryCache(fpl.NewClient(), fc)
+	fh.Start()
+
 	go func() {
 		if err := grpc.StartServer(grpcAddr); err != nil {
 			slog.Error("Failed to start gRPC server", "error", err)
@@ -129,7 +132,7 @@ func runWebServer(db *storage.DB, addr string, grpcAddr string, syncInterval tim
 		}
 	}()
 
-	server := web.NewServer(db, wc, lc, fc, fl, commit, buildDate)
+	server := web.NewServer(db, wc, lc, fc, fl, fh, commit, buildDate)
 	slog.Info("Starting web server", "addr", addr)
 	if err := http.ListenAndServe(addr, server); err != nil {
 		slog.Error("Failed to start web server", "error", err)

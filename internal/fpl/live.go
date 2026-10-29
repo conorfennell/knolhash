@@ -5,11 +5,14 @@ import "fmt"
 // Picks is a manager's team for a gameweek. Multipliers already encode the
 // captain (×2), triple captain (×3), bench (×0) and bench boost (bench ×1).
 type Picks struct {
-	Entry        int
-	Event        int
-	Chip         string // raw FPL chip name, "" when none played
-	TransferCost int
-	Players      []Pick
+	Entry         int
+	Event         int
+	Chip          string // raw FPL chip name, "" when none played
+	TransferCost  int
+	PointsOnBench int // as reported by FPL once the gameweek is scored
+	Captain       int // element id
+	Vice          int // element id
+	Players       []Pick
 }
 
 // Pick is one player in a manager's team.
@@ -52,10 +55,13 @@ type apiPicks struct {
 	ActiveChip   *string `json:"active_chip"`
 	EntryHistory struct {
 		EventTransfersCost int `json:"event_transfers_cost"`
+		PointsOnBench      int `json:"points_on_bench"`
 	} `json:"entry_history"`
 	Picks []struct {
-		Element    int `json:"element"`
-		Multiplier int `json:"multiplier"`
+		Element    int  `json:"element"`
+		Multiplier int  `json:"multiplier"`
+		IsCaptain  bool `json:"is_captain"`
+		IsVice     bool `json:"is_vice_captain"`
 	} `json:"picks"`
 }
 
@@ -81,12 +87,18 @@ func (c *Client) FetchPicks(entry, event int) (Picks, error) {
 	if err := c.getJSON(fmt.Sprintf("/entry/%d/event/%d/picks/", entry, event), &raw); err != nil {
 		return Picks{}, err
 	}
-	p := Picks{Entry: entry, Event: event, TransferCost: raw.EntryHistory.EventTransfersCost}
+	p := Picks{Entry: entry, Event: event, TransferCost: raw.EntryHistory.EventTransfersCost, PointsOnBench: raw.EntryHistory.PointsOnBench}
 	if raw.ActiveChip != nil {
 		p.Chip = *raw.ActiveChip
 	}
 	for _, pk := range raw.Picks {
 		p.Players = append(p.Players, Pick{Element: pk.Element, Multiplier: pk.Multiplier})
+		if pk.IsCaptain {
+			p.Captain = pk.Element
+		}
+		if pk.IsVice {
+			p.Vice = pk.Element
+		}
 	}
 	return p, nil
 }

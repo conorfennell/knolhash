@@ -63,6 +63,7 @@
         .tbl-wrap { overflow-x: auto; }
 
         .fx-money { font-size: 0.78rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .fx-money .pos, .fx-money .neg, .fx-money .zero, .fx-money .tag { white-space: nowrap; }
         .pos { color: #166534; }
         .neg { color: #b91c1c; }
         .zero { color: var(--pico-muted-color); }
@@ -89,6 +90,25 @@
         .tag-out { background: #fee2e2; color: #b91c1c; }
         .tag-doubt { background: #fef3c7; color: #92400e; }
         .tag-bench { background: #e5e7eb; color: #374151; }
+        .aw-badge { all: unset; display: inline-block; font-size: 0.8rem; line-height: 1; padding: 0.14rem 0.3rem; border-radius: 0.6rem; margin: 0 0.15rem 0 0; vertical-align: 0.05em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .aw-badge:focus-visible { outline: 2px solid #6d28d9; outline-offset: 1px; }
+        .aw-badge.open { box-shadow: 0 0 0 2px #6d28d9; }
+        .aw-pop { position: absolute; z-index: 20; max-width: 15rem; background: #1f2937; color: #fff; border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.82rem; line-height: 1.35; box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
+        .aw-pop[hidden] { display: none; }
+        .aw-pop-title { font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.1rem; }
+        .aw-pop-title.fame { color: #86efac; }
+        .aw-pop-title.shame { color: #fca5a5; }
+        .aw-badge-fame { background: #dcfce7; }
+        .aw-badge-shame { background: #fee2e2; }
+        .award-detail { font-size: 0.78rem; color: var(--pico-muted-color); line-height: 1.25; overflow-wrap: anywhere; }
+        .tally th.aw, .tally td.aw { text-align: center; padding-left: 0.15rem; padding-right: 0.15rem; width: 1.9rem; }
+        .tally th.aw { font-size: 0.95rem; text-transform: none; letter-spacing: 0; }
+        .tally th.aw-shame { background: #fef2f2; }
+        .tally th.aw-fame { background: #f0fdf4; }
+        .tally td.aw { font-weight: 800; font-variant-numeric: tabular-nums; }
+        .tally td.aw-fame { color: #166534; }
+        .tally td.aw-shame { color: #b91c1c; }
+        .tally td.who { font-weight: 700; }
         .meta { font-size: 0.8rem; color: var(--pico-muted-color); text-align: center; margin-top: 1rem; }
     </style>
 </head>
@@ -137,6 +157,27 @@
                 <strong>{{.Winner}}</strong> holds naming rights to <strong>{{.Loser}}</strong>'s team next year.
                 <div class="nr-sub">Biggest winning margin so far: {{.Margin}} points ({{.Score}}) in Gameweek {{.Event}}.</div>
             </div>
+        </section>
+        {{end}}
+
+        {{if .AwardTally}}
+        {{$cols := .AwardColumns}}
+        <section class="card section-gap">
+            <div class="card-head"><span>Awards so far</span></div>
+            <div class="tbl-wrap">
+            <table class="tbl tally">
+                <thead><tr><th>Manager</th>{{range $cols}}<th class="aw {{if .Shame}}aw-shame{{else}}aw-fame{{end}}" title="{{.Title}}">{{.Icon}}</th>{{end}}</tr></thead>
+                <tbody>
+                {{range .AwardTally}}
+                <tr>
+                    <td class="who">{{.Name}}{{.Icons}}</td>
+                    {{range $i, $n := .Counts}}{{$c := index $cols $i}}<td class="aw {{if $c.Shame}}aw-shame{{else}}aw-fame{{end}}">{{if $n}}{{$n}}{{end}}</td>{{end}}
+                </tr>
+                {{end}}
+                </tbody>
+            </table>
+            </div>
+            <p class="rules">{{range $i, $c := $cols}}{{if $i}} · {{end}}{{$c.Icon}} {{$c.Title}}{{end}}</p>
         </section>
         {{end}}
 
@@ -219,6 +260,45 @@
         tick();
         setInterval(tick, 1000);
     })();
+
+    (function() {
+        var pop = document.createElement('div');
+        pop.className = 'aw-pop';
+        pop.hidden = true;
+        pop.setAttribute('role', 'status');
+        document.body.appendChild(pop);
+        var current = null;
+        function close() {
+            pop.hidden = true;
+            if (current) current.classList.remove('open');
+            current = null;
+        }
+        function open(btn) {
+            close();
+            pop.innerHTML = '';
+            var t = document.createElement('div');
+            t.className = 'aw-pop-title ' + (btn.dataset.shame === 'true' ? 'shame' : 'fame');
+            t.textContent = btn.dataset.title;
+            var d = document.createElement('div');
+            d.textContent = btn.dataset.detail;
+            pop.appendChild(t); pop.appendChild(d);
+            pop.hidden = false;
+            var r = btn.getBoundingClientRect();
+            var left = r.left + window.scrollX + r.width / 2 - pop.offsetWidth / 2;
+            left = Math.max(window.scrollX + 8, Math.min(left, window.scrollX + document.documentElement.clientWidth - pop.offsetWidth - 8));
+            pop.style.left = left + 'px';
+            pop.style.top = (r.bottom + window.scrollY + 6) + 'px';
+            btn.classList.add('open');
+            current = btn;
+        }
+        document.addEventListener('click', function(e) {
+            var btn = e.target.closest('.aw-badge');
+            if (btn) { e.preventDefault(); btn === current ? close() : open(btn); return; }
+            if (!pop.contains(e.target)) close();
+        });
+        document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close(); });
+        window.addEventListener('resize', close);
+    })();
     </script>
 </body>
 </html>
@@ -260,6 +340,6 @@
 </section>
 {{end}}
 
-{{define "fpl_money"}}{{if .Money}}<div class="fx-money">{{if .Top}}<span class="tag tag-top">Top</span>{{end}}{{if .Bottom}}<span class="tag tag-bottom">Bottom 2</span>{{end}}{{if .Capped}}<span class="tag tag-cap">Capped</span>{{end}}<span class="{{if gt .MoneySign 0}}pos{{else if lt .MoneySign 0}}neg{{else}}zero{{end}}">{{.Money}}</span></div>{{end}}{{end}}
+{{define "fpl_money"}}{{if .Money}}<div class="fx-money">{{if .Top}}<span class="tag tag-top">Top</span>{{end}}{{if .Bottom}}<span class="tag tag-bottom">Bottom 2</span>{{end}}{{if .Capped}}<span class="tag tag-cap">Capped</span>{{end}}{{range .Awards}}<button type="button" class="aw-badge {{if .Shame}}aw-badge-shame{{else}}aw-badge-fame{{end}}" data-title="{{.Icon}} {{.Title}}" data-detail="{{.Detail}}" data-shame="{{.Shame}}" aria-label="{{.Title}}: {{.Detail}}">{{.Icon}}</button>{{end}}<span class="{{if gt .MoneySign 0}}pos{{else if lt .MoneySign 0}}neg{{else}}zero{{end}}">{{.Money}}</span></div>{{end}}{{end}}
 
 {{define "fpl_move"}}{{if gt . 0}}<span class="move move-up" title="Up {{.}} since last gameweek">▲{{.}}</span>{{else if lt . 0}}<span class="move move-down" title="Down since last gameweek">▼{{fplAbs .}}</span>{{end}}{{end}}

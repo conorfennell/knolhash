@@ -124,3 +124,43 @@ func TestBuildFPLIcons(t *testing.T) {
 		t.Errorf("unexpected icons: %v", icons)
 	}
 }
+
+func TestBuildFPLAwardTally(t *testing.T) {
+	data := fpl.LeagueData{
+		Managers: []fpl.Manager{{Entry: 1, DisplayName: "Kevin"}, {Entry: 2, DisplayName: "Paul"}, {Entry: 3, DisplayName: "Ian"}},
+		Events:   []fpl.Event{{ID: 1}, {ID: 2}},
+	}
+	awards := map[int][]fpl.Award{
+		1: {{Icon: "🍀", Title: "Jammy Win", Winners: []fpl.AwardWinner{{Entry: 2}}}, {Icon: "🪑", Title: "Bench of Shame", Shame: true, Winners: []fpl.AwardWinner{{Entry: 1}}}},
+		2: {{Icon: "🪑", Title: "Bench of Shame", Shame: true, Winners: []fpl.AwardWinner{{Entry: 1}}}},
+	}
+	got := buildFPLAwardTally(data, awards, nil)
+	if len(got) != 2 || got[0].Name != "Paul" || got[1].Name != "Kevin" {
+		t.Fatalf("tally = %+v, want Paul (fame) then Kevin (shame); Ian has none", got)
+	}
+	if k := got[1]; k.Shame != 2 || k.Counts[3] != 2 || k.Counts[1] != 0 {
+		t.Errorf("Kevin = %+v, want Bench of Shame ×2 in column 4", k)
+	}
+	if p := got[0]; p.Fame != 1 || p.Counts[1] != 1 {
+		t.Errorf("Paul = %+v, want one Jammy Win", p)
+	}
+}
+
+func TestFPLApplyAwardsBadgesFixtureRows(t *testing.T) {
+	data := fpl.LeagueData{Managers: []fpl.Manager{{Entry: 1, DisplayName: "Kevin"}, {Entry: 2, DisplayName: "Paul"}}}
+	ev := &fplEventView{Fixtures: []fplFixtureView{
+		{Home: fplSideView{Entry: 1, Name: "Kevin"}, Away: fplSideView{Entry: 2, Name: "Paul"}},
+		{Home: fplSideView{Name: "AVERAGE", IsAverage: true}, Away: fplSideView{Entry: 3}},
+	}}
+	fplApplyAwards(ev, data, []fpl.Award{
+		{Icon: "🫠", Title: "Captain Calamity", Shame: true, Winners: []fpl.AwardWinner{{Entry: 1, Detail: "Groß (C) 0 pts"}}},
+		{Icon: "🍀", Title: "Jammy Win", Winners: []fpl.AwardWinner{{Entry: 1, Detail: "won with 35"}, {Entry: 0}}},
+	})
+	k := ev.Fixtures[0].Home.Awards
+	if len(k) != 2 || k[0].Icon != "🫠" || k[0].Title != "Captain Calamity" || k[0].Detail != "Kevin: Groß (C) 0 pts" || !k[0].Shame || k[1].Icon != "🍀" {
+		t.Errorf("Kevin badges = %+v", k)
+	}
+	if len(ev.Fixtures[0].Away.Awards) != 0 || len(ev.Fixtures[1].Home.Awards) != 0 {
+		t.Errorf("unexpected badges: %+v", ev.Fixtures)
+	}
+}

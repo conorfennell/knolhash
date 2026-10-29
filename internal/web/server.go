@@ -40,12 +40,13 @@ type Server struct {
 	liveCache     *worldcup.LiveCache
 	fplCache      *fpl.Cache
 	fplLive       *fpl.LiveCache
+	fplHistory    *fpl.HistoryCache
 	commit        string
 	buildDate     string
 }
 
 // NewServer creates and configures a new server.
-func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, fc *fpl.Cache, fl *fpl.LiveCache, commit, buildDate string) *Server {
+func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, fc *fpl.Cache, fl *fpl.LiveCache, fh *fpl.HistoryCache, commit, buildDate string) *Server {
 	md := goldmark.New(
 		goldmark.WithExtensions(),
 	)
@@ -377,6 +378,7 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, fc *f
 		liveCache:     lc,
 		fplCache:      fc,
 		fplLive:       fl,
+		fplHistory:    fh,
 		commit:        commit,
 		buildDate:     buildDate,
 	}

@@ -4,24 +4,36 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/conorfennell/knolhash/internal/fpl"
 )
 
 type fplSideView struct {
+	Entry     int
 	Name      string
 	Icons     string
 	TeamName  string
 	Points    int
 	Outcome   string // "win", "loss", "draw" or "" when not yet played
 	IsAverage bool
-	Money     string // net € for the gameweek, "" until the gameweek is settled
-	MoneySign int    // -1, 0, 1 for styling
-	Top       bool   // gameweek top scorer
-	Bottom    bool   // in the gameweek's bottom two
-	Capped    bool   // H2H loss reduced by the −€50 cap
-	Chip      string // chip badge ("TC", "BB", …), "" when none
+	Money     string          // net € for the gameweek, "" until the gameweek is settled
+	MoneySign int             // -1, 0, 1 for styling
+	Top       bool            // gameweek top scorer
+	Bottom    bool            // in the gameweek's bottom two
+	Capped    bool            // H2H loss reduced by the −€50 cap
+	Chip      string          // chip badge ("TC", "BB", …), "" when none
+	Awards    []fplAwardBadge // this gameweek's awards
+}
+
+// fplAwardBadge is an award on a manager's fixture row; tapping it shows
+// the title and detail.
+type fplAwardBadge struct {
+	Icon   string
+	Title  string
+	Detail string // "Kevin: Groß (C) 0 pts"
+	Shame  bool
 }
 
 type fplFixtureView struct {
@@ -37,6 +49,34 @@ type fplEventView struct {
 	Live     bool   // points are provisional live scores
 	Fixtures []fplFixtureView
 	Summary  string // "Top: … · Bottom two: …" once settled
+}
+
+// fplAwardColumns is the order of the season tally's columns: fame, then
+// shame.
+var fplAwardColumns = []fplAwardColumn{
+	{"🚀", "Chip of the Week", false},
+	{"🍀", "Jammy Win", false},
+	{"💔", "Robbed", true},
+	{"🪑", "Bench of Shame", true},
+	{"🫠", "Captain Calamity", true},
+	{"💸", "Hit That Didn't Pay", true},
+	{"🧯", "Chip Flop", true},
+}
+
+type fplAwardColumn struct {
+	Icon  string
+	Title string
+	Shame bool
+}
+
+// fplAwardTally is a manager's awards across the season; Counts lines up
+// with fplAwardColumns.
+type fplAwardTally struct {
+	Name   string
+	Icons  string
+	Counts []int
+	Fame   int
+	Shame  int
 }
 
 type fplMoneyRow struct {
@@ -87,6 +127,8 @@ type fplTemplateData struct {
 	Availability    []fplAvailabilityView
 	TeamsEvent      int            // gameweek the availability teams are from
 	Icons           map[int]string // entry → status icons, as on the World Cup page
+	AwardTally      []fplAwardTally
+	AwardColumns    []fplAwardColumn
 	FetchedAt       time.Time
 	NextRefreshUnix int64
 	Commit          string
@@ -99,12 +141,15 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 		live := s.fplLive.Get()
 		ledger := fpl.BuildLedger(data)
 		icons := buildFPLIcons(data, ledger, live)
+		awards := buildFPLAwards(data, s.fplHistory.Get())
 
 		td := fplTemplateData{
 			LeagueName:      data.LeagueName,
 			Standings:       data.Standings,
 			Money:           buildFPLMoney(ledger, fpl.MoneyMoves(data), icons),
 			Icons:           icons,
+			AwardTally:      buildFPLAwardTally(data, awards, icons),
+			AwardColumns:    fplAwardColumns,
 			FetchedAt:       data.FetchedAt,
 			NextRefreshUnix: s.fplCache.NextRefresh().Unix(),
 			Commit:          shortCommit(s.commit),
@@ -115,6 +160,7 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 		// week's results.
 		if cur, ok := data.CurrentEvent(); ok {
 			td.Latest = buildFPLEvent(data, ledger, live, icons, cur)
+			fplApplyAwards(td.Latest, data, awards[cur.ID])
 			td.CurrentHalf = fpl.Half(cur.ID)
 		}
 		if next, ok := data.NextEvent(); ok && (td.Latest == nil || td.Latest.Status != "live") {
@@ -129,7 +175,9 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 		td.Availability, td.TeamsEvent = buildFPLAvailability(data, live, icons), live.PicksEvent
 		for i := len(data.Events) - 1; i >= 0; i-- {
 			if e := data.Events[i]; e.Settled() && (td.Latest == nil || e.ID != td.Latest.ID) {
-				td.Past = append(td.Past, buildFPLEvent(data, ledger, live, icons, e))
+				ev := buildFPLEvent(data, ledger, live, icons, e)
+				fplApplyAwards(ev, data, awards[e.ID])
+				td.Past = append(td.Past, ev)
 			}
 		}
 
@@ -138,6 +186,86 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 	}
+}
+
+// buildFPLAwards works out the weekly awards for every settled gameweek
+// whose teams have been fetched.
+func buildFPLAwards(data fpl.LeagueData, history map[int]fpl.GameweekHistory) map[int][]fpl.Award {
+	out := map[int][]fpl.Award{}
+	for _, e := range data.Events {
+		if h, ok := history[e.ID]; ok && e.Settled() {
+			out[e.ID] = fpl.GameweekAwards(data.MatchesFor(e.ID), h, data.Players)
+		}
+	}
+	return out
+}
+
+// fplApplyAwards puts a gameweek's awards as badges on each winner's
+// fixture row.
+func fplApplyAwards(ev *fplEventView, data fpl.LeagueData, awards []fpl.Award) {
+	names := fplNameMap(data)
+	badges := map[int][]fplAwardBadge{}
+	for _, a := range awards {
+		for _, w := range a.Winners {
+			badges[w.Entry] = append(badges[w.Entry], fplAwardBadge{Icon: a.Icon, Title: a.Title, Detail: names[w.Entry] + ": " + w.Detail, Shame: a.Shame})
+		}
+	}
+	for i := range ev.Fixtures {
+		f := &ev.Fixtures[i]
+		if !f.Home.IsAverage {
+			f.Home.Awards = badges[f.Home.Entry]
+		}
+		if !f.Away.IsAverage {
+			f.Away.Awards = badges[f.Away.Entry]
+		}
+	}
+}
+
+// buildFPLAwardTally counts each manager's awards over the season, most
+// decorated (fame minus shame) first. Managers with no awards are left out.
+func buildFPLAwardTally(data fpl.LeagueData, awards map[int][]fpl.Award, icons map[int]string) []fplAwardTally {
+	col := map[string]int{}
+	for i, c := range fplAwardColumns {
+		col[c.Title] = i
+	}
+	counts := map[int][]int{}
+	for _, byEvent := range awards {
+		for _, a := range byEvent {
+			i, ok := col[a.Title]
+			if !ok {
+				continue
+			}
+			for _, w := range a.Winners {
+				if counts[w.Entry] == nil {
+					counts[w.Entry] = make([]int, len(fplAwardColumns))
+				}
+				counts[w.Entry][i]++
+			}
+		}
+	}
+	var out []fplAwardTally
+	for _, m := range data.Managers {
+		c, ok := counts[m.Entry]
+		if !ok {
+			continue
+		}
+		t := fplAwardTally{Name: m.DisplayName, Icons: icons[m.Entry], Counts: c}
+		for i, n := range c {
+			if fplAwardColumns[i].Shame {
+				t.Shame += n
+			} else {
+				t.Fame += n
+			}
+		}
+		out = append(out, t)
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if a, b := out[i].Fame-out[i].Shame, out[j].Fame-out[j].Shame; a != b {
+			return a > b
+		}
+		return out[i].Name < out[j].Name
+	})
+	return out
 }
 
 // FPL status icons shown beside managers' names, in display order.
@@ -318,7 +446,7 @@ func buildFPLEvent(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData, icons m
 }
 
 func fplSide(s fpl.Side, g fpl.GameweekLedger, settled bool) fplSideView {
-	v := fplSideView{Name: s.Name, TeamName: s.TeamName, Points: s.Points, IsAverage: s.IsAverage()}
+	v := fplSideView{Entry: s.Entry, Name: s.Name, TeamName: s.TeamName, Points: s.Points, IsAverage: s.IsAverage()}
 	if w, ok := g.Weeks[s.Entry]; settled && ok {
 		v.Money, v.MoneySign = w.Total().String(), fplSign(w.Total())
 		v.Top, v.Bottom, v.Capped = w.Top > 0, w.Bottom < 0, w.Capped
@@ -333,11 +461,16 @@ func fplLivePoints(s fpl.Side, live fpl.LiveData) int {
 	return s.Points
 }
 
-func fplNames(data fpl.LeagueData, entries []int) string {
-	names := map[int]string{}
+func fplNameMap(data fpl.LeagueData) map[int]string {
+	names := make(map[int]string, len(data.Managers))
 	for _, m := range data.Managers {
 		names[m.Entry] = m.DisplayName
 	}
+	return names
+}
+
+func fplNames(data fpl.LeagueData, entries []int) string {
+	names := fplNameMap(data)
 	out := ""
 	for i, e := range entries {
 		if i > 0 {

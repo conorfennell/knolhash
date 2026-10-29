@@ -2,7 +2,8 @@
  "active_chip": null,
  "entry_history": {
   "points": 11,
-  "event_transfers_cost": 0
+  "event_transfers_cost": 0,
+  "points_on_bench": 1
  },
  "picks": [
   {

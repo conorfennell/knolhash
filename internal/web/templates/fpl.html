@@ -1,0 +1,291 @@
+{{define "fpl"}}<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{if .LeagueName}}{{.LeagueName}}{{else}}FPL H2H League{{end}}</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+    <link rel="stylesheet" href="/static/pico.min.css">
+    <link rel="stylesheet" href="/static/custom.css">
+    <style>
+        body { padding: 0 !important; margin: 0; }
+
+        /* ── Hero ─────────────────────────────────────────────────────── */
+        .page-hero {
+            background: linear-gradient(135deg, #37003c 0%, #1a5c3a 100%);
+            color: #fff;
+            padding: 1rem 0 0.9rem;
+        }
+        .hero-eyebrow { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.65; margin-bottom: 0.25rem; }
+        .hero-title { font-size: 1.9rem; font-weight: 900; line-height: 1.05; letter-spacing: -0.02em; margin: 0; color: #fff; }
+
+        /* ── Layout ───────────────────────────────────────────────────── */
+        main.container { padding-top: 0.6rem; padding-bottom: 1.5rem; }
+        .section-gap { margin-bottom: 0.8rem; }
+
+        /* ── Cards ────────────────────────────────────────────────────── */
+        .card { border: 1px solid var(--pico-muted-border-color); border-radius: 0.5rem; overflow: hidden; }
+        .card-head { padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #444; background: #f0f2f4; border-bottom: 1px solid var(--pico-muted-border-color); display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+        .card-body { padding: 0.1rem 0.9rem 0.4rem; }
+
+        /* ── Fixtures ─────────────────────────────────────────────────── */
+        .fx-row { display: flex; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--pico-muted-border-color); }
+        .fx-row:last-child { border-bottom: none; }
+        .fx-side { flex: 1; min-width: 0; }
+        .fx-home { text-align: right; padding-right: 0.6rem; }
+        .fx-away { text-align: left; padding-left: 0.6rem; }
+        .fx-name { font-weight: 700; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fx-team { font-size: 0.78rem; color: var(--pico-muted-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fx-mid { min-width: 4.2rem; text-align: center; flex-shrink: 0; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .fx-v { color: var(--pico-muted-color); font-size: 0.82rem; font-weight: 600; }
+        .fx-win .fx-name { color: #166534; }
+        .fx-loss .fx-name { color: #6b7280; font-weight: 600; }
+        .fx-avg .fx-name { color: #6b7280; font-style: italic; font-weight: 600; }
+
+        .badge { font-size: 0.72rem; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 0.9rem; text-transform: none; letter-spacing: 0.01em; white-space: nowrap; }
+        .badge-up   { background: #dbeafe; color: #1d4ed8; }
+        .badge-done { background: #e5e7eb; color: #6b7280; }
+        .badge-live { background: #fee2e2; color: #dc2626; }
+
+        /* ── Tables ───────────────────────────────────────────────────── */
+        .tbl { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 0; }
+        .tbl th { padding: 0.32rem 0.5rem; font-size: 0.72rem; font-weight: 700; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--pico-muted-border-color); background: #f8f9fa; }
+        .tbl td { padding: 0.42rem 0.5rem; border-bottom: 1px solid #f4f4f4; }
+        .tbl tr:last-child td { border-bottom: none; }
+        .tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .tbl .rank { width: 2rem; text-align: center; color: var(--pico-muted-color); }
+        .tbl .who-team { display: block; font-size: 0.76rem; color: var(--pico-muted-color); }
+        .tbl .pts { font-weight: 800; }
+        .tbl .avg td { color: #6b7280; font-style: italic; }
+        .tbl-wrap { overflow-x: auto; }
+
+        .fx-money { font-size: 0.78rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .pos { color: #166534; }
+        .neg { color: #b91c1c; }
+        .zero { color: var(--pico-muted-color); }
+        .tag { font-size: 0.68rem; font-weight: 700; padding: 0 0.35rem; border-radius: 0.6rem; margin: 0 0.15rem; }
+        .tag-top { background: #fef3c7; color: #92400e; }
+        .tag-bottom { background: #fee2e2; color: #b91c1c; }
+        .tag-cap { background: #e5e7eb; color: #374151; }
+        .tag-chip { background: #ede9fe; color: #5b21b6; vertical-align: 0.15em; }
+        .fx-live-note { font-size: 0.76rem; color: var(--pico-muted-color); padding-top: 0.3rem; }
+        .fx-summary { font-size: 0.8rem; color: var(--pico-muted-color); padding: 0.4rem 0 0.2rem; border-top: 1px solid var(--pico-muted-border-color); }
+        .tbl .cur { background: #f5f3ff; }
+        .rules { font-size: 0.78rem; color: var(--pico-muted-color); padding: 0.5rem 0.9rem 0.6rem; border-top: 1px solid var(--pico-muted-border-color); margin: 0; }
+        details.past { margin-bottom: 0.5rem; }
+        details.past > summary { font-weight: 700; font-size: 0.9rem; padding: 0.35rem 0; }
+        .nr { padding: 0.6rem 0.9rem; font-size: 0.92rem; }
+        .nr strong { font-weight: 800; }
+        .nr-sub { font-size: 0.8rem; color: var(--pico-muted-color); margin-top: 0.15rem; }
+        .av-mgr { padding: 0.5rem 0; border-bottom: 1px solid var(--pico-muted-border-color); }
+        .av-mgr:last-child { border-bottom: none; }
+        .av-name { font-weight: 700; font-size: 0.92rem; }
+        .av-list { list-style: none; padding: 0; margin: 0.2rem 0 0; }
+        .av-list li { font-size: 0.84rem; margin: 0.1rem 0; list-style: none; }
+        .av-news { color: var(--pico-muted-color); }
+        .tag-out { background: #fee2e2; color: #b91c1c; }
+        .tag-doubt { background: #fef3c7; color: #92400e; }
+        .tag-bench { background: #e5e7eb; color: #374151; }
+        .summary-text { width: 100%; min-height: 15rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; margin: 0.6rem 0 0.4rem; }
+        .copy-btn { font-size: 0.8rem; padding: 0.25rem 0.7rem; margin: 0; width: auto; }
+        .meta { font-size: 0.8rem; color: var(--pico-muted-color); text-align: center; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <header class="page-hero">
+        <div class="container">
+            <div class="hero-eyebrow">Fantasy Premier League · Head-to-head</div>
+            <h1 class="hero-title">{{if .LeagueName}}{{.LeagueName}}{{else}}FPL H2H League{{end}}</h1>
+        </div>
+    </header>
+
+    <main class="container">
+        {{with .Latest}}{{if eq .Status "live"}}{{template "fpl_event" .}}{{end}}{{end}}
+        {{with .Upcoming}}{{template "fpl_event" .}}{{end}}
+        {{with .Latest}}{{if ne .Status "live"}}{{template "fpl_event" .}}{{end}}{{end}}
+
+        {{if .Money}}
+        {{$half := .CurrentHalf}}
+        <section class="card section-gap">
+            <div class="card-head"><span>Money</span></div>
+            <div class="tbl-wrap">
+            <table class="tbl">
+                <thead><tr><th class="rank">#</th><th>Manager</th><th class="num{{if eq $half 0}} cur{{end}}">GW1–19</th><th class="num{{if eq $half 1}} cur{{end}}">GW20–38</th><th class="num">Season</th></tr></thead>
+                <tbody>
+                {{range .Money}}
+                <tr>
+                    <td class="rank">{{.Rank}}</td>
+                    <td>{{.Name}}<span class="who-team">{{.TeamName}}</span></td>
+                    <td class="num{{if eq $half 0}} cur{{end}}">{{index .Halves 0}}</td>
+                    <td class="num{{if eq $half 1}} cur{{end}}">{{index .Halves 1}}</td>
+                    <td class="num pts {{if gt .Sign 0}}pos{{else if lt .Sign 0}}neg{{else}}zero{{end}}">{{.Season}}</td>
+                </tr>
+                {{end}}
+                </tbody>
+            </table>
+            </div>
+            <p class="rules">H2H loser pays the winner €5 (nothing against AVERAGE). The two lowest scores of the week pay €5 each, and anyone tied with them pays too; the pot goes to the top scorer (split if tied). H2H losses stop at −€50 per half. Only gameweeks with confirmed bonus points count. Edge-case rules agreed 29 Oct 2026, pending Kevin's confirmation.</p>
+        </section>
+        {{end}}
+
+        {{with .NamingRights}}
+        <section class="card section-gap">
+            <div class="card-head"><span>Naming rights</span></div>
+            <div class="nr">
+                <strong>{{.Winner}}</strong> holds naming rights to <strong>{{.Loser}}</strong>'s team next year.
+                <div class="nr-sub">Biggest winning margin so far: {{.Margin}} points ({{.Score}}) in Gameweek {{.Event}}.</div>
+            </div>
+        </section>
+        {{end}}
+
+        {{if .Availability}}
+        <section class="card section-gap">
+            <div class="card-head"><span>Injuries &amp; suspensions</span><span class="badge badge-done">GW{{.TeamsEvent}} teams</span></div>
+            <div class="card-body">
+                {{range .Availability}}
+                <div class="av-mgr">
+                    <div class="av-name">{{.Name}} <span class="fx-team" style="display:inline">· {{.TeamName}}</span></div>
+                    <ul class="av-list">
+                        {{if .Missing}}<li class="av-news">Couldn't load this team from FPL. It will retry within a minute.</li>{{end}}
+                        {{range .Concerns}}
+                        <li><span class="tag tag-{{.Severity}}">{{.Label}}</span>{{if .Bench}}<span class="tag tag-bench">Bench</span>{{end}} <strong>{{.Player}}</strong> ({{.Club}}){{if .News}} <span class="av-news">– {{.News}}</span>{{end}}</li>
+                        {{end}}
+                    </ul>
+                </div>
+                {{end}}
+                <p class="fx-team" style="padding-top:0.4rem;margin:0;white-space:normal">Players in each manager's team from the last deadline. Transfers made since won't show until the next deadline passes.</p>
+            </div>
+        </section>
+        {{end}}
+
+        {{if .Summary}}
+        <section class="card section-gap">
+            <div class="card-head"><span>WhatsApp summary · GW{{.SummaryEvent}}</span><button type="button" class="copy-btn" id="copy-summary">Copy</button></div>
+            <div class="card-body">
+                <textarea class="summary-text" id="summary-text" readonly>{{.Summary}}</textarea>
+            </div>
+        </section>
+        {{end}}
+
+        {{if .Standings}}
+        <section class="card section-gap">
+            <div class="card-head"><span>League table</span></div>
+            <div class="tbl-wrap">
+            <table class="tbl">
+                <thead><tr><th class="rank">#</th><th>Manager</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">For</th><th class="num">Pts</th></tr></thead>
+                <tbody>
+                {{range .Standings}}
+                <tr{{if .Side.IsAverage}} class="avg"{{end}}>
+                    <td class="rank">{{.Rank}}</td>
+                    <td>{{.Side.Name}}{{if not .Side.IsAverage}}<span class="who-team">{{.Side.TeamName}}</span>{{end}}</td>
+                    <td class="num">{{.Won}}</td>
+                    <td class="num">{{.Drawn}}</td>
+                    <td class="num">{{.Lost}}</td>
+                    <td class="num">{{.PointsFor}}</td>
+                    <td class="num pts">{{.Total}}</td>
+                </tr>
+                {{end}}
+                </tbody>
+            </table>
+            </div>
+        </section>
+        {{end}}
+
+        {{if .Past}}
+        <section class="section-gap">
+            <h2 class="hero-eyebrow" style="color:var(--pico-muted-color);opacity:1;margin:0.6rem 0 0.4rem">Past gameweeks</h2>
+            {{range .Past}}
+            <details class="past">
+                <summary>{{.Name}}</summary>
+                {{template "fpl_event" .}}
+            </details>
+            {{end}}
+        </section>
+        {{end}}
+
+        <p class="meta">
+            {{if .FetchedAt.IsZero}}
+                Data not yet loaded.
+            {{else}}
+                Updated {{irishTime .FetchedAt}} &middot; next in <span id="countdown">–</span>{{if .Commit}} &middot; deployed {{.Commit}} · {{.BuildDate}}{{end}}
+            {{end}}
+        </p>
+    </main>
+
+    <script>
+    (function() {
+        var next = {{.NextRefreshUnix}};
+        function tick() {
+            var rem = next - Math.floor(Date.now() / 1000);
+            var el = document.getElementById('countdown');
+            if (!el) return;
+            if (rem <= 0) { el.textContent = 'refreshing…'; return; }
+            var m = Math.floor(rem / 60), s = rem % 60;
+            el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+        }
+        tick();
+        setInterval(tick, 1000);
+    })();
+
+    (function() {
+        var btn = document.getElementById('copy-summary');
+        var text = document.getElementById('summary-text');
+        if (!btn || !text) return;
+        var show = function(label) { btn.textContent = label; setTimeout(function() { btn.textContent = 'Copy'; }, 1800); };
+        var fallback = function() {
+            text.focus();
+            text.setSelectionRange(0, text.value.length); // iOS ignores select() on readonly fields
+            var ok = false;
+            try { ok = document.execCommand('copy'); } catch (e) {}
+            show(ok ? 'Copied' : 'Select & copy');
+        };
+        btn.addEventListener('click', function() {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text.value).then(function() { show('Copied'); }, fallback);
+            } else {
+                fallback();
+            }
+        });
+    })();
+    </script>
+</body>
+</html>
+{{end}}
+
+{{define "fpl_event"}}
+<section class="card section-gap">
+    <div class="card-head">
+        <span>{{.Name}}</span>
+        {{if eq .Status "live"}}<span class="badge badge-live">Live</span>
+        {{else if eq .Status "settled"}}<span class="badge badge-done">Final</span>
+        {{else if eq .Status "unconfirmed"}}<span class="badge badge-up">Awaiting bonus points</span>
+        {{else}}<span class="badge badge-up">Deadline {{irishTime .Deadline}}</span>{{end}}
+    </div>
+    <div class="card-body">
+        {{$status := .Status}}{{$live := .Live}}
+        {{range .Fixtures}}
+        <div class="fx-row">
+            <div class="fx-side fx-home fx-{{.Home.Outcome}}{{if .Home.IsAverage}} fx-avg{{end}}">
+                <div class="fx-name">{{if .Home.Chip}}<span class="tag tag-chip">{{.Home.Chip}}</span>{{end}}{{.Home.Name}}</div>
+                {{if not .Home.IsAverage}}<div class="fx-team">{{.Home.TeamName}}</div>{{end}}
+                {{template "fpl_money" .Home}}
+            </div>
+            <div class="fx-mid">
+                {{if eq $status "upcoming"}}<span class="fx-v">v</span>{{else if $live}}~{{.Home.Points}} – ~{{.Away.Points}}{{else}}{{.Home.Points}} – {{.Away.Points}}{{end}}
+            </div>
+            <div class="fx-side fx-away fx-{{.Away.Outcome}}{{if .Away.IsAverage}} fx-avg{{end}}">
+                <div class="fx-name">{{.Away.Name}}{{if .Away.Chip}}<span class="tag tag-chip">{{.Away.Chip}}</span>{{end}}</div>
+                {{if not .Away.IsAverage}}<div class="fx-team">{{.Away.TeamName}}</div>{{end}}
+                {{template "fpl_money" .Away}}
+            </div>
+        </div>
+        {{else}}
+        <p class="fx-team">No fixtures published yet.</p>
+        {{end}}
+        {{if .Summary}}<div class="fx-summary">{{.Summary}}</div>{{end}}
+        {{if .Live}}<div class="fx-live-note">~ Live scores update every minute. Provisional: no auto-subs, bonus points may change.</div>{{end}}
+    </div>
+</section>
+{{end}}
+
+{{define "fpl_money"}}{{if .Money}}<div class="fx-money">{{if .Top}}<span class="tag tag-top">Top</span>{{end}}{{if .Bottom}}<span class="tag tag-bottom">Bottom 2</span>{{end}}{{if .Capped}}<span class="tag tag-cap">Capped</span>{{end}}<span class="{{if gt .MoneySign 0}}pos{{else if lt .MoneySign 0}}neg{{else}}zero{{end}}">{{.Money}}</span></div>{{end}}{{end}}

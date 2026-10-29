@@ -1,0 +1,193 @@
+{
+ "elements": [
+  {
+   "id": 1,
+   "stats": {
+    "total_points": 7,
+    "minutes": 90
+   }
+  },
+  {
+   "id": 8,
+   "stats": {
+    "total_points": 1,
+    "minutes": 22
+   }
+  },
+  {
+   "id": 12,
+   "stats": {
+    "total_points": 0,
+    "minutes": 0
+   }
+  },
+  {
+   "id": 15,
+   "stats": {
+    "total_points": 3,
+    "minutes": 90
+   }
+  },
+  {
+   "id": 25,
+   "stats": {
+    "total_points": 5,
+    "minutes": 67
+   }
+  },
+  {
+   "id": 40,
+   "stats": {
+    "total_points": 1,
+    "minutes": 90
+   }
+  },
+  {
+   "id": 124,
+   "stats": {
+    "total_points": 0,
+    "minutes": 90
+   }
+  },
+  {
+   "id": 138,
+   "stats": {
+    "total_points": 2,
+    "minutes": 90
+   }
+  },
+  {
+   "id": 154,
+   "stats": {
+    "total_points": -1,
+    "minutes": 79
+   }
+  },
+  {
+   "id": 165,
+   "stats": {
+    "total_points": 0,
+    "minutes": 0
+   }
+  },
+  {
+   "id": 212,
+   "stats": {
+    "total_points": 0,
+    "minutes": 0
+   }
+  },
+  {
+   "id": 250,
+   "stats": {
+    "total_points": 8,
+    "minutes": 90
+   }
+  },
+  {
+   "id": 259,
+   "stats": {
+    "total_points": 1,
+    "minutes": 90
+   }
+  },
+  {
+   "id": 277,
+   "stats": {
+    "total_points": 4,
+    "minutes": 90
+   }
+  },
+  {
+   "id": 379,
+   "stats": {
+    "total_points": 9,
+    "minutes": 76
+   }
+  },
+  {
+   "id": 387,
+   "stats": {
+    "total_points": 0,
+    "minutes": 0
+   }
+  },
+  {
+   "id": 391,
+   "stats": {
+    "total_points": 1,
+    "minutes": 90
+   }
+  },
+  {
+   "id": 397,
+   "stats": {
+    "total_points": 0,
+    "minutes": 0
+   }
+  },
+  {
+   "id": 399,
+   "stats": {
+    "total_points": 0,
+    "minutes": 45
+   }
+  },
+  {
+   "id": 411,
+   "stats": {
+    "total_points": 8,
+    "minutes": 90
+   }
+  },
+  {
+   "id": 412,
+   "stats": {
+    "total_points": 1,
+    "minutes": 90
+   }
+  },
+  {
+   "id": 423,
+   "stats": {
+    "total_points": 0,
+    "minutes": 0
+   }
+  },
+  {
+   "id": 427,
+   "stats": {
+    "total_points": 2,
+    "minutes": 90
+   }
+  },
+  {
+   "id": 464,
+   "stats": {
+    "total_points": 1,
+    "minutes": 13
+   }
+  },
+  {
+   "id": 497,
+   "stats": {
+    "total_points": 0,
+    "minutes": 0
+   }
+  },
+  {
+   "id": 498,
+   "stats": {
+    "total_points": 0,
+    "minutes": 0
+   }
+  },
+  {
+   "id": 539,
+   "stats": {
+    "total_points": 9,
+    "minutes": 90
+   }
+  }
+ ]
+}

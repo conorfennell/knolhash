@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/conorfennell/knolhash/internal/fpl"
 	"github.com/conorfennell/knolhash/internal/fsrs"
 	"github.com/conorfennell/knolhash/internal/storage"
 	"github.com/conorfennell/knolhash/internal/sync"
@@ -37,12 +38,14 @@ type Server struct {
 	markdown      goldmark.Markdown
 	worldcupCache *worldcup.Cache
 	liveCache     *worldcup.LiveCache
+	fplCache      *fpl.Cache
+	fplLive       *fpl.LiveCache
 	commit        string
 	buildDate     string
 }
 
 // NewServer creates and configures a new server.
-func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, commit, buildDate string) *Server {
+func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, fc *fpl.Cache, fl *fpl.LiveCache, commit, buildDate string) *Server {
 	md := goldmark.New(
 		goldmark.WithExtensions(),
 	)
@@ -366,6 +369,8 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, commi
 		markdown:      md,
 		worldcupCache: wc,
 		liveCache:     lc,
+		fplCache:      fc,
+		fplLive:       fl,
 		commit:        commit,
 		buildDate:     buildDate,
 	}
@@ -396,6 +401,9 @@ func (s *Server) routes() {
 	// World Cup leaderboard
 	s.router.HandleFunc("/worldcup", s.handleGetWorldcup())
 	s.router.HandleFunc("/worldcup/entry/", s.handleGetWorldcupEntry())
+
+	// FPL head-to-head league
+	s.router.HandleFunc("/fpl", s.handleGetFPL())
 
 	// Secret
 	s.router.HandleFunc("/secret/fibonacci/", s.handleFibonacci())

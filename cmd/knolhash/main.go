@@ -9,6 +9,7 @@ import (
 	"time"
 	_ "time/tzdata" // embed timezone database so Docker containers don't need system tzdata
 
+	"github.com/conorfennell/knolhash/internal/fpl"
 	"github.com/conorfennell/knolhash/internal/grpc"
 	"github.com/conorfennell/knolhash/internal/storage"
 	"github.com/conorfennell/knolhash/internal/sync"
@@ -115,6 +116,12 @@ func runWebServer(db *storage.DB, addr string, grpcAddr string, syncInterval tim
 	lc := worldcup.NewLiveCache()
 	lc.Start()
 
+	fc := fpl.NewCache(fpl.NewClient(), fpl.LeagueID)
+	fc.StartBackgroundRefresh()
+
+	fl := fpl.NewLiveCache(fpl.NewClient(), fc)
+	fl.Start()
+
 	go func() {
 		if err := grpc.StartServer(grpcAddr); err != nil {
 			slog.Error("Failed to start gRPC server", "error", err)
@@ -122,7 +129,7 @@ func runWebServer(db *storage.DB, addr string, grpcAddr string, syncInterval tim
 		}
 	}()
 
-	server := web.NewServer(db, wc, lc, commit, buildDate)
+	server := web.NewServer(db, wc, lc, fc, fl, commit, buildDate)
 	slog.Info("Starting web server", "addr", addr)
 	if err := http.ListenAndServe(addr, server); err != nil {
 		slog.Error("Failed to start web server", "error", err)

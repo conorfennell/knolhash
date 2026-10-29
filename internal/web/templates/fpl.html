@@ -34,7 +34,7 @@
         .fx-side { flex: 1; min-width: 0; }
         .fx-home { text-align: right; padding-right: 0.6rem; }
         .fx-away { text-align: left; padding-left: 0.6rem; }
-        .fx-name { font-weight: 700; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fx-name { font-weight: 700; font-size: 1rem; overflow-wrap: anywhere; }
         .fx-team { font-size: 0.78rem; color: var(--pico-muted-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .fx-mid { min-width: 4.2rem; text-align: center; flex-shrink: 0; font-weight: 800; font-variant-numeric: tabular-nums; }
         .fx-v { color: var(--pico-muted-color); font-size: 0.82rem; font-weight: 600; }
@@ -115,7 +115,7 @@
                 {{range .Money}}
                 <tr>
                     <td class="rank">{{.Rank}}</td>
-                    <td>{{.Name}}<span class="who-team">{{.TeamName}}</span></td>
+                    <td>{{.Name}}{{.Icons}}<span class="who-team">{{.TeamName}}</span></td>
                     <td class="num{{if eq $half 0}} cur{{end}}">{{index .Halves 0}}</td>
                     <td class="num{{if eq $half 1}} cur{{end}}">{{index .Halves 1}}</td>
                     <td class="num pts {{if gt .Sign 0}}pos{{else if lt .Sign 0}}neg{{else}}zero{{end}}">{{.Season}}</td>
@@ -124,6 +124,7 @@
                 </tbody>
             </table>
             </div>
+            <p class="rules">👑 league leader · 💰 most money · 🥄 least money · ⭐ last week's top scorer · 🔥 3+ wins in a row · 🧊 3+ losses in a row · ✍️ naming rights · 🚑 starter ruled out</p>
             <p class="rules">H2H loser pays the winner €5 (nothing against AVERAGE). The two lowest scores of the week pay €5 each, and anyone tied with them pays too; the pot goes to the top scorer (split if tied). H2H losses stop at −€50 per half. Only gameweeks with confirmed bonus points count. Edge-case rules agreed 29 Oct 2026, pending Kevin's confirmation.</p>
         </section>
         {{end}}
@@ -144,7 +145,7 @@
             <div class="card-body">
                 {{range .Availability}}
                 <div class="av-mgr">
-                    <div class="av-name">{{.Name}} <span class="fx-team" style="display:inline">· {{.TeamName}}</span></div>
+                    <div class="av-name">{{.Name}}{{.Icons}} <span class="fx-team" style="display:inline">· {{.TeamName}}</span></div>
                     <ul class="av-list">
                         {{if .Missing}}<li class="av-news">Couldn't load this team from FPL. It will retry within a minute.</li>{{end}}
                         {{range .Concerns}}
@@ -177,7 +178,7 @@
                 {{range .Standings}}
                 <tr{{if .Side.IsAverage}} class="avg"{{end}}>
                     <td class="rank">{{.Rank}}</td>
-                    <td>{{.Side.Name}}{{if not .Side.IsAverage}}<span class="who-team">{{.Side.TeamName}}</span>{{end}}</td>
+                    <td>{{.Side.Name}}{{index $.Icons .Side.Entry}}{{if not .Side.IsAverage}}<span class="who-team">{{.Side.TeamName}}</span>{{end}}</td>
                     <td class="num">{{.Won}}</td>
                     <td class="num">{{.Drawn}}</td>
                     <td class="num">{{.Lost}}</td>
@@ -266,7 +267,7 @@
         {{range .Fixtures}}
         <div class="fx-row">
             <div class="fx-side fx-home fx-{{.Home.Outcome}}{{if .Home.IsAverage}} fx-avg{{end}}">
-                <div class="fx-name">{{if .Home.Chip}}<span class="tag tag-chip">{{.Home.Chip}}</span>{{end}}{{.Home.Name}}</div>
+                <div class="fx-name">{{if .Home.Chip}}<span class="tag tag-chip">{{.Home.Chip}}</span>{{end}}{{.Home.Name}}{{.Home.Icons}}</div>
                 {{if not .Home.IsAverage}}<div class="fx-team">{{.Home.TeamName}}</div>{{end}}
                 {{template "fpl_money" .Home}}
             </div>
@@ -274,7 +275,7 @@
                 {{if eq $status "upcoming"}}<span class="fx-v">v</span>{{else if $live}}~{{.Home.Points}} – ~{{.Away.Points}}{{else}}{{.Home.Points}} – {{.Away.Points}}{{end}}
             </div>
             <div class="fx-side fx-away fx-{{.Away.Outcome}}{{if .Away.IsAverage}} fx-avg{{end}}">
-                <div class="fx-name">{{.Away.Name}}{{if .Away.Chip}}<span class="tag tag-chip">{{.Away.Chip}}</span>{{end}}</div>
+                <div class="fx-name">{{.Away.Name}}{{.Away.Icons}}{{if .Away.Chip}}<span class="tag tag-chip">{{.Away.Chip}}</span>{{end}}</div>
                 {{if not .Away.IsAverage}}<div class="fx-team">{{.Away.TeamName}}</div>{{end}}
                 {{template "fpl_money" .Away}}
             </div>

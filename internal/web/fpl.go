@@ -11,6 +11,7 @@ import (
 
 type fplSideView struct {
 	Name      string
+	Icons     string
 	TeamName  string
 	Points    int
 	Outcome   string // "win", "loss", "draw" or "" when not yet played
@@ -41,6 +42,7 @@ type fplEventView struct {
 type fplMoneyRow struct {
 	Rank     int
 	Name     string
+	Icons    string
 	TeamName string
 	Halves   [2]string
 	Season   string
@@ -58,6 +60,7 @@ type fplConcernView struct {
 
 type fplAvailabilityView struct {
 	Name     string
+	Icons    string
 	TeamName string
 	Concerns []fplConcernView
 	Missing  bool // team couldn't be fetched
@@ -83,7 +86,8 @@ type fplTemplateData struct {
 	SummaryEvent    int
 	NamingRights    *fplNamingView
 	Availability    []fplAvailabilityView
-	TeamsEvent      int // gameweek the availability teams are from
+	TeamsEvent      int            // gameweek the availability teams are from
+	Icons           map[int]string // entry → status icons, as on the World Cup page
 	FetchedAt       time.Time
 	NextRefreshUnix int64
 	Commit          string
@@ -95,11 +99,13 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 		data := s.fplCache.Get()
 		live := s.fplLive.Get()
 		ledger := fpl.BuildLedger(data)
+		icons := buildFPLIcons(data, ledger, live)
 
 		td := fplTemplateData{
 			LeagueName:      data.LeagueName,
 			Standings:       data.Standings,
-			Money:           buildFPLMoney(ledger),
+			Money:           buildFPLMoney(ledger, icons),
+			Icons:           icons,
 			FetchedAt:       data.FetchedAt,
 			NextRefreshUnix: s.fplCache.NextRefresh().Unix(),
 			Commit:          shortCommit(s.commit),
@@ -109,11 +115,11 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 		// the top. Between gameweeks, show next week's fixtures and last
 		// week's results.
 		if cur, ok := data.CurrentEvent(); ok {
-			td.Latest = buildFPLEvent(data, ledger, live, cur)
+			td.Latest = buildFPLEvent(data, ledger, live, icons, cur)
 			td.CurrentHalf = fpl.Half(cur.ID)
 		}
 		if next, ok := data.NextEvent(); ok && (td.Latest == nil || td.Latest.Status != "live") {
-			td.Upcoming = buildFPLEvent(data, ledger, live, next)
+			td.Upcoming = buildFPLEvent(data, ledger, live, icons, next)
 		}
 		if n := len(ledger.Gameweeks); n > 0 {
 			td.SummaryEvent = ledger.Gameweeks[n-1].Event
@@ -125,10 +131,10 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 				Score: fmt.Sprintf("%d – %d", nr.Winner.Points, nr.Loser.Points),
 			}
 		}
-		td.Availability, td.TeamsEvent = buildFPLAvailability(data, live), live.PicksEvent
+		td.Availability, td.TeamsEvent = buildFPLAvailability(data, live, icons), live.PicksEvent
 		for i := len(data.Events) - 1; i >= 0; i-- {
 			if e := data.Events[i]; e.Settled() && (td.Latest == nil || e.ID != td.Latest.ID) {
-				td.Past = append(td.Past, buildFPLEvent(data, ledger, live, e))
+				td.Past = append(td.Past, buildFPLEvent(data, ledger, live, icons, e))
 			}
 		}
 
@@ -139,10 +145,117 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 	}
 }
 
-func buildFPLAvailability(data fpl.LeagueData, live fpl.LiveData) []fplAvailabilityView {
+// FPL status icons shown beside managers' names, in display order.
+const (
+	fplIconLeague  = "👑"  // top of the H2H league table
+	fplIconMoney   = "💰"  // top of the money table
+	fplIconSpoon   = "🥄"  // bottom of the money table
+	fplIconStar    = "⭐"  // top scorer in the last settled gameweek
+	fplIconStreak  = "🔥"  // three or more H2H wins in a row
+	fplIconSlump   = "🧊"  // three or more H2H losses in a row
+	fplIconNaming  = "✍️" // holds the naming rights
+	fplIconInjured = "🚑"  // a ruled-out player in the starting XI
+)
+
+// buildFPLIcons gives each manager their current status icons. Like the
+// World Cup page, icons reflect standings now, not a particular gameweek.
+func buildFPLIcons(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData) map[int]string {
+	icons := map[int]string{}
+	add := func(entry int, icon string) { icons[entry] += " " + icon }
+
+	if len(data.Standings) > 0 {
+		var top fpl.Standing
+		for _, s := range data.Standings {
+			if !s.Side.IsAverage() {
+				top = s
+				break
+			}
+		}
+		for _, s := range data.Standings {
+			if !s.Side.IsAverage() && s.Total == top.Total && s.PointsFor == top.PointsFor {
+				add(s.Side.Entry, fplIconLeague)
+			}
+		}
+	}
+	if len(l.Gameweeks) > 0 && len(l.Rows) > 1 {
+		best, worst := l.Rows[0].Season(), l.Rows[len(l.Rows)-1].Season()
+		if best != worst {
+			for _, r := range l.Rows {
+				switch r.Season() {
+				case best:
+					add(r.Manager.Entry, fplIconMoney)
+				case worst:
+					add(r.Manager.Entry, fplIconSpoon)
+				}
+			}
+		}
+		for _, e := range l.Gameweeks[len(l.Gameweeks)-1].TopScorers {
+			add(e, fplIconStar)
+		}
+	}
+	for entry, n := range fplStreaks(data) {
+		switch {
+		case n >= 3:
+			add(entry, fplIconStreak)
+		case n <= -3:
+			add(entry, fplIconSlump)
+		}
+	}
+	if nr, ok := fpl.BiggestMargin(data); ok {
+		add(nr.Winner.Entry, fplIconNaming)
+	}
+	for entry, picks := range live.Picks {
+		for _, c := range fpl.Concerns(picks, data.Players) {
+			if c.Player.Out() && !c.Bench {
+				add(entry, fplIconInjured)
+				break
+			}
+		}
+	}
+	return icons
+}
+
+// fplWinStreaks counts each manager's consecutive H2H wins, most recent
+// settled gameweek backwards.
+// fplStreaks counts each manager's current run of consecutive H2H results,
+// most recent settled gameweek backwards: positive for wins, negative for
+// losses. A draw ends a run.
+func fplStreaks(data fpl.LeagueData) map[int]int {
+	streaks := map[int]int{}
+	ended := map[int]bool{}
+	for i := len(data.Events) - 1; i >= 0; i-- {
+		e := data.Events[i]
+		if !e.Settled() {
+			continue
+		}
+		for _, m := range data.MatchesFor(e.ID) {
+			for _, pair := range [2][2]fpl.Side{{m.Home, m.Away}, {m.Away, m.Home}} {
+				me, them := pair[0], pair[1]
+				if me.IsAverage() || ended[me.Entry] {
+					continue
+				}
+				step := 0
+				switch {
+				case me.Points > them.Points:
+					step = 1
+				case me.Points < them.Points:
+					step = -1
+				}
+				if step == 0 || streaks[me.Entry]*step < 0 {
+					ended[me.Entry] = true
+					continue
+				}
+				streaks[me.Entry] += step
+			}
+		}
+	}
+	return streaks
+}
+
+func buildFPLAvailability(data fpl.LeagueData, live fpl.LiveData, icons map[int]string) []fplAvailabilityView {
 	var out []fplAvailabilityView
 	for _, m := range data.Managers {
-		v := fplAvailabilityView{Name: m.DisplayName, TeamName: m.TeamName}
+		v := fplAvailabilityView{Name: m.DisplayName, Icons: icons[m.Entry], TeamName: m.TeamName}
 		picks, ok := live.Picks[m.Entry]
 		if !ok {
 			if live.PicksEvent != 0 {
@@ -168,7 +281,7 @@ func buildFPLAvailability(data fpl.LeagueData, live fpl.LiveData) []fplAvailabil
 	return out
 }
 
-func buildFPLMoney(l fpl.Ledger) []fplMoneyRow {
+func buildFPLMoney(l fpl.Ledger, icons map[int]string) []fplMoneyRow {
 	var rows []fplMoneyRow
 	for i, r := range l.Rows {
 		rank := i + 1
@@ -178,6 +291,7 @@ func buildFPLMoney(l fpl.Ledger) []fplMoneyRow {
 		rows = append(rows, fplMoneyRow{
 			Rank:     rank,
 			Name:     r.Manager.DisplayName,
+			Icons:    icons[r.Manager.Entry],
 			TeamName: r.Manager.TeamName,
 			Halves:   [2]string{r.Halves[0].String(), r.Halves[1].String()},
 			Season:   r.Season().String(),
@@ -187,12 +301,13 @@ func buildFPLMoney(l fpl.Ledger) []fplMoneyRow {
 	return rows
 }
 
-func buildFPLEvent(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData, e fpl.Event) *fplEventView {
+func buildFPLEvent(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData, icons map[int]string, e fpl.Event) *fplEventView {
 	ev := &fplEventView{ID: e.ID, Name: e.Name, Deadline: e.Deadline, Status: e.Status()}
 	ev.Live = ev.Status == "live" && live.Event == e.ID
 	g, settled := l.Gameweek(e.ID)
 	for _, m := range data.MatchesFor(e.ID) {
 		home, away := fplSide(m.Home, g, settled), fplSide(m.Away, g, settled)
+		home.Icons, away.Icons = icons[m.Home.Entry], icons[m.Away.Entry]
 		if ev.Live {
 			home.Points, away.Points = fplLivePoints(m.Home, live), fplLivePoints(m.Away, live)
 		}

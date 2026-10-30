@@ -340,37 +340,3 @@ func equalInts(a, b []int) bool {
 	}
 	return true
 }
-
-func TestMoneyMoves(t *testing.T) {
-	// After GW1: 1 on €15, 3 on €5, 2 and 4 on −€10 (ranks 1, 2, 3, 3).
-	// After GW2: 1 and 4 on €5, 2 and 3 on −€5 (ranks 1, 3, 3, 1).
-	d := league([]int{1, 2, 3, 4},
-		week(1, [4]int{1, 80, 2, 40}, [4]int{3, 60, 4, 30}),
-		week(2, [4]int{4, 90, 1, 20}, [4]int{2, 50, 3, 40}),
-	)
-	moves := MoneyMoves(d)
-	before, after := BuildLedger(league([]int{1, 2, 3, 4}, d.Matches[:2])).Ranks(), BuildLedger(d).Ranks()
-	for entry := 1; entry <= 4; entry++ {
-		if want := before[entry] - after[entry]; moves[entry] != want {
-			t.Errorf("entry %d move = %d, want %d (rank %d → %d)", entry, moves[entry], want, before[entry], after[entry])
-		}
-	}
-	if moves[1] != 0 || moves[2] != 0 || moves[3] != -1 || moves[4] != 2 {
-		t.Errorf("moves = %v, want 1: 0, 2: 0, 3: −1, 4: +2", moves)
-	}
-	if got := MoneyMoves(league([]int{1, 2}, week(1, [4]int{1, 80, 2, 40}))); len(got) != 0 {
-		t.Errorf("moves after one gameweek = %v, want none", got)
-	}
-}
-
-func TestLedgerRanksShareTies(t *testing.T) {
-	l := Ledger{Rows: []LedgerRow{
-		{Manager: Manager{Entry: 1}, Halves: [2]Money{500}},
-		{Manager: Manager{Entry: 2}, Halves: [2]Money{500}},
-		{Manager: Manager{Entry: 3}, Halves: [2]Money{-1000}},
-	}}
-	r := l.Ranks()
-	if r[1] != 1 || r[2] != 1 || r[3] != 3 {
-		t.Errorf("ranks = %v, want 1, 1, 3", r)
-	}
-}

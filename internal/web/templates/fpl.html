@@ -52,7 +52,10 @@
         .tbl th { padding: 0.32rem 0.5rem; font-size: 0.72rem; font-weight: 700; color: var(--pico-muted-color); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--pico-muted-border-color); background: #f8f9fa; }
         .tbl td { padding: 0.42rem 0.5rem; border-bottom: 1px solid #f4f4f4; }
         .tbl tr:last-child td { border-bottom: none; }
-        .tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .tbl .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        @media (max-width: 480px) {
+            .tbl th, .tbl td { padding-left: 0.3rem; padding-right: 0.3rem; }
+        }
         .tbl .rank { width: 2.6rem; text-align: center; color: var(--pico-muted-color); white-space: nowrap; }
         .move { display: block; font-size: 0.66rem; font-weight: 800; line-height: 1; margin-top: 0.1rem; }
         .move-up { color: #16a34a; }
@@ -129,37 +132,6 @@
         {{with .Upcoming}}{{template "fpl_event" .}}{{end}}
         {{with .Latest}}{{if ne .Status "live"}}{{template "fpl_event" .}}{{end}}{{end}}
 
-        {{if .Money}}
-        {{$half := .CurrentHalf}}{{$split := .ShowHalves}}
-        <section class="card section-gap">
-            <div class="card-head"><span>Money</span></div>
-            <div class="tbl-wrap">
-            <table class="tbl">
-                <thead><tr><th class="rank">#</th><th>Manager</th>{{if $split}}<th class="num{{if eq $half 0}} cur{{end}}">GW1–19</th><th class="num{{if eq $half 1}} cur{{end}}">GW20–38</th><th class="num">Season</th>{{else}}<th class="num">€</th>{{end}}</tr></thead>
-                <tbody>
-                {{range .Money}}
-                <tr>
-                    <td class="rank">{{.Rank}}{{template "fpl_move" .Move}}</td>
-                    <td>{{.Name}}{{template "fpl_icons" .Icons}}</td>
-                    {{if $split}}<td class="num{{if eq $half 0}} cur{{end}}">{{index .Halves 0}}</td>
-                    <td class="num{{if eq $half 1}} cur{{end}}">{{index .Halves 1}}</td>{{end}}
-                    <td class="num pts {{if gt .Sign 0}}pos{{else if lt .Sign 0}}neg{{else}}zero{{end}}">{{.Season}}</td>
-                </tr>
-                {{end}}
-                </tbody>
-            </table>
-            </div>
-            {{if .AveragePot}}<p class="rules pot-line">🎰 <strong>AVERAGE pot: {{.AveragePot}}</strong> – next to beat AVERAGE wins it.</p>{{end}}
-            <details class="how">
-                <summary>How the money works</summary>
-                <p>H2H loser pays the winner €5. Lose to AVERAGE and your €5 goes into the AVERAGE pot, won by the next manager to beat AVERAGE.</p>
-                <p>The lowest two places of the week pay €5 each (ties share the places, e.g. €5 / €2.50 / €2.50) and the top scorer takes the €10 (split if tied).</p>
-                <p>Nobody goes below −€50 in a half (GW1–19, GW20–38): H2H is settled first, then the bottom two. Only gameweeks with confirmed bonus points count.</p>
-                <p>Tap any icon or badge to see what it means.</p>
-            </details>
-        </section>
-        {{end}}
-
         {{if .AwardTally}}
         {{$cols := .AwardColumns}}
         <section class="card section-gap">
@@ -182,10 +154,10 @@
 
         {{if .Standings}}
         <section class="card section-gap">
-            <div class="card-head"><span>League table</span></div>
+            <div class="card-head"><span>League table &amp; money</span></div>
             <div class="tbl-wrap">
             <table class="tbl">
-                <thead><tr><th class="rank">#</th><th>Manager</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">For</th><th class="num">Pts</th></tr></thead>
+                <thead><tr><th class="rank">#</th><th>Manager</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">For</th><th class="num">Pts</th><th class="num">€</th></tr></thead>
                 <tbody>
                 {{range .Standings}}
                 <tr{{if .Side.IsAverage}} class="avg"{{end}}>
@@ -196,11 +168,20 @@
                     <td class="num">{{.Lost}}</td>
                     <td class="num">{{.PointsFor}}</td>
                     <td class="num pts">{{.Total}}</td>
+                    {{with index $.Money .Side.Entry}}<td class="num pts {{if gt .Sign 0}}pos{{else if lt .Sign 0}}neg{{else}}zero{{end}}">{{.Value}}</td>{{else}}<td class="num"></td>{{end}}
                 </tr>
                 {{end}}
                 </tbody>
             </table>
             </div>
+            {{if .AveragePot}}<p class="rules pot-line">🎰 <strong>AVERAGE pot: {{.AveragePot}}</strong> – next to beat AVERAGE wins it.</p>{{end}}
+            <details class="how">
+                <summary>How the money works</summary>
+                <p>H2H loser pays the winner €5. Lose to AVERAGE and your €5 goes into the AVERAGE pot, won by the next manager to beat AVERAGE.</p>
+                <p>The lowest two places of the week pay €5 each (ties share the places, e.g. €5 / €2.50 / €2.50) and the top scorer takes the €10 (split if tied).</p>
+                <p>Nobody goes below −€50 in a half (GW1–19, GW20–38): H2H is settled first, then the bottom two. Only gameweeks with confirmed bonus points count.</p>
+                <p>Tap any icon or badge to see what it means.</p>
+            </details>
         </section>
         {{end}}
 

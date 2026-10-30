@@ -90,15 +90,10 @@ type fplAwardTally struct {
 	Shame  int
 }
 
-type fplMoneyRow struct {
-	Rank     int
-	Move     int // places climbed since the previous gameweek
-	Name     string
-	Icons    []fplStatusIcon
-	TeamName string
-	Halves   [2]string
-	Season   string
-	Sign     int
+// fplMoneyCell is a manager's season money in the league table.
+type fplMoneyCell struct {
+	Value string
+	Sign  int
 }
 
 type fplConcernView struct {
@@ -123,11 +118,9 @@ type fplTemplateData struct {
 	Standings       []fpl.Standing
 	Upcoming        *fplEventView
 	Latest          *fplEventView
-	Money           []fplMoneyRow
-	CurrentHalf     int
-	AveragePot      string          // AVERAGE pot waiting for a winner, "" when empty
-	ShowHalves      bool            // split the money table by half once the second half starts
-	Past            []*fplEventView // settled gameweeks, newest first
+	Money           map[int]fplMoneyCell // entry → season money
+	AveragePot      string               // AVERAGE pot waiting for a winner, "" when empty
+	Past            []*fplEventView      // settled gameweeks, newest first
 	Availability    []fplAvailabilityView
 	TeamsEvent      int                     // gameweek the availability teams are from
 	Icons           map[int][]fplStatusIcon // entry → status icons, as on the World Cup page
@@ -150,9 +143,8 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 		td := fplTemplateData{
 			LeagueName:      data.LeagueName,
 			Standings:       data.Standings,
-			Money:           buildFPLMoney(ledger, fpl.MoneyMoves(data), icons),
+			Money:           buildFPLMoney(ledger),
 			AveragePot:      fplPot(ledger.Pot),
-			ShowHalves:      fplSecondHalfStarted(ledger),
 			Icons:           icons,
 			AwardTally:      buildFPLAwardTally(data, awards, icons),
 			AwardColumns:    fplAwardColumns,
@@ -167,7 +159,6 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 		if cur, ok := data.CurrentEvent(); ok {
 			td.Latest = buildFPLEvent(data, ledger, live, icons, cur)
 			fplApplyAwards(td.Latest, data, awards[cur.ID])
-			td.CurrentHalf = fpl.Half(cur.ID)
 		}
 		if next, ok := data.NextEvent(); ok && (td.Latest == nil || td.Latest.Status != "live") {
 			td.Upcoming = buildFPLEvent(data, ledger, live, icons, next)
@@ -424,22 +415,12 @@ func buildFPLAvailability(data fpl.LeagueData, live fpl.LiveData, icons map[int]
 	return out
 }
 
-func buildFPLMoney(l fpl.Ledger, moves map[int]int, icons map[int][]fplStatusIcon) []fplMoneyRow {
-	var rows []fplMoneyRow
-	ranks := l.Ranks()
+func buildFPLMoney(l fpl.Ledger) map[int]fplMoneyCell {
+	out := make(map[int]fplMoneyCell, len(l.Rows))
 	for _, r := range l.Rows {
-		rows = append(rows, fplMoneyRow{
-			Rank:     ranks[r.Manager.Entry],
-			Move:     moves[r.Manager.Entry],
-			Name:     r.Manager.DisplayName,
-			Icons:    icons[r.Manager.Entry],
-			TeamName: r.Manager.TeamName,
-			Halves:   [2]string{r.Halves[0].String(), r.Halves[1].String()},
-			Season:   r.Season().String(),
-			Sign:     fplSign(r.Season()),
-		})
+		out[r.Manager.Entry] = fplMoneyCell{Value: r.Season().String(), Sign: fplSign(r.Season())}
 	}
-	return rows
+	return out
 }
 
 func buildFPLEvent(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData, icons map[int][]fplStatusIcon, e fpl.Event) *fplEventView {
@@ -532,17 +513,6 @@ func fplOutcome(mine, theirs int) string {
 		return "loss"
 	}
 	return "draw"
-}
-
-// fplSecondHalfStarted reports whether any GW20–38 money exists yet; until
-// then the season total is the first half.
-func fplSecondHalfStarted(l fpl.Ledger) bool {
-	for _, g := range l.Gameweeks {
-		if fpl.Half(g.Event) == 1 {
-			return true
-		}
-	}
-	return false
 }
 
 func fplPot(m fpl.Money) string {

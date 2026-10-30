@@ -102,46 +102,6 @@ func (l Ledger) Gameweek(event int) (GameweekLedger, bool) {
 	return GameweekLedger{}, false
 }
 
-// Ranks gives each manager's money-table position. Equal season totals
-// share a rank (1, 1, 3, …).
-func (l Ledger) Ranks() map[int]int {
-	ranks := make(map[int]int, len(l.Rows))
-	for i, r := range l.Rows {
-		ranks[r.Manager.Entry] = i + 1
-		if i > 0 && r.Season() == l.Rows[i-1].Season() {
-			ranks[r.Manager.Entry] = ranks[l.Rows[i-1].Manager.Entry]
-		}
-	}
-	return ranks
-}
-
-// MoneyMoves compares each manager's money-table position with the table
-// before the latest settled gameweek: positive means they climbed. It is
-// empty until two gameweeks have settled.
-func MoneyMoves(data LeagueData) map[int]int {
-	now := BuildLedger(data)
-	if len(now.Gameweeks) < 2 {
-		return map[int]int{}
-	}
-	last := now.Gameweeks[len(now.Gameweeks)-1].Event
-	before := data
-	before.Events = make([]Event, len(data.Events))
-	copy(before.Events, data.Events)
-	for i := range before.Events {
-		if before.Events[i].ID == last {
-			before.Events[i].DataChecked = false
-		}
-	}
-	prev, cur := BuildLedger(before).Ranks(), now.Ranks()
-	moves := make(map[int]int, len(cur))
-	for entry, r := range cur {
-		if p, ok := prev[entry]; ok {
-			moves[entry] = p - r
-		}
-	}
-	return moves
-}
-
 // BuildLedger computes the money for every settled gameweek.
 func BuildLedger(data LeagueData) Ledger {
 	totals := map[int]*[2]Money{}

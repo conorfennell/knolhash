@@ -66,7 +66,7 @@
         .move { display: block; font-size: 0.66rem; font-weight: 800; line-height: 1; margin-top: 0.1rem; }
         .move-up { color: #16a34a; }
         .move-down { color: #dc2626; }
-        .tbl .who-team { display: block; font-size: 0.76rem; color: var(--pico-muted-color); }
+        .tbl .who-team { display: block; font-size: 0.66rem; line-height: 1.15; color: #9ca3af; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 11rem; }
         .tbl .pts { font-weight: 800; }
         .tbl .avg td { color: #6b7280; font-style: italic; }
         .tbl-wrap { overflow-x: auto; }
@@ -242,7 +242,7 @@
                 <tbody>
                 {{range .AwardTally}}
                 <tr>
-                    <td class="who">{{.Name}}{{template "fpl_icons" .Icons}}</td>
+                    <td class="who">{{.Name}}</td>
                     {{range $i, $n := .Counts}}{{$c := index $cols $i}}<td class="aw {{if $c.Shame}}aw-shame{{else}}aw-fame{{end}}">{{if $n}}{{$n}}{{end}}</td>{{end}}
                 </tr>
                 {{end}}
@@ -257,7 +257,7 @@
             <div class="card-head"><span>League table &amp; money</span></div>
             <div class="tbl-wrap">
             <table class="tbl">
-                <thead><tr><th class="rank">#</th><th>Manager</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">For</th><th class="num">Pts</th><th class="num">€</th></tr></thead>
+                <thead><tr><th class="rank">#</th><th>Manager</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">Pts for</th><th class="num">Pts</th><th class="num">€</th></tr></thead>
                 <tbody>
                 {{range .Standings}}
                 <tr{{if .Side.IsAverage}} class="avg"{{end}}>

@@ -146,8 +146,8 @@ type fplAwardColumn struct {
 // fplAwardTally is a manager's awards across the season; Counts lines up
 // with fplAwardColumns.
 type fplAwardTally struct {
+	Entry  int
 	Name   string
-	Icons  []fplStatusIcon
 	Counts []int
 	Fame   int
 	Shame  int
@@ -191,7 +191,7 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 			Money:           buildFPLMoney(ledger),
 			AveragePot:      fplPot(ledger.Pot),
 			Icons:           icons,
-			AwardTally:      buildFPLAwardTally(data, awards, icons),
+			AwardTally:      buildFPLAwardTally(data, awards),
 			AwardColumns:    fplAwardColumns,
 			FetchedAt:       data.FetchedAt,
 			NextRefreshUnix: s.fplCache.NextRefresh().Unix(),
@@ -524,9 +524,10 @@ func fplApplyAwards(ev *fplEventView, data fpl.LeagueData, awards []fpl.Award) {
 	}
 }
 
-// buildFPLAwardTally counts each manager's awards over the season, most
-// decorated (fame minus shame) first. Managers with no awards are left out.
-func buildFPLAwardTally(data fpl.LeagueData, awards map[int][]fpl.Award, icons map[int][]fplStatusIcon) []fplAwardTally {
+// buildFPLAwardTally counts each manager's awards over the season, in
+// league-table order so it lines up with the table below. Managers with no
+// awards are left out.
+func buildFPLAwardTally(data fpl.LeagueData, awards map[int][]fpl.Award) []fplAwardTally {
 	col := map[string]int{}
 	for i, c := range fplAwardColumns {
 		col[c.Title] = i
@@ -552,7 +553,7 @@ func buildFPLAwardTally(data fpl.LeagueData, awards map[int][]fpl.Award, icons m
 		if !ok {
 			continue
 		}
-		t := fplAwardTally{Name: m.DisplayName, Icons: icons[m.Entry], Counts: c}
+		t := fplAwardTally{Entry: m.Entry, Name: m.DisplayName, Counts: c}
 		for i, n := range c {
 			if fplAwardColumns[i].Shame {
 				t.Shame += n
@@ -562,9 +563,18 @@ func buildFPLAwardTally(data fpl.LeagueData, awards map[int][]fpl.Award, icons m
 		}
 		out = append(out, t)
 	}
+	rank := map[int]int{}
+	for _, s := range data.Standings {
+		rank[s.Side.Entry] = s.Rank
+	}
 	sort.SliceStable(out, func(i, j int) bool {
-		if a, b := out[i].Fame-out[i].Shame, out[j].Fame-out[j].Shame; a != b {
-			return a > b
+		ri, okI := rank[out[i].Entry]
+		rj, okJ := rank[out[j].Entry]
+		if okI != okJ {
+			return okI // managers in the table first
+		}
+		if ri != rj {
+			return ri < rj
 		}
 		return out[i].Name < out[j].Name
 	})

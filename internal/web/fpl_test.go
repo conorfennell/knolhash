@@ -135,9 +135,10 @@ func TestBuildFPLAwardTally(t *testing.T) {
 		1: {{Icon: "🍀", Title: "Jammy Win", Winners: []fpl.AwardWinner{{Entry: 2}}}, {Icon: "🪑", Title: "Bench of Shame", Shame: true, Winners: []fpl.AwardWinner{{Entry: 1}}}},
 		2: {{Icon: "🪑", Title: "Bench of Shame", Shame: true, Winners: []fpl.AwardWinner{{Entry: 1}}}},
 	}
-	got := buildFPLAwardTally(data, awards, nil)
+	data.Standings = []fpl.Standing{{Rank: 1, Side: fpl.Side{Entry: 2}}, {Rank: 2, Side: fpl.Side{Entry: 3}}, {Rank: 3, Side: fpl.Side{Entry: 1}}}
+	got := buildFPLAwardTally(data, awards)
 	if len(got) != 2 || got[0].Name != "Paul" || got[1].Name != "Kevin" {
-		t.Fatalf("tally = %+v, want Paul (fame) then Kevin (shame); Ian has none", got)
+		t.Fatalf("tally = %+v, want league order: Paul (1st) then Kevin (3rd); Ian has no awards", got)
 	}
 	if k := got[1]; k.Shame != 2 || k.Counts[3] != 2 || k.Counts[1] != 0 {
 		t.Errorf("Kevin = %+v, want Bench of Shame ×2 in column 4", k)

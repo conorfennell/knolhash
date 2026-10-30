@@ -139,7 +139,7 @@ func TestBuildFPLIcons(t *testing.T) {
 		if i.Bad {
 			t.Errorf("entry 1 icon %s marked bad", i.Icon)
 		}
-		if i.Icon == fplIconStreak && i.Detail != "A: 3 H2H wins in a row" {
+		if i.Icon == fplIconStreak && (i.Detail != "A: 3 H2H wins in a row" || i.Count != 3 || i.Kind != "form-w") {
 			t.Errorf("streak detail = %q", i.Detail)
 		}
 	}

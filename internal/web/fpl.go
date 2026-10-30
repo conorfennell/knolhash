@@ -85,9 +85,9 @@ type fplMatchPlayer struct {
 	Pos        string // "gk", "def", "mid" or "fwd"
 	Points     int    // points counted for the manager (× multiplier)
 	Multiplier int
-	Status     string // "played", "live", "upcoming", "dnp" or "blank"
-	PosLabel   string // "GK", "DEF", "MID", "FWD"
-	When       string // "v CHE (H)", "Sat 15:00 v CHE (H)", "Didn't play", …
+	Status     string           // "played", "live", "upcoming", "dnp" or "blank"
+	PosLabel   string           // "GK", "DEF", "MID", "FWD"
+	When       string           // "v CHE (H)", "Sat 15:00 v CHE (H)", "Didn't play", …
 	Next       []fplNextFixture // previews: kick-off and opponent, tinted by difficulty
 	Events     []fplStatEvent
 	Bonus      int
@@ -606,10 +606,24 @@ const (
 // fplStatusIcon is a status icon beside a manager's name; tapping it shows
 // what it means.
 type fplStatusIcon struct {
-	Icon   string
+	Icon   string // identifies the status (one of the fplIcon constants)
+	Kind   string // badge style: "leader", "money", "spoon", "motw", "form-w", "form-l", "naming", "injury"
+	Count  int    // run length for form badges
 	Title  string
 	Detail string // "Eoghan: top of the H2H table on 21 pts"
 	Bad    bool
+}
+
+// fplIconKinds maps each status to its league-table style badge.
+var fplIconKinds = map[string]string{
+	fplIconLeague:  "leader",
+	fplIconMoney:   "money",
+	fplIconSpoon:   "spoon",
+	fplIconStar:    "motw",
+	fplIconStreak:  "form-w",
+	fplIconSlump:   "form-l",
+	fplIconNaming:  "naming",
+	fplIconInjured: "injury",
 }
 
 // buildFPLIcons gives each manager their current status icons. Like the
@@ -618,7 +632,7 @@ func buildFPLIcons(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData) map[int
 	names := fplNameMap(data)
 	icons := map[int][]fplStatusIcon{}
 	add := func(entry int, icon, title, detail string, bad bool) {
-		icons[entry] = append(icons[entry], fplStatusIcon{Icon: icon, Title: title, Detail: names[entry] + ": " + detail, Bad: bad})
+		icons[entry] = append(icons[entry], fplStatusIcon{Icon: icon, Kind: fplIconKinds[icon], Title: title, Detail: names[entry] + ": " + detail, Bad: bad})
 	}
 
 	if len(data.Standings) > 0 {
@@ -654,11 +668,15 @@ func buildFPLIcons(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData) map[int
 	}
 	streaks := fplStreaks(data)
 	for _, m := range data.Managers {
-		switch n := streaks[m.Entry]; {
+		n := streaks[m.Entry]
+		switch {
 		case n >= 3:
 			add(m.Entry, fplIconStreak, "On fire", fmt.Sprintf("%d H2H wins in a row", n), false)
 		case n <= -3:
 			add(m.Entry, fplIconSlump, "Ice cold", fmt.Sprintf("%d H2H losses in a row", -n), true)
+		}
+		if l := len(icons[m.Entry]); l > 0 && (n >= 3 || n <= -3) {
+			icons[m.Entry][l-1].Count = max(n, -n)
 		}
 	}
 	if nr, ok := fpl.BiggestMargin(data); ok {

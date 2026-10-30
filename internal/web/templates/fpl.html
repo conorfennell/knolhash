@@ -38,8 +38,14 @@
         .fx-team { font-size: 0.78rem; color: var(--pico-muted-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .fx-mid { min-width: 4.2rem; text-align: center; flex-shrink: 0; font-weight: 800; font-variant-numeric: tabular-nums; }
         .fx-v { color: #9ca3af; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; }
-        .fx-win .fx-name { color: #166534; }
+        .fx-win .fx-name { color: #111827; }
         .fx-loss .fx-name { color: #6b7280; font-weight: 600; }
+        .sc { display: inline-flex; border-radius: 0.4rem; overflow: hidden; background: #1f2937; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+        .sc b { min-width: 1.75rem; padding: 0.12rem 0.3rem; color: #fff; font-weight: 900; font-size: 0.95rem; text-align: center; }
+        .sc b + b { border-left: 1px solid rgba(255,255,255,0.12); }
+        .sc b.lo { color: #9ca3af; font-weight: 700; }
+        .sc-live { background: #991b1b; }
+        .sc-live b.lo { color: #fecaca; }
         .fx-avg .fx-name { color: #6b7280; font-style: italic; font-weight: 600; }
 
         .badge { font-size: 0.72rem; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 0.9rem; text-transform: none; letter-spacing: 0.01em; white-space: nowrap; }
@@ -65,7 +71,16 @@
         .tbl .avg td { color: #6b7280; font-style: italic; }
         .tbl-wrap { overflow-x: auto; }
 
-        .fx-money { font-size: 0.78rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .fx-money { font-size: 0.78rem; font-weight: 700; font-variant-numeric: tabular-nums; display: flex; flex-wrap: wrap; align-items: center; gap: 0.2rem; margin-top: 0.12rem; }
+        .fx-home .fx-money { justify-content: flex-end; }
+        .fx-away .fx-money { flex-direction: row-reverse; justify-content: flex-end; }
+        .mv { font-weight: 800; font-size: 0.8rem; }
+        .mb { display: inline-flex; align-items: center; height: 1.15rem; padding: 0 0.3rem; border-radius: 0.22rem; font-size: 0.58rem; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; color: #fff; box-shadow: inset 0 -1px 0 rgba(0,0,0,0.15); white-space: nowrap; }
+        .mb-top { background: linear-gradient(180deg, #fcd34d, #d97706); color: #451a03; }
+        .mb-bot { background: #dc2626; }
+        .mb-cap { background: #6b7280; }
+        .mb-pot { background: #9ca3af; }
+        .mb-pot-won { background: #15803d; }
         .fx-money .pos, .fx-money .neg, .fx-money .zero, .fx-money .tag { white-space: nowrap; }
         .pos { color: #166534; }
         .neg { color: #b91c1c; }
@@ -93,10 +108,22 @@
         .tag-out { background: #fee2e2; color: #b91c1c; }
         .tag-doubt { background: #fef3c7; color: #92400e; }
         .tag-bench { background: #e5e7eb; color: #374151; }
-        .aw-badge { all: unset; display: inline-block; font-size: 0.8rem; line-height: 1; padding: 0.14rem 0.3rem; border-radius: 0.6rem; margin: 0 0.15rem 0 0; vertical-align: 0.05em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .aw-badge { all: unset; display: inline-flex; align-items: center; justify-content: center; width: 1.15rem; height: 1.15rem; font-size: 0.72rem; line-height: 1; border-radius: 0.22rem; cursor: pointer; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         .aw-badge:focus-visible { outline: 2px solid #6d28d9; outline-offset: 1px; }
         .aw-badge.open { box-shadow: 0 0 0 2px #6d28d9; }
         .st-badge { all: unset; cursor: pointer; margin-left: 0.2rem; padding: 0 0.05rem; border-radius: 0.3rem; -webkit-tap-highlight-color: transparent; }
+        .sb { display: inline-flex; align-items: center; justify-content: center; gap: 1px; height: 1.5em; min-width: 1.5em; padding: 0 0.32em; box-sizing: border-box; border-radius: 0.25em; font-size: 0.62em; font-weight: 900; letter-spacing: 0.04em; line-height: 1; color: #fff; vertical-align: 0.15em; margin-left: 0.35em; text-transform: uppercase; font-style: normal; box-shadow: inset 0 -1px 0 rgba(0,0,0,0.15); }
+        .sb + .sb { margin-left: 0.2em; }
+        .sb svg { width: 1.1em; height: 1.1em; }
+        .sb-leader { background: linear-gradient(180deg, #fcd34d, #d97706); color: #451a03; }
+        .sb-money { background: #15803d; }
+        .sb-spoon { background: #8b5a2b; padding: 0 0.15em; }
+        .sb-motw { background: #6d28d9; }
+        .sb-naming { background: #1e3a8a; }
+        .sb-injury { background: #dc2626; padding: 0 0.12em; }
+        .sb-form-w { background: #16a34a; }
+        .sb-form-l { background: #dc2626; }
+        .sb.open { box-shadow: 0 0 0 2px #6d28d9; }
         .st-badge:focus-visible { outline: 2px solid #6d28d9; outline-offset: 1px; }
         .st-badge.open { box-shadow: 0 0 0 2px #6d28d9; }
         .aw-pop { position: absolute; z-index: 20; max-width: 15rem; white-space: pre-line; background: #1f2937; color: #fff; border-radius: 0.5rem; padding: 0.45rem 0.65rem; font-size: 0.82rem; line-height: 1.35; box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
@@ -183,8 +210,8 @@
         .aw-pop-title { font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.1rem; }
         .aw-pop-title.fame { color: #86efac; }
         .aw-pop-title.shame { color: #fca5a5; }
-        .aw-badge-fame { background: #dcfce7; }
-        .aw-badge-shame { background: #fee2e2; }
+        .aw-badge-fame { background: #dcfce7; box-shadow: inset 0 0 0 1px #86efac; }
+        .aw-badge-shame { background: #fee2e2; box-shadow: inset 0 0 0 1px #fca5a5; }
         .award-detail { font-size: 0.78rem; color: var(--pico-muted-color); line-height: 1.25; overflow-wrap: anywhere; }
         .tally th.aw, .tally td.aw { text-align: center; padding-left: 0.15rem; padding-right: 0.15rem; width: 1.9rem; }
         .tally th.aw { font-size: 0.95rem; text-transform: none; letter-spacing: 0; }
@@ -378,15 +405,15 @@
         {{if .Matchup}}<details class="fx"><summary>{{end}}
         <div class="fx-row">
             <div class="fx-side fx-home fx-{{.Home.Outcome}}{{if .Home.IsAverage}} fx-avg{{end}}">
-                <div class="fx-name">{{if .Home.Chip}}<span class="tag tag-chip">{{.Home.Chip}}</span>{{end}}{{.Home.Name}}{{template "fpl_icons" .Home.Icons}}</div>
+                <div class="fx-name">{{if .Home.Chip}}<span class="tag tag-chip">{{.Home.Chip}}</span>{{end}}{{.Home.Name}}</div>
                 {{template "fpl_money" .Home}}
             </div>
             <div class="fx-mid">
-                {{if eq $status "upcoming"}}<span class="fx-v">v</span>{{else if $live}}~{{.Home.Points}} – ~{{.Away.Points}}{{else}}{{.Home.Points}} – {{.Away.Points}}{{end}}
+                {{if eq $status "upcoming"}}<span class="fx-v">v</span>{{else}}<span class="sc{{if $live}} sc-live{{end}}"><b class="{{if eq .Home.Outcome "loss"}}lo{{end}}">{{.Home.Points}}</b><b class="{{if eq .Away.Outcome "loss"}}lo{{end}}">{{.Away.Points}}</b></span>{{end}}
                 {{if .Matchup}}<div><span class="fx-chev" title="Compare teams" aria-hidden="true"></span></div>{{end}}
             </div>
             <div class="fx-side fx-away fx-{{.Away.Outcome}}{{if .Away.IsAverage}} fx-avg{{end}}">
-                <div class="fx-name">{{.Away.Name}}{{template "fpl_icons" .Away.Icons}}{{if .Away.Chip}}<span class="tag tag-chip">{{.Away.Chip}}</span>{{end}}</div>
+                <div class="fx-name">{{.Away.Name}}{{if .Away.Chip}}<span class="tag tag-chip">{{.Away.Chip}}</span>{{end}}</div>
                 {{template "fpl_money" .Away}}
             </div>
         </div>
@@ -399,11 +426,13 @@
 </section>
 {{end}}
 
-{{define "fpl_money"}}{{if .Money}}<div class="fx-money">{{if .Top}}<span class="tag tag-top">Top</span>{{end}}{{if .Bottom}}<span class="tag tag-bottom">Bottom 2</span>{{end}}{{if .Capped}}<span class="tag tag-cap">Capped</span>{{end}}{{if eq .Pot "won"}}<span class="tag tag-top">Won pot</span>{{else if eq .Pot "paid"}}<span class="tag tag-cap">To pot</span>{{end}}{{range .Awards}}<button type="button" class="aw-badge {{if .Shame}}aw-badge-shame{{else}}aw-badge-fame{{end}}" data-title="{{.Icon}} {{.Title}}" data-detail="{{.Detail}}" data-shame="{{.Shame}}" aria-label="{{.Title}}: {{.Detail}}">{{.Icon}}</button>{{end}}<span class="{{if gt .MoneySign 0}}pos{{else if lt .MoneySign 0}}neg{{else}}zero{{end}}">{{.Money}}</span></div>{{end}}{{end}}
+{{define "fpl_money"}}{{if .Money}}<div class="fx-money">{{if .Top}}<span class="mb mb-top" title="Top scorer this week">Top</span>{{end}}{{if .Bottom}}<span class="mb mb-bot" title="Bottom two this week">Bot 2</span>{{end}}{{if .Capped}}<span class="mb mb-cap" title="Loss limited by the −€50 cap">Cap</span>{{end}}{{if eq .Pot "won"}}<span class="mb mb-pot-won" title="Won the AVERAGE pot">Pot</span>{{else if eq .Pot "paid"}}<span class="mb mb-pot" title="Lost to AVERAGE: €5 into the pot">Pot</span>{{end}}{{range .Awards}}<button type="button" class="aw-badge {{if .Shame}}aw-badge-shame{{else}}aw-badge-fame{{end}}" data-title="{{.Icon}} {{.Title}}" data-detail="{{.Detail}}" data-shame="{{.Shame}}" aria-label="{{.Title}}: {{.Detail}}">{{.Icon}}</button>{{end}}<span class="mv {{if gt .MoneySign 0}}pos{{else if lt .MoneySign 0}}neg{{else}}zero{{end}}">{{if gt .MoneySign 0}}+{{end}}{{.Money}}</span></div>{{end}}{{end}}
 
 {{define "fpl_move"}}{{if gt . 0}}<span class="move move-up" title="Up {{.}} since last gameweek">▲{{.}}</span>{{else if lt . 0}}<span class="move move-down" title="Down since last gameweek">▼{{fplAbs .}}</span>{{end}}{{end}}
 
-{{define "fpl_icons"}}{{range .}}<button type="button" class="st-badge" data-title="{{.Icon}} {{.Title}}" data-detail="{{.Detail}}" data-shame="{{.Bad}}" aria-label="{{.Title}}: {{.Detail}}">{{.Icon}}</button>{{end}}{{end}}
+{{define "fpl_icons"}}{{range .}}<button type="button" class="st-badge sb sb-{{.Kind}}" data-title="{{.Title}}" data-detail="{{.Detail}}" data-shame="{{.Bad}}" aria-label="{{.Title}}: {{.Detail}}">{{if eq .Kind "form-w"}}W{{.Count}}{{else if eq .Kind "form-l"}}L{{.Count}}{{else}}{{template "fpl_sb" .Kind}}{{end}}</button>{{end}}{{end}}
+
+{{define "fpl_sb"}}{{if eq . "leader"}}1st{{else if eq . "money"}}€{{else if eq . "spoon"}}<svg viewBox="0 0 12 12" aria-hidden="true"><ellipse cx="4" cy="4" rx="2.6" ry="2" transform="rotate(-45 4 4)" fill="#fff"/><path d="M5.6 5.6 10 10" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>{{else if eq . "motw"}}MOTW{{else if eq . "naming"}}NR{{else if eq . "injury"}}<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.5v7M2.5 6h7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>{{end}}{{end}}
 
 
 {{define "fpl_matchup"}}<div class="mu mu-{{.Mode}}">

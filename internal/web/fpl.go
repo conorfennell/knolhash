@@ -23,7 +23,8 @@ type fplSideView struct {
 	MoneySign int             // -1, 0, 1 for styling
 	Top       bool            // gameweek top scorer
 	Bottom    bool            // in the gameweek's bottom two
-	Capped    bool            // H2H loss reduced by the −€50 cap
+	Capped    bool            // a loss reduced by the −€50 cap
+	Pot       string          // "paid" into or "won" the AVERAGE pot, "" otherwise
 	Chip      string          // chip badge ("TC", "BB", …), "" when none
 	Awards    []fplAwardBadge // this gameweek's awards
 }
@@ -132,6 +133,7 @@ type fplTemplateData struct {
 	Latest          *fplEventView
 	Money           []fplMoneyRow
 	CurrentHalf     int
+	AveragePot      string          // AVERAGE pot waiting for a winner, "" when empty
 	Past            []*fplEventView // settled gameweeks, newest first
 	NamingRights    *fplNamingView
 	Availability    []fplAvailabilityView
@@ -157,6 +159,7 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 			LeagueName:      data.LeagueName,
 			Standings:       data.Standings,
 			Money:           buildFPLMoney(ledger, fpl.MoneyMoves(data), icons),
+			AveragePot:      fplPot(ledger.Pot),
 			Icons:           icons,
 			AwardTally:      buildFPLAwardTally(data, awards, icons),
 			AwardColumns:    fplAwardColumns,
@@ -514,6 +517,12 @@ func fplSide(s fpl.Side, g fpl.GameweekLedger, settled bool) fplSideView {
 	if w, ok := g.Weeks[s.Entry]; settled && ok {
 		v.Money, v.MoneySign = w.Total().String(), fplSign(w.Total())
 		v.Top, v.Bottom, v.Capped = w.Top > 0, w.Bottom < 0, w.Capped
+		switch {
+		case w.Average > 0:
+			v.Pot = "won"
+		case w.Average < 0:
+			v.Pot = "paid"
+		}
 	}
 	return v
 }
@@ -553,6 +562,13 @@ func fplOutcome(mine, theirs int) string {
 		return "loss"
 	}
 	return "draw"
+}
+
+func fplPot(m fpl.Money) string {
+	if m == 0 {
+		return ""
+	}
+	return m.String()
 }
 
 func fplSign(m fpl.Money) int {

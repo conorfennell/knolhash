@@ -74,6 +74,7 @@
         .tag-chip { background: #ede9fe; color: #5b21b6; vertical-align: 0.15em; }
         .fx-live-note { font-size: 0.76rem; color: var(--pico-muted-color); padding-top: 0.3rem; }
         .fx-summary { font-size: 0.8rem; color: var(--pico-muted-color); padding: 0.4rem 0 0.2rem; border-top: 1px solid var(--pico-muted-border-color); }
+        .pot-line { border-top: none; padding-bottom: 0; color: #92400e; }
         .tbl .cur { background: #f5f3ff; }
         .rules { font-size: 0.78rem; color: var(--pico-muted-color); padding: 0.5rem 0.9rem 0.6rem; border-top: 1px solid var(--pico-muted-border-color); margin: 0; }
         details.past { margin-bottom: 0.5rem; }
@@ -150,7 +151,8 @@
             </table>
             </div>
             <p class="rules">👑 league leader · 💰 most money · 🥄 least money · ⭐ last week's top scorer · 🔥 3+ wins in a row · 🧊 3+ losses in a row · ✍️ naming rights · 🚑 starter ruled out</p>
-            <p class="rules">H2H loser pays the winner €5 (nothing against AVERAGE). The two lowest scores of the week pay €5 each, and anyone tied with them pays too; the pot goes to the top scorer (split if tied). H2H losses stop at −€50 per half. Only gameweeks with confirmed bonus points count. Edge-case rules agreed 29 Oct 2026, pending Kevin's confirmation.</p>
+            {{if .AveragePot}}<p class="rules pot-line">🎰 <strong>AVERAGE pot: {{.AveragePot}}</strong> – next to beat AVERAGE wins it.</p>{{end}}
+            <p class="rules">H2H loser pays the winner €5. Lose to AVERAGE and your €5 goes into the AVERAGE pot, won by the next manager to beat AVERAGE. The lowest two places of the week pay €5 each (ties share the places, e.g. €5 / €2.50 / €2.50) and the top scorer takes the €10 (split if tied). Nobody goes below −€50 in a half: H2H is settled first, then the bottom two. Only gameweeks with confirmed bonus points count.</p>
         </section>
         {{end}}
 
@@ -345,7 +347,7 @@
 </section>
 {{end}}
 
-{{define "fpl_money"}}{{if .Money}}<div class="fx-money">{{if .Top}}<span class="tag tag-top">Top</span>{{end}}{{if .Bottom}}<span class="tag tag-bottom">Bottom 2</span>{{end}}{{if .Capped}}<span class="tag tag-cap">Capped</span>{{end}}{{range .Awards}}<button type="button" class="aw-badge {{if .Shame}}aw-badge-shame{{else}}aw-badge-fame{{end}}" data-title="{{.Icon}} {{.Title}}" data-detail="{{.Detail}}" data-shame="{{.Shame}}" aria-label="{{.Title}}: {{.Detail}}">{{.Icon}}</button>{{end}}<span class="{{if gt .MoneySign 0}}pos{{else if lt .MoneySign 0}}neg{{else}}zero{{end}}">{{.Money}}</span></div>{{end}}{{end}}
+{{define "fpl_money"}}{{if .Money}}<div class="fx-money">{{if .Top}}<span class="tag tag-top">Top</span>{{end}}{{if .Bottom}}<span class="tag tag-bottom">Bottom 2</span>{{end}}{{if .Capped}}<span class="tag tag-cap">Capped</span>{{end}}{{if eq .Pot "won"}}<span class="tag tag-top">Won pot</span>{{else if eq .Pot "paid"}}<span class="tag tag-cap">To pot</span>{{end}}{{range .Awards}}<button type="button" class="aw-badge {{if .Shame}}aw-badge-shame{{else}}aw-badge-fame{{end}}" data-title="{{.Icon}} {{.Title}}" data-detail="{{.Detail}}" data-shame="{{.Shame}}" aria-label="{{.Title}}: {{.Detail}}">{{.Icon}}</button>{{end}}<span class="{{if gt .MoneySign 0}}pos{{else if lt .MoneySign 0}}neg{{else}}zero{{end}}">{{.Money}}</span></div>{{end}}{{end}}
 
 {{define "fpl_move"}}{{if gt . 0}}<span class="move move-up" title="Up {{.}} since last gameweek">▲{{.}}</span>{{else if lt . 0}}<span class="move move-down" title="Down since last gameweek">▼{{fplAbs .}}</span>{{end}}{{end}}
 

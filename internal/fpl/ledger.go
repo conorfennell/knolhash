@@ -5,18 +5,21 @@ import (
 	"sort"
 )
 
-// Money rules, from Kevin's 2025/26 sheet with edge cases agreed on
-// 29 Oct 2026 (not yet confirmed by Kevin):
+// Money rules, from Kevin's 2025/26 sheet, confirmed by Kevin on
+// 30 Oct 2026:
 //
-//   - H2H: loser pays winner €5; a draw moves nothing; no money against AVERAGE.
-//   - Bottom two: managers scoring the lowest or second-lowest score of the
-//     gameweek (ties included) pay €5 each.
-//   - Top scorer: the highest scorer(s) split the bottom-two payments equally.
-//   - Cap: each half (GW1–19, GW20–38), an H2H loss is limited to the
-//     loser's headroom: their net half total before the gameweek (all money,
-//     as in the sheet's "Can lose" column) minus −€50, floored at €0. The
-//     winner gains the reduced amount. Bottom-two payments ignore the cap,
-//     so a total can end up below −€50.
+//   - H2H: loser pays winner €5; a draw moves nothing.
+//   - AVERAGE: losing to AVERAGE puts €5 into a rolling AVERAGE pot; the
+//     next manager to beat AVERAGE wins the whole pot. A draw moves nothing.
+//   - Bottom two: the lowest and second-lowest places of the gameweek pay
+//     €5 each, so the pot is €10. Managers tied across those places share
+//     them: one last and two joint second-last pay €5, €2.50 and €2.50;
+//     three joint last pay €3.33 each.
+//   - Top scorer: the highest scorer(s) split the bottom-two payments.
+//   - Cap: each half (GW1–19, GW20–38) no manager goes below −€50. It
+//     applies as the gameweek is worked out: H2H (and AVERAGE) first, then
+//     the bottom two, each loss limited to what's left above −€50. Winners
+//     and the top scorer receive what was actually paid.
 //   - AVERAGE never counts for top or bottom.
 //   - Only gameweeks FPL has settled (finished and bonus confirmed) count.
 const (
@@ -52,15 +55,16 @@ func Half(event int) int {
 type ManagerWeek struct {
 	Entry    int
 	Points   int
-	H2H      Money // + won, − lost against their opponent
-	Bottom   Money // − when in the bottom two
+	H2H      Money // + won, − lost against a real opponent
+	Average  Money // − paid into the AVERAGE pot, + won it
+	Bottom   Money // − share of the bottom-two places
 	Top      Money // + share of the bottom-two pot
-	Capped   bool  // the H2H loss was reduced by the −€50 cap
+	Capped   bool  // a loss was reduced by the −€50 cap
 	Opponent int   // entry id, 0 for AVERAGE
 }
 
 // Total is the manager's net money for the gameweek.
-func (w ManagerWeek) Total() Money { return w.H2H + w.Bottom + w.Top }
+func (w ManagerWeek) Total() Money { return w.H2H + w.Average + w.Bottom + w.Top }
 
 // GameweekLedger is the money for one settled gameweek.
 type GameweekLedger struct {
@@ -68,6 +72,8 @@ type GameweekLedger struct {
 	Weeks      map[int]ManagerWeek // by entry id
 	TopScorers []int               // entry ids, sorted
 	BottomTwo  []int               // entry ids, sorted
+	PotBefore  Money               // AVERAGE pot going into the gameweek
+	PotAfter   Money               // AVERAGE pot after it
 }
 
 // LedgerRow is a manager's running totals.
@@ -83,6 +89,7 @@ func (r LedgerRow) Season() Money { return r.Halves[0] + r.Halves[1] }
 type Ledger struct {
 	Gameweeks []GameweekLedger // settled gameweeks in ascending order
 	Rows      []LedgerRow      // sorted by season total, best first
+	Pot       Money            // AVERAGE pot still waiting for a winner
 }
 
 // Gameweek returns the ledger for an event, if it is settled.
@@ -159,7 +166,8 @@ func BuildLedger(data LeagueData) Ledger {
 		if len(matches) == 0 {
 			continue
 		}
-		g := settleGameweek(e.ID, matches, func(entry int) Money { return total(entry)[Half(e.ID)] })
+		g := settleGameweek(e.ID, matches, func(entry int) Money { return total(entry)[Half(e.ID)] }, ledger.Pot)
+		ledger.Pot = g.PotAfter
 		for entry, w := range g.Weeks {
 			total(entry)[Half(e.ID)] += w.Total()
 		}
@@ -191,9 +199,10 @@ func BuildLedger(data LeagueData) Ledger {
 }
 
 // settleGameweek applies the money rules to one gameweek. halfTotal gives a
-// manager's running total for the current half before this gameweek.
-func settleGameweek(event int, matches []Match, halfTotal func(entry int) Money) GameweekLedger {
-	g := GameweekLedger{Event: event, Weeks: map[int]ManagerWeek{}}
+// manager's running total for the current half before this gameweek; pot is
+// the AVERAGE pot carried in.
+func settleGameweek(event int, matches []Match, halfTotal func(entry int) Money, pot Money) GameweekLedger {
+	g := GameweekLedger{Event: event, Weeks: map[int]ManagerWeek{}, PotBefore: pot, PotAfter: pot}
 	for _, m := range matches {
 		for _, pair := range [2][2]Side{{m.Home, m.Away}, {m.Away, m.Home}} {
 			me, them := pair[0], pair[1]
@@ -203,59 +212,110 @@ func settleGameweek(event int, matches []Match, halfTotal func(entry int) Money)
 		}
 	}
 
-	// H2H, with the loser's payment limited by the cap.
+	// pay takes up to amount from a manager, limited by the cap given what
+	// they've already won or lost this gameweek, and returns what was paid.
+	pay := func(entry int, amount Money) Money {
+		w := g.Weeks[entry]
+		paid := min(amount, max(0, halfTotal(entry)+w.Total()-halfCap))
+		if paid < amount {
+			w.Capped = true
+			g.Weeks[entry] = w
+		}
+		return paid
+	}
+
+	// H2H and AVERAGE first.
 	for _, m := range matches {
-		if m.Home.IsAverage() || m.Away.IsAverage() || m.Home.Points == m.Away.Points {
+		if m.Home.Points == m.Away.Points {
 			continue
 		}
-		winner, loser := m.Home.Entry, m.Away.Entry
+		winner, loser := m.Home, m.Away
 		if m.Away.Points > m.Home.Points {
 			winner, loser = loser, winner
 		}
-		stake := min(h2hStake, max(0, halfTotal(loser)-halfCap))
-		w, l := g.Weeks[winner], g.Weeks[loser]
-		w.H2H += stake
-		l.H2H -= stake
-		l.Capped = stake < h2hStake
-		g.Weeks[winner], g.Weeks[loser] = w, l
+		switch {
+		case loser.IsAverage():
+			w := g.Weeks[winner.Entry]
+			w.Average += g.PotAfter
+			g.Weeks[winner.Entry] = w
+			g.PotAfter = 0
+		case winner.IsAverage():
+			paid := pay(loser.Entry, h2hStake)
+			l := g.Weeks[loser.Entry]
+			l.Average -= paid
+			g.Weeks[loser.Entry] = l
+			g.PotAfter += paid
+		default:
+			paid := pay(loser.Entry, h2hStake)
+			w, l := g.Weeks[winner.Entry], g.Weeks[loser.Entry]
+			w.H2H += paid
+			l.H2H -= paid
+			g.Weeks[winner.Entry], g.Weeks[loser.Entry] = w, l
+		}
 	}
 
 	if len(g.Weeks) < 2 {
 		return g
 	}
 
-	var scores []int
-	for _, w := range g.Weeks {
-		scores = append(scores, w.Points)
+	// Bottom two: the lowest two places carry €5 each; tied managers share
+	// the places their tie covers.
+	entries := make([]int, 0, len(g.Weeks))
+	for entry := range g.Weeks {
+		entries = append(entries, entry)
 	}
-	sort.Ints(scores)
-	lowest, secondLowest, highest := scores[0], scores[1], scores[len(scores)-1]
-
-	var pot Money
-	for entry, w := range g.Weeks {
-		if w.Points == lowest || w.Points == secondLowest {
-			w.Bottom = -bottomStake
-			pot += bottomStake
+	sort.Slice(entries, func(i, j int) bool {
+		a, b := g.Weeks[entries[i]], g.Weeks[entries[j]]
+		if a.Points != b.Points {
+			return a.Points < b.Points
+		}
+		return a.Entry < b.Entry
+	})
+	var bottomPot Money
+	for start := 0; start < 2 && start < len(entries); {
+		end := start
+		for end < len(entries) && g.Weeks[entries[end]].Points == g.Weeks[entries[start]].Points {
+			end++
+		}
+		places := min(end, 2) - start
+		group := entries[start:end]
+		for i, share := range splitMoney(Money(places)*bottomStake, len(group)) {
+			entry := group[i]
+			paid := pay(entry, share)
+			w := g.Weeks[entry]
+			w.Bottom -= paid
 			g.Weeks[entry] = w
+			bottomPot += paid
 			g.BottomTwo = append(g.BottomTwo, entry)
 		}
-		if w.Points == highest {
+		start = end
+	}
+	sort.Ints(g.BottomTwo)
+
+	highest := g.Weeks[entries[len(entries)-1]].Points
+	for _, entry := range entries {
+		if g.Weeks[entry].Points == highest {
 			g.TopScorers = append(g.TopScorers, entry)
 		}
 	}
-	sort.Ints(g.BottomTwo)
 	sort.Ints(g.TopScorers)
-
-	// Split the pot; leftover cents go to the lowest entry ids so the
-	// ledger still sums to zero.
-	share, rem := pot/Money(len(g.TopScorers)), pot%Money(len(g.TopScorers))
-	for i, entry := range g.TopScorers {
-		w := g.Weeks[entry]
-		w.Top = share
-		if Money(i) < rem {
-			w.Top++
-		}
-		g.Weeks[entry] = w
+	for i, share := range splitMoney(bottomPot, len(g.TopScorers)) {
+		w := g.Weeks[g.TopScorers[i]]
+		w.Top += share
+		g.Weeks[g.TopScorers[i]] = w
 	}
 	return g
+}
+
+// splitMoney divides an amount into n shares that add up exactly; spare
+// cents go to the first shares.
+func splitMoney(amount Money, n int) []Money {
+	shares := make([]Money, n)
+	for i := range shares {
+		shares[i] = amount / Money(n)
+		if Money(i) < amount%Money(n) {
+			shares[i]++
+		}
+	}
+	return shares
 }

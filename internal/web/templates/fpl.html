@@ -47,7 +47,12 @@
         .sc b.lo { color: #9ca3af; font-weight: 700; }
         .sc-live { background: #991b1b; }
         .sc-up { background: #fff; box-shadow: inset 0 0 0 1.5px #e4e7ec; }
-        .sc-up b { min-width: 3.55rem; color: #9ca3af; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.3rem 0.3rem; }
+        .sc-up b { min-width: 3.55rem; color: #9ca3af; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.3rem 0.4rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem; }
+        .sc-chev { display: inline-block; width: 0.32rem; height: 0.32rem; border-right: 2px solid #8b5cf6; border-bottom: 2px solid #8b5cf6; transform: translateY(-0.1rem) rotate(45deg); transition: transform 0.2s; }
+        details.fx > summary:hover .sc-up { box-shadow: inset 0 0 0 1.5px #c4b5fd; }
+        details.fx[open] .sc-up { background: #8b5cf6; box-shadow: none; }
+        details.fx[open] .sc-up b { color: #fff; }
+        details.fx[open] .sc-chev { border-color: #fff; transform: translateY(0.1rem) rotate(-135deg); }
         .sc-live b.lo { color: #fecaca; }
         .fx-avg .fx-name { color: #6b7280; font-style: italic; font-weight: 600; }
 
@@ -387,8 +392,8 @@
                 {{template "fpl_money" .Home}}
             </div>
             <div class="fx-mid">
-                {{if eq $status "upcoming"}}<span class="sc sc-up"><b>vs</b></span>{{else}}<span class="sc{{if $live}} sc-live{{end}}"><b class="{{if eq .Home.Outcome "loss"}}lo{{end}}">{{.Home.Points}}</b><b class="{{if eq .Away.Outcome "loss"}}lo{{end}}">{{.Away.Points}}</b></span>{{end}}
-                {{if .Matchup}}<div><span class="fx-chev" title="Compare teams" aria-hidden="true"></span></div>{{end}}
+                {{if eq $status "upcoming"}}<span class="sc sc-up"><b>vs{{if .Matchup}}<span class="sc-chev" aria-hidden="true"></span>{{end}}</b></span>{{else}}<span class="sc{{if $live}} sc-live{{end}}"><b class="{{if eq .Home.Outcome "loss"}}lo{{end}}">{{.Home.Points}}</b><b class="{{if eq .Away.Outcome "loss"}}lo{{end}}">{{.Away.Points}}</b></span>{{end}}
+                {{if and .Matchup (ne $status "upcoming")}}<div><span class="fx-chev" title="Compare teams" aria-hidden="true"></span></div>{{end}}
             </div>
             <div class="fx-side fx-away fx-{{.Away.Outcome}}{{if .Away.IsAverage}} fx-avg{{end}}">
                 <div class="fx-name">{{.Away.Name}}{{if .Away.Chip}}<span class="tag tag-chip">{{.Away.Chip}}</span>{{end}}</div>

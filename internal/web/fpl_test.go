@@ -1,6 +1,7 @@
 package web
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -306,5 +307,23 @@ func TestFPLApplyMatchups(t *testing.T) {
 	fplApplyMatchups(ev, data, fpl.LiveData{}, nil)
 	if ev.Fixtures[0].Matchup != nil {
 		t.Error("matchup built without any teams")
+	}
+}
+
+func TestFPLKits(t *testing.T) {
+	sprite := string(fplKitSprite())
+	for club := range fplKits {
+		if !strings.Contains(sprite, `id="kit-`+club+`"`) {
+			t.Errorf("sprite missing %s", club)
+		}
+	}
+	if !strings.Contains(sprite, `id="kit-NEW-stripes"`) || strings.Contains(sprite, `id="kit-ARS-stripes"`) {
+		t.Error("stripe patterns wrong: Newcastle should have one, Arsenal not")
+	}
+	if got := string(fplKitIcon("ARS")); !strings.Contains(got, `href="#kit-ARS"`) {
+		t.Errorf("ARS icon = %s", got)
+	}
+	if got := string(fplKitIcon("XYZ")); got != `<span class="mc-club">XYZ</span>` {
+		t.Errorf("unknown club = %s, want the code as text", got)
 	}
 }

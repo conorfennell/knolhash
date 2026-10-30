@@ -166,6 +166,8 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, fc *f
 			}
 			return out
 		},
+		"fplKitSprite": fplKitSprite,
+		"fplKit":       fplKitIcon,
 		"fplAbs": func(n int) int {
 			if n < 0 {
 				return -n

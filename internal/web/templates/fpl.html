@@ -29,7 +29,8 @@
         .card-body { padding: 0.1rem 0.9rem 0.4rem; }
 
         /* ── Fixtures ─────────────────────────────────────────────────── */
-        .fx-row { display: flex; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--pico-muted-border-color); }
+        .fx-row { display: flex; align-items: flex-start; padding: 0.5rem 0; border-bottom: 1px solid var(--pico-muted-border-color); }
+        .fx-side { padding-top: 0.1rem; }
         .fx-row:last-child { border-bottom: none; }
         .fx-side { flex: 1; min-width: 0; }
         .fx-home { text-align: right; padding-right: 0.6rem; }
@@ -45,6 +46,8 @@
         .sc b + b { border-left: 1px solid rgba(255,255,255,0.12); }
         .sc b.lo { color: #9ca3af; font-weight: 700; }
         .sc-live { background: #991b1b; }
+        .sc-up { background: #fff; box-shadow: inset 0 0 0 1.5px #e4e7ec; }
+        .sc-up b { min-width: 3.55rem; color: #9ca3af; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.3rem 0.3rem; }
         .sc-live b.lo { color: #fecaca; }
         .fx-avg .fx-name { color: #6b7280; font-style: italic; font-weight: 600; }
 
@@ -384,7 +387,7 @@
                 {{template "fpl_money" .Home}}
             </div>
             <div class="fx-mid">
-                {{if eq $status "upcoming"}}<span class="fx-v">v</span>{{else}}<span class="sc{{if $live}} sc-live{{end}}"><b class="{{if eq .Home.Outcome "loss"}}lo{{end}}">{{.Home.Points}}</b><b class="{{if eq .Away.Outcome "loss"}}lo{{end}}">{{.Away.Points}}</b></span>{{end}}
+                {{if eq $status "upcoming"}}<span class="sc sc-up"><b>vs</b></span>{{else}}<span class="sc{{if $live}} sc-live{{end}}"><b class="{{if eq .Home.Outcome "loss"}}lo{{end}}">{{.Home.Points}}</b><b class="{{if eq .Away.Outcome "loss"}}lo{{end}}">{{.Away.Points}}</b></span>{{end}}
                 {{if .Matchup}}<div><span class="fx-chev" title="Compare teams" aria-hidden="true"></span></div>{{end}}
             </div>
             <div class="fx-side fx-away fx-{{.Away.Outcome}}{{if .Away.IsAverage}} fx-avg{{end}}">

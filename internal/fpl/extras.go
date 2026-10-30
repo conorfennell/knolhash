@@ -45,6 +45,7 @@ type Player struct {
 	ID       int
 	Name     string // web name, e.g. "Saka"
 	Team     string // short club name, e.g. "ARS"
+	TeamID   int
 	Status   string // a available, d doubtful, i injured, s suspended, u unavailable, n ineligible
 	Chance   *int   // chance of playing next round, nil when unknown
 	News     string
@@ -116,55 +117,4 @@ func chance(p Player) int {
 		return *p.Chance
 	}
 	return 50
-}
-
-// Rivalry is two managers' head-to-head record this season, from A's side.
-type Rivalry struct {
-	A, B     int // entry ids
-	AWins    int
-	BWins    int
-	Draws    int
-	Meetings []Meeting // settled meetings, oldest first
-}
-
-// Meeting is one settled H2H match between a rivalry's managers.
-type Meeting struct {
-	Event   int
-	APoints int
-	BPoints int
-}
-
-// HeadToHead gives the record between managers a and b over settled
-// gameweeks.
-func HeadToHead(data LeagueData, a, b int) Rivalry {
-	r := Rivalry{A: a, B: b}
-	settled := map[int]bool{}
-	for _, e := range data.Events {
-		settled[e.ID] = e.Settled()
-	}
-	for _, m := range data.Matches {
-		if !settled[m.Event] {
-			continue
-		}
-		var mt Meeting
-		switch {
-		case m.Home.Entry == a && m.Away.Entry == b:
-			mt = Meeting{m.Event, m.Home.Points, m.Away.Points}
-		case m.Home.Entry == b && m.Away.Entry == a:
-			mt = Meeting{m.Event, m.Away.Points, m.Home.Points}
-		default:
-			continue
-		}
-		switch {
-		case mt.APoints > mt.BPoints:
-			r.AWins++
-		case mt.APoints < mt.BPoints:
-			r.BWins++
-		default:
-			r.Draws++
-		}
-		r.Meetings = append(r.Meetings, mt)
-	}
-	sort.Slice(r.Meetings, func(i, j int) bool { return r.Meetings[i].Event < r.Meetings[j].Event })
-	return r
 }

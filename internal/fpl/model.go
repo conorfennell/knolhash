@@ -99,6 +99,8 @@ type LeagueData struct {
 	Matches    []Match // all H2H matches, ordered by event; join to Events by ID for status
 	Events     []Event
 	Players    map[int]Player // element id → availability
+	Clubs      map[int]string // team id → short name
+	Fixtures   []Fixture      // every scheduled Premier League match
 	FetchedAt  time.Time
 }
 

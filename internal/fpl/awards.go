@@ -25,6 +25,7 @@ type GameweekHistory struct {
 	Event  int
 	Picks  map[int]Picks // entry → team
 	Points map[int]int   // element id → points
+	Stats  map[int]PlayerStats
 }
 
 // GameweekAwards works out the awards for a settled gameweek. Matches give

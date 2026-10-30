@@ -139,7 +139,24 @@ func (c *Client) FetchLeague(leagueID int) (LeagueData, error) {
 	}
 	data.Players = make(map[int]Player, len(boot.Elements))
 	for _, e := range boot.Elements {
-		data.Players[e.ID] = Player{ID: e.ID, Name: e.WebName, Team: clubs[e.Team], Status: e.Status, Chance: e.Chance, News: e.News, Position: e.ElementType}
+		data.Players[e.ID] = Player{ID: e.ID, Name: e.WebName, Team: clubs[e.Team], TeamID: e.Team, Status: e.Status, Chance: e.Chance, News: e.News, Position: e.ElementType}
+	}
+	data.Clubs = clubs
+
+	var fixtures []apiFixture
+	if err := c.getJSON("/fixtures/", &fixtures); err != nil {
+		return LeagueData{}, err
+	}
+	for _, f := range fixtures {
+		if f.Event == nil {
+			continue // not yet scheduled
+		}
+		data.Fixtures = append(data.Fixtures, Fixture{
+			Event: *f.Event, Home: f.TeamH, Away: f.TeamA, Kickoff: f.Kickoff,
+			Started: f.Started, Finished: f.Finished || f.FinishedProvisional, Minutes: f.Minutes,
+			HomeScore: f.TeamHScore, AwayScore: f.TeamAScore,
+			HomeDifficulty: f.TeamHDifficulty, AwayDifficulty: f.TeamADifficulty,
+		})
 	}
 
 	players := map[int]string{}

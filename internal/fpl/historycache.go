@@ -76,11 +76,11 @@ func (c *HistoryCache) poll() {
 }
 
 func (c *HistoryCache) fetch(league LeagueData, event int) (GameweekHistory, error) {
-	points, err := c.client.FetchLivePoints(event)
+	stats, err := c.client.FetchLiveStats(event)
 	if err != nil {
 		return GameweekHistory{}, err
 	}
-	h := GameweekHistory{Event: event, Picks: map[int]Picks{}, Points: points}
+	h := GameweekHistory{Event: event, Picks: map[int]Picks{}, Points: PointsOf(stats), Stats: stats}
 	for _, m := range league.MatchesFor(event) {
 		for _, s := range []Side{m.Home, m.Away} {
 			if s.IsAverage() {

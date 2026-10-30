@@ -149,6 +149,23 @@ func NewServer(db *storage.DB, wc *worldcup.Cache, lc *worldcup.LiveCache, fc *f
 			}
 			return ""
 		},
+		// fplCell packs a matchup player (or side) with its column and mode
+		// for the cell templates.
+		"fplCell": func(v any, a ...any) map[string]any {
+			out := map[string]any{"P": v, "S": v}
+			if len(a) >= 1 {
+				if side, ok := a[0].(string); ok {
+					out["Side"] = side
+				}
+			}
+			if len(a) >= 2 {
+				out["Mode"] = a[1]
+			}
+			if len(a) >= 3 {
+				out["Captain"] = a[2]
+			}
+			return out
+		},
 		"fplAbs": func(n int) int {
 			if n < 0 {
 				return -n

@@ -16,7 +16,8 @@ const (
 )
 
 // LiveData is what changes during and around a gameweek: provisional live
-// scores, each manager's team for the current gameweek and chip history.
+// scores and player points, each manager's team for the current gameweek,
+// chip history and transfers.
 // It is kept apart from LeagueData so the ledger only ever sees settled
 // match points. Treat it as read-only.
 type LiveData struct {
@@ -25,6 +26,9 @@ type LiveData struct {
 	PicksEvent int                    // gameweek the picks below are for
 	Picks      map[int]Picks          // entry → team for PicksEvent
 	Chips      map[int]map[int]string // entry → event → raw chip name
+	Transfers  map[int][]Transfer     // entry → all transfers so far; slices are never mutated
+	Points     map[int]int            // element id → points so far in Event
+	Stats      map[int]PlayerStats    // element id → stats so far in Event
 	FetchedAt  time.Time
 }
 
@@ -57,12 +61,13 @@ type LiveCache struct {
 	picksEvent int
 	chipsAt    time.Time
 	chips      map[int]map[int]string
+	transfers  map[int][]Transfer
 }
 
 // NewLiveCache creates a LiveCache that reads the league's managers and
 // current gameweek from league.
 func NewLiveCache(client *Client, league *Cache) *LiveCache {
-	return &LiveCache{client: client, league: league, chips: map[int]map[int]string{}}
+	return &LiveCache{client: client, league: league, chips: map[int]map[int]string{}, transfers: map[int][]Transfer{}}
 }
 
 // Get returns the latest live data.
@@ -104,21 +109,26 @@ func (c *LiveCache) poll() {
 		FetchedAt:  time.Now(),
 	}
 	if hasCurrent && cur.InProgress() {
-		if points, err := c.client.FetchLivePoints(cur.ID); err != nil {
+		if stats, err := c.client.FetchLiveStats(cur.ID); err != nil {
 			slog.Warn("fpl: live poll failed", "event", cur.ID, "error", err)
 			// Keep the last good scores for this gameweek rather than
 			// flipping the page back to FPL's points for a minute.
 			if prev := c.Get(); prev.Event == cur.ID {
-				data.Event, data.Scores = prev.Event, prev.Scores
+				data.Event, data.Scores, data.Points, data.Stats = prev.Event, prev.Scores, prev.Points, prev.Stats
 			}
 		} else {
-			data.Event, data.Scores = cur.ID, map[int]int{}
+			points := PointsOf(stats)
+			data.Event, data.Scores, data.Points, data.Stats = cur.ID, map[int]int{}, points, stats
 			for entry, p := range c.picks {
 				data.Scores[entry] = LiveScore(p, points)
 			}
 		}
 	}
 	data.Chips = copyChips(c.chips)
+	data.Transfers = make(map[int][]Transfer, len(c.transfers))
+	for entry, ts := range c.transfers {
+		data.Transfers[entry] = ts
+	}
 
 	c.mu.Lock()
 	c.data = data
@@ -136,6 +146,11 @@ func (c *LiveCache) refreshChips(league LeagueData) {
 		// hasn't caught up yet.
 		for e, chip := range chips {
 			c.setChip(m.Entry, e, chip)
+		}
+		if ts, err := c.client.FetchTransfers(m.Entry); err != nil {
+			slog.Warn("fpl: transfers fetch failed", "entry", m.Entry, "error", err)
+		} else {
+			c.transfers[m.Entry] = ts
 		}
 	}
 }

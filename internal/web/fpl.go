@@ -41,15 +41,78 @@ type fplAwardBadge struct {
 type fplFixtureView struct {
 	Home    fplSideView
 	Away    fplSideView
-	Rivalry *fplRivalryView // nil against AVERAGE
+	Matchup *fplMatchupView // nil when neither team is known
 }
 
-// fplRivalryView is the season's head-to-head record shown under a
-// fixture's score; tapping it shows the meetings.
-type fplRivalryView struct {
-	Summary string // "0–1" from the home side, "1st" before they've met
-	Title   string // "⚔️ Kevin v Paul"
-	Detail  string // one line per fact
+// fplMatchupView compares the two teams in a fixture; it opens under the
+// fixture when tapped. Only the differences between the teams decide the
+// match, so the panel is built around them: captains (or one line if they
+// cancel out), differentials paired off like a scoreboard, transfers, then
+// the shared players and benches in small print.
+type fplMatchupView struct {
+	Note        string // set for a pre-deadline preview
+	Mode        string // "preview", "live" or "final"
+	Home, Away  fplMatchupSide
+	SameCaptain *fplMatchPlayer // both captained this player with the same multiplier
+	Rows        []fplDuelRow    // differentials, paired off
+	Shared      []fplMatchPlayer
+}
+
+type fplMatchupSide struct {
+	Name      string
+	Chip      string
+	Captain   *fplMatchPlayer
+	OnlyPts   int // points from captain (unless both had the same) and differentials
+	ToPlay    int // players who still have a game to come
+	Playing   int // players on the pitch now
+	Transfers []fplTransferView
+	Hit       int
+	BenchPts  int
+	Bench     []fplMatchPlayer
+}
+
+// fplDuelRow is a row of the matchup: a pair of differentials, or (in a
+// preview) a position heading.
+type fplDuelRow struct {
+	Header     string
+	Home, Away *fplMatchPlayer
+}
+
+// fplMatchPlayer is a player in the matchup panel.
+type fplMatchPlayer struct {
+	Name       string
+	Club       string
+	Pos        string // "gk", "def", "mid" or "fwd"
+	Points     int    // points counted for the manager (× multiplier)
+	Multiplier int
+	Status     string // "played", "live", "upcoming", "dnp" or "blank"
+	PosLabel   string // "GK", "DEF", "MID", "FWD"
+	When       string // "v CHE (H)", "Sat 15:00 v CHE (H)", "Didn't play", …
+	Next       []fplNextFixture // previews: kick-off and opponent, tinted by difficulty
+	Events     []fplStatEvent
+	Bonus      int
+	Flag       string // "Injured", "75%", … for previews
+	FlagOut    bool
+}
+
+// fplNextFixture is an upcoming game in a preview; FDR (1 easy – 5 hard)
+// tints the opponent.
+type fplNextFixture struct {
+	Kick string
+	Vs   string
+	FDR  int
+}
+
+// fplStatEvent is something a player did: ⚽ ×2, 🟨, …
+type fplStatEvent struct {
+	Icon  string
+	Count int
+	Title string
+}
+
+type fplTransferView struct {
+	In, Out fplMatchPlayer
+	Verdict string // "win" if the new player outscored the old one, "loss" if not
 }
 
 type fplEventView struct {
@@ -138,7 +201,8 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 		live := s.fplLive.Get()
 		ledger := fpl.BuildLedger(data)
 		icons := buildFPLIcons(data, ledger, live)
-		awards := buildFPLAwards(data, s.fplHistory.Get())
+		history := s.fplHistory.Get()
+		awards := buildFPLAwards(data, history)
 
 		td := fplTemplateData{
 			LeagueName:      data.LeagueName,
@@ -159,15 +223,18 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 		if cur, ok := data.CurrentEvent(); ok {
 			td.Latest = buildFPLEvent(data, ledger, live, icons, cur)
 			fplApplyAwards(td.Latest, data, awards[cur.ID])
+			fplApplyMatchups(td.Latest, data, live, history)
 		}
 		if next, ok := data.NextEvent(); ok && (td.Latest == nil || td.Latest.Status != "live") {
 			td.Upcoming = buildFPLEvent(data, ledger, live, icons, next)
+			fplApplyMatchups(td.Upcoming, data, live, history)
 		}
 		td.Availability, td.TeamsEvent = buildFPLAvailability(data, live, icons), live.PicksEvent
 		for i := len(data.Events) - 1; i >= 0; i-- {
 			if e := data.Events[i]; e.Settled() && (td.Latest == nil || e.ID != td.Latest.ID) {
 				ev := buildFPLEvent(data, ledger, live, icons, e)
 				fplApplyAwards(ev, data, awards[e.ID])
+				fplApplyMatchups(ev, data, live, history)
 				td.Past = append(td.Past, ev)
 			}
 		}
@@ -190,6 +257,271 @@ func buildFPLAwards(data fpl.LeagueData, history map[int]fpl.GameweekHistory) ma
 	}
 	return out
 }
+
+// fplApplyMatchups adds the team comparison to each fixture of a
+// gameweek. Settled gameweeks use the stored teams; the current gameweek
+// uses the live teams once its deadline has passed; before a deadline the
+// teams are secret, so the previous gameweek's teams stand in as a preview.
+func fplApplyMatchups(ev *fplEventView, data fpl.LeagueData, live fpl.LiveData, history map[int]fpl.GameweekHistory) {
+	var picks map[int]fpl.Picks
+	var stats map[int]fpl.PlayerStats
+	mode := "final"
+	switch h, settled := history[ev.ID]; {
+	case settled:
+		picks, stats = h.Picks, h.Stats
+	case live.PicksEvent == ev.ID:
+		picks, mode = live.Picks, "live"
+		if live.Event == ev.ID {
+			stats = live.Stats
+		}
+	case ev.Status == "upcoming" && live.PicksEvent != 0:
+		picks, mode = live.Picks, "preview"
+	default:
+		return
+	}
+	points := fpl.PointsOf(stats)
+	if mode == "preview" {
+		points = nil
+	}
+	pb := fplPlayerBuilder{data: data, event: ev.ID, stats: stats, preview: mode == "preview"}
+
+	for i := range ev.Fixtures {
+		f := &ev.Fixtures[i]
+		if f.Home.IsAverage || f.Away.IsAverage {
+			continue
+		}
+		a, okA := picks[f.Home.Entry]
+		b, okB := picks[f.Away.Entry]
+		if !okA || !okB {
+			continue
+		}
+		var tA, tB []fpl.Transfer
+		if mode != "preview" {
+			tA, tB = fpl.TransfersFor(live.Transfers[f.Home.Entry], ev.ID), fpl.TransfersFor(live.Transfers[f.Away.Entry], ev.ID)
+		}
+		m := fpl.BuildMatchup(a, b, points, tA, tB)
+		v := &fplMatchupView{Mode: mode}
+		if mode == "preview" {
+			v.Note = fmt.Sprintf("Preview from GW%d teams · GW%d teams are secret until the deadline", live.PicksEvent, ev.ID)
+		}
+		if m.A.Captain.Element != 0 && m.A.Captain.Element == m.B.Captain.Element && m.A.Captain.Multiplier == m.B.Captain.Multiplier {
+			c := pb.player(m.A.Captain.Element, m.A.Captain.Multiplier)
+			v.SameCaptain = &c
+		}
+		side := func(name string, s fpl.MatchupSide) fplMatchupSide {
+			out := fplMatchupSide{Name: name, Chip: fpl.ChipLabel(s.Chip)}
+			if mode != "preview" {
+				out.Hit = s.TransferCost
+			}
+			count := func(p fplMatchPlayer) {
+				out.OnlyPts += p.Points
+				switch p.Status {
+				case "upcoming":
+					out.ToPlay++
+				case "live":
+					out.Playing++
+				}
+			}
+			if s.Captain.Element != 0 && v.SameCaptain == nil {
+				c := pb.player(s.Captain.Element, s.Captain.Multiplier)
+				out.Captain = &c
+				count(c)
+			}
+			for _, p := range s.Only {
+				if out.Captain != nil && p.Element == s.Captain.Element {
+					continue // already counted as captain
+				}
+				count(pb.player(p.Element, p.Multiplier))
+			}
+			for _, p := range s.Bench {
+				bp := pb.player(p.Element, 1)
+				out.BenchPts += bp.Points
+				out.Bench = append(out.Bench, bp)
+			}
+			for j := range s.TransfersIn {
+				t := fplTransferView{In: pb.player(s.TransfersIn[j], 1), Out: pb.player(s.TransfersOut[j], 1)}
+				if stats != nil {
+					switch {
+					case t.In.Points > t.Out.Points:
+						t.Verdict = "win"
+					case t.In.Points < t.Out.Points:
+						t.Verdict = "loss"
+					}
+				}
+				out.Transfers = append(out.Transfers, t)
+			}
+			return out
+		}
+		v.Home, v.Away = side(f.Home.Name, m.A), side(f.Away.Name, m.B)
+
+		// The captain is listed on its own, so leave it out of the rows.
+		only := func(s fpl.MatchupSide) []fplMatchPlayer {
+			var out []fplMatchPlayer
+			for _, p := range s.Only {
+				if p.Element == s.Captain.Element && v.SameCaptain == nil {
+					continue
+				}
+				out = append(out, pb.player(p.Element, p.Multiplier))
+			}
+			if mode == "preview" {
+				sort.SliceStable(out, func(i, j int) bool { return fplPosOrder[out[i].Pos] < fplPosOrder[out[j].Pos] })
+			}
+			return out
+		}
+		homeOnly, awayOnly := only(m.A), only(m.B)
+		if mode == "preview" {
+			// No points to rank by yet, so line positions up against each other.
+			for _, pos := range []string{"gk", "def", "mid", "fwd"} {
+				h, a := fplByPos(homeOnly, pos), fplByPos(awayOnly, pos)
+				if len(h)+len(a) == 0 {
+					continue
+				}
+				v.Rows = append(v.Rows, fplDuelRow{Header: fplPosLabels[pos]})
+				v.Rows = append(v.Rows, fplPair(h, a)...)
+			}
+		} else {
+			v.Rows = fplPair(homeOnly, awayOnly)
+		}
+		for _, p := range m.Shared {
+			// Captains have their own line, shared or not.
+			if p.Element == m.A.Captain.Element || p.Element == m.B.Captain.Element {
+				continue
+			}
+			v.Shared = append(v.Shared, pb.player(p.Element, 1))
+		}
+		f.Matchup = v
+	}
+}
+
+// fplPair lines two lists up row by row; the shorter side gets gaps.
+func fplPair(home, away []fplMatchPlayer) []fplDuelRow {
+	var rows []fplDuelRow
+	for r := 0; r < max(len(home), len(away)); r++ {
+		var row fplDuelRow
+		if r < len(home) {
+			row.Home = &home[r]
+		}
+		if r < len(away) {
+			row.Away = &away[r]
+		}
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+func fplByPos(players []fplMatchPlayer, pos string) []fplMatchPlayer {
+	var out []fplMatchPlayer
+	for _, p := range players {
+		if p.Pos == pos {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+var fplPosLabels = map[string]string{"gk": "GK", "def": "DEF", "mid": "MID", "fwd": "FWD"}
+
+// fplPlayerBuilder turns an element id into a matchup player for one
+// gameweek: what they scored and did, and whether their game is done.
+type fplPlayerBuilder struct {
+	data    fpl.LeagueData
+	event   int
+	stats   map[int]fpl.PlayerStats
+	preview bool
+}
+
+var fplDublin = func() *time.Location {
+	loc, err := time.LoadLocation("Europe/Dublin")
+	if err != nil {
+		return time.UTC
+	}
+	return loc
+}()
+
+func (b fplPlayerBuilder) player(el, mult int) fplMatchPlayer {
+	p, ok := b.data.Players[el]
+	if !ok {
+		return fplMatchPlayer{Name: "?", Multiplier: mult, Status: "blank"}
+	}
+	st := b.stats[el]
+	out := fplMatchPlayer{
+		Name: p.Name, Club: p.Team, Pos: fplPositions[p.Position], PosLabel: fplPosLabels[fplPositions[p.Position]], Multiplier: mult,
+		Points: st.Points * mult, Bonus: st.Bonus,
+	}
+	if !b.preview {
+		out.Events = fplStatEvents(st, out.Pos)
+	}
+	if b.preview && p.Unavailable() {
+		out.Flag, out.FlagOut = p.StatusLabel(), p.Out()
+	}
+
+	fixtures := b.data.TeamFixtures(p.TeamID, b.event)
+	if len(fixtures) == 0 {
+		out.Status, out.When = "blank", "No game"
+		return out
+	}
+	var parts []string
+	allDone, anyLive := true, false
+	for _, f := range fixtures {
+		opp, ha, fdr := f.Away, "H", f.HomeDifficulty
+		if f.Away == p.TeamID {
+			opp, ha, fdr = f.Home, "A", f.AwayDifficulty
+		}
+		vs := fmt.Sprintf("v %s (%s)", b.data.Clubs[opp], ha)
+		if !f.Started {
+			out.Next = append(out.Next, fplNextFixture{Kick: f.Kickoff.In(fplDublin).Format("Mon 15:04"), Vs: vs, FDR: fdr})
+		}
+		switch {
+		case f.Finished:
+			parts = append(parts, vs)
+		case f.Started:
+			anyLive, allDone = true, false
+			parts = append(parts, fmt.Sprintf("%s %d'", vs, f.Minutes))
+		default:
+			allDone = false
+			parts = append(parts, f.Kickoff.In(fplDublin).Format("Mon 15:04")+" "+vs)
+		}
+	}
+	out.When = strings.Join(parts, " · ")
+	switch {
+	case anyLive:
+		out.Status = "live"
+	case !allDone:
+		out.Status = "upcoming"
+	case st.Minutes == 0:
+		out.Status, out.When = "dnp", "Didn't play · "+out.When
+	default:
+		out.Status = "played"
+	}
+	return out
+}
+
+// fplStatEvents turns a player's stats into the icons shown beside them.
+func fplStatEvents(s fpl.PlayerStats, pos string) []fplStatEvent {
+	var out []fplStatEvent
+	add := func(icon string, n int, title string) {
+		if n > 0 {
+			out = append(out, fplStatEvent{Icon: icon, Count: n, Title: title})
+		}
+	}
+	add("⚽", s.Goals, "Goal")
+	add("🅰️", s.Assists, "Assist")
+	if pos == "gk" || pos == "def" {
+		add("🧱", s.CleanSheets, "Clean sheet")
+	}
+	if pos == "gk" {
+		add("🧤", s.Saves/3, "3 saves")
+	}
+	add("🥅", s.PenaltiesSaved, "Penalty saved")
+	add("❌", s.PenaltiesMissed, "Penalty missed")
+	add("🙈", s.OwnGoals, "Own goal")
+	add("🟨", s.YellowCards, "Yellow card")
+	add("🟥", s.RedCards, "Red card")
+	return out
+}
+
+var fplPositions = map[int]string{1: "gk", 2: "def", 3: "mid", 4: "fwd"}
+var fplPosOrder = map[string]int{"gk": 0, "def": 1, "mid": 2, "fwd": 3}
 
 // fplApplyAwards puts a gameweek's awards as badges on each winner's
 // fixture row.
@@ -438,41 +770,9 @@ func buildFPLEvent(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData, icons m
 		if ev.Status != "upcoming" {
 			home.Outcome, away.Outcome = fplOutcome(home.Points, away.Points), fplOutcome(away.Points, home.Points)
 		}
-		f := fplFixtureView{Home: home, Away: away}
-		if !m.Home.IsAverage() && !m.Away.IsAverage() {
-			// Only once they've met; a wall of "first meeting" says nothing.
-			if r := fpl.HeadToHead(data, m.Home.Entry, m.Away.Entry); len(r.Meetings) > 0 {
-				f.Rivalry = buildFPLRivalry(r, m.Home.Name, m.Away.Name)
-			}
-		}
-		ev.Fixtures = append(ev.Fixtures, f)
+		ev.Fixtures = append(ev.Fixtures, fplFixtureView{Home: home, Away: away})
 	}
 	return ev
-}
-
-func buildFPLRivalry(r fpl.Rivalry, a, b string) *fplRivalryView {
-	v := &fplRivalryView{Title: "⚔️ " + a + " v " + b, Summary: fmt.Sprintf("%d–%d", r.AWins, r.BWins)}
-	lines := []string{fmt.Sprintf("Season: %s %d · %s %d", a, r.AWins, b, r.BWins)}
-	if r.Draws > 0 {
-		lines[0] += fmt.Sprintf(" · %d drawn", r.Draws)
-	}
-	best, bestBy, bestGW := "", 0, 0
-	for _, m := range r.Meetings {
-		lines = append(lines, fmt.Sprintf("GW%d: %s %d – %d %s", m.Event, a, m.APoints, m.BPoints, b))
-		if d := m.APoints - m.BPoints; d > bestBy || -d > bestBy {
-			bestGW = m.Event
-			if d > 0 {
-				best, bestBy = a, d
-			} else {
-				best, bestBy = b, -d
-			}
-		}
-	}
-	if bestBy > 0 && len(r.Meetings) > 1 {
-		lines = append(lines, fmt.Sprintf("Biggest win: %s by %d (GW%d)", best, bestBy, bestGW))
-	}
-	v.Detail = strings.Join(lines, "\n")
-	return v
 }
 
 func fplSide(s fpl.Side, g fpl.GameweekLedger, settled bool) fplSideView {

@@ -31,6 +31,9 @@ func fakeFPL(t *testing.T) *httptest.Server {
 	mux.HandleFunc("/leagues-h2h/428253/standings/", func(w http.ResponseWriter, r *http.Request) {
 		serve(w, "standings.json")
 	})
+	mux.HandleFunc("/fixtures/", func(w http.ResponseWriter, r *http.Request) {
+		serve(w, "fixtures.json")
+	})
 	mux.HandleFunc("/leagues-h2h-matches/league/428253/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("page") != "1" {
 			serve(w, "missing")
@@ -109,6 +112,9 @@ func TestFetchLeague(t *testing.T) {
 	if p := data.Players[1]; p.Unavailable() || p.Chance != nil {
 		t.Errorf("player 1 = %+v, want fit with unknown chance", p)
 	}
+	if len(data.Fixtures) != 20 || len(data.TeamFixtures(1, 9)) != 1 || data.Clubs[1] != "ARS" {
+		t.Errorf("fixtures = %d, Arsenal GW9 = %+v, club 1 = %q", len(data.Fixtures), data.TeamFixtures(1, 9), data.Clubs[1])
+	}
 	if len(data.MatchesFor(9)) != 6 {
 		t.Errorf("GW9 fixtures = %d, want 6", len(data.MatchesFor(9)))
 	}
@@ -129,6 +135,7 @@ func TestFetchLeagueFollowsPages(t *testing.T) {
 		b, _ := os.ReadFile("testdata/standings.json")
 		w.Write(b)
 	})
+	mux.HandleFunc("/fixtures/", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("[]")) })
 	mux.HandleFunc("/leagues-h2h-matches/league/428253/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("page") == "1" {
 			w.Write(page1)

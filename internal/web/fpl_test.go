@@ -2,6 +2,7 @@ package web
 
 import (
 	"testing"
+	"time"
 
 	"github.com/conorfennell/knolhash/internal/fpl"
 )
@@ -192,10 +193,118 @@ func TestFPLApplyAwardsBadgesFixtureRows(t *testing.T) {
 	}
 }
 
-func TestBuildFPLRivalry(t *testing.T) {
-	r := buildFPLRivalry(fpl.Rivalry{BWins: 1, Draws: 1, Meetings: []fpl.Meeting{{Event: 1, APoints: 40, BPoints: 55}, {Event: 5, APoints: 50, BPoints: 50}}}, "Kevin", "Paul")
-	want := "Season: Kevin 0 · Paul 1 · 1 drawn\nGW1: Kevin 40 – 55 Paul\nGW5: Kevin 50 – 50 Paul\nBiggest win: Paul by 15 (GW1)"
-	if r.Summary != "0–1" || r.Detail != want || r.Title != "⚔️ Kevin v Paul" {
-		t.Errorf("rivalry = %+v\nwant detail:\n%s", r, want)
+func TestFPLApplyMatchups(t *testing.T) {
+	kick := time.Date(2026, 10, 31, 15, 0, 0, 0, time.UTC)
+	two := 2
+	data := fpl.LeagueData{
+		Players: map[int]fpl.Player{
+			1: {Name: "Haaland", TeamID: 10, Team: "MCI", Position: 4, Status: "a"},
+			2: {Name: "Salah", TeamID: 20, Team: "LIV", Position: 3, Status: "a"},
+			3: {Name: "Isak", TeamID: 20, Team: "LIV", Position: 4, Status: "a"},
+			4: {Name: "Saka", TeamID: 30, Team: "ARS", Position: 3, Status: "i"},
+			5: {Name: "Wissa", TeamID: 40, Team: "NEW", Position: 4, Status: "a"},
+			6: {Name: "Raya", TeamID: 30, Team: "ARS", Position: 1, Status: "a"},
+		},
+		Clubs: map[int]string{10: "MCI", 20: "LIV", 30: "ARS", 40: "NEW", 50: "CHE"},
+		Fixtures: []fpl.Fixture{
+			{Event: 8, Home: 10, Away: 20, Started: true, Finished: true, HomeScore: &two, AwayScore: &two},
+			{Event: 8, Home: 30, Away: 50, Started: true, Minutes: 63},
+			{Event: 9, Home: 50, Away: 10, Kickoff: kick, HomeDifficulty: 3, AwayDifficulty: 4},
+			{Event: 9, Home: 20, Away: 30, Kickoff: kick, HomeDifficulty: 5, AwayDifficulty: 2},
+		},
+	}
+	// A: captain Haaland ×2, Isak, Raya (bench). B: captain Salah ×3, Haaland, Saka.
+	picksA := fpl.Picks{Captain: 1, TransferCost: 4, Players: []fpl.Pick{{Element: 1, Multiplier: 2}, {Element: 3, Multiplier: 1}, {Element: 6, Multiplier: 0}}}
+	picksB := fpl.Picks{Captain: 2, Chip: "3xc", Players: []fpl.Pick{{Element: 2, Multiplier: 3}, {Element: 1, Multiplier: 1}, {Element: 4, Multiplier: 1}}}
+	fixtures := func(id int, status string) *fplEventView {
+		return &fplEventView{ID: id, Status: status, Fixtures: []fplFixtureView{
+			{Home: fplSideView{Entry: 1, Name: "Luke"}, Away: fplSideView{Entry: 2, Name: "James P"}},
+			{Home: fplSideView{Name: "AVERAGE", IsAverage: true}, Away: fplSideView{Entry: 3, Name: "Oisin"}},
+		}}
+	}
+
+	// Settled GW8: stats explain the points; Saka's Arsenal game is still on.
+	ev := fixtures(8, "settled")
+	history := map[int]fpl.GameweekHistory{8: {
+		Picks: map[int]fpl.Picks{1: picksA, 2: picksB},
+		Stats: map[int]fpl.PlayerStats{
+			1: {Points: 10, Minutes: 90, Goals: 2, Bonus: 3},
+			2: {Points: 6, Minutes: 90, Assists: 1, YellowCards: 1},
+			3: {Points: 7, Minutes: 90, Goals: 1},
+			4: {Points: 2, Minutes: 60},
+			5: {Points: 1, Minutes: 30},
+			6: {Points: 5, Minutes: 90, CleanSheets: 1, Saves: 6},
+		},
+	}}
+	live := fpl.LiveData{Transfers: map[int][]fpl.Transfer{1: {{Event: 8, In: 3, Out: 5}, {Event: 3, In: 9, Out: 9}}}}
+	fplApplyMatchups(ev, data, live, history)
+	m := ev.Fixtures[0].Matchup
+	if m == nil || m.Mode != "final" || m.Note != "" || m.SameCaptain != nil {
+		t.Fatalf("settled matchup = %+v", m)
+	}
+	if c := m.Home.Captain; c == nil || c.Name != "Haaland" || c.Points != 20 || c.Status != "played" || c.When != "v LIV (H)" || c.Bonus != 3 ||
+		len(c.Events) != 1 || c.Events[0].Icon != "⚽" || c.Events[0].Count != 2 {
+		t.Errorf("home captain = %+v", c)
+	}
+	if c := m.Away.Captain; c == nil || c.Points != 18 || c.Multiplier != 3 || m.Away.Chip != "TC" {
+		t.Errorf("away captain = %+v", c)
+	}
+	// Captains are listed apart, so only Isak and Saka are differential rows.
+	if len(m.Rows) != 1 || m.Rows[0].Home.Name != "Isak" || m.Rows[0].Away.Name != "Saka" || m.Rows[0].Away.Status != "live" || m.Rows[0].Away.When != "v CHE (H) 63'" {
+		t.Errorf("rows = %+v / %+v", m.Rows[0].Home, m.Rows[0].Away)
+	}
+	if m.Home.OnlyPts != 27 || m.Away.OnlyPts != 20 || m.Away.Playing != 1 {
+		t.Errorf("differential points = %d v %d, away playing %d", m.Home.OnlyPts, m.Away.OnlyPts, m.Away.Playing)
+	}
+	if len(m.Home.Transfers) != 1 || m.Home.Transfers[0].In.Name != "Isak" || m.Home.Transfers[0].Out.Name != "Wissa" || m.Home.Transfers[0].Verdict != "win" || m.Home.Hit != 4 {
+		t.Errorf("transfers = %+v hit %d", m.Home.Transfers, m.Home.Hit)
+	}
+	if m.Home.BenchPts != 5 || len(m.Home.Bench) != 1 || len(m.Home.Bench[0].Events) != 2 {
+		t.Errorf("home bench = %d %+v, want Raya with clean sheet and saves", m.Home.BenchPts, m.Home.Bench)
+	}
+	if len(m.Shared) != 0 {
+		t.Errorf("shared = %+v, want Haaland left out as a captain", m.Shared)
+	}
+	if ev.Fixtures[1].Matchup != nil {
+		t.Error("AVERAGE fixture got a matchup")
+	}
+
+	// Upcoming GW9 preview: last week's teams, next fixtures with difficulty,
+	// injury flags, no points, transfers or hits.
+	ev = fixtures(9, "upcoming")
+	live = fpl.LiveData{PicksEvent: 8, Picks: map[int]fpl.Picks{1: picksA, 2: picksB}, Transfers: live.Transfers}
+	fplApplyMatchups(ev, data, live, nil)
+	m = ev.Fixtures[0].Matchup
+	if m == nil || m.Mode != "preview" || m.Note == "" || m.Home.Hit != 0 || len(m.Home.Transfers) != 0 {
+		t.Fatalf("preview matchup = %+v", m)
+	}
+	if c := m.Home.Captain; c.Status != "upcoming" || len(c.Next) != 1 || c.Next[0] != (fplNextFixture{Kick: "Sat 15:00", Vs: "v CHE (A)", FDR: 4}) {
+		t.Errorf("preview captain = %+v", c)
+	}
+	// Preview rows are grouped by position: FWD (Isak) and MID (Saka).
+	if len(m.Rows) != 4 || m.Rows[0].Header != "MID" || m.Rows[1].Away == nil || m.Rows[1].Home != nil || m.Rows[2].Header != "FWD" || m.Rows[3].Home.Name != "Isak" {
+		t.Errorf("preview rows = %+v", m.Rows)
+	}
+	if saka := m.Rows[1].Away; saka.Flag != "Injured" || !saka.FlagOut || saka.Next[0].FDR != 2 || len(saka.Events) != 0 {
+		t.Errorf("preview Saka = %+v", saka)
+	}
+	if m.Home.ToPlay != 2 {
+		t.Errorf("home to play = %d, want captain and Isak", m.Home.ToPlay)
+	}
+
+	// Same captain, same multiplier: one line, and not repeated as shared.
+	same := fpl.Picks{Captain: 1, Players: []fpl.Pick{{Element: 1, Multiplier: 2}, {Element: 3, Multiplier: 1}}}
+	ev = fixtures(8, "settled")
+	history[8].Picks[1], history[8].Picks[2] = same, same
+	fplApplyMatchups(ev, data, fpl.LiveData{}, history)
+	if m := ev.Fixtures[0].Matchup; m.SameCaptain == nil || m.SameCaptain.Name != "Haaland" || m.Home.Captain != nil || len(m.Rows) != 0 || len(m.Shared) != 1 {
+		t.Errorf("same-captain matchup = %+v", m)
+	}
+
+	// Nothing known: no panel.
+	ev = fixtures(9, "settled")
+	fplApplyMatchups(ev, data, fpl.LiveData{}, nil)
+	if ev.Fixtures[0].Matchup != nil {
+		t.Error("matchup built without any teams")
 	}
 }

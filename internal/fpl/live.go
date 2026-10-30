@@ -69,9 +69,67 @@ type apiLive struct {
 	Elements []struct {
 		ID    int `json:"id"`
 		Stats struct {
-			TotalPoints int `json:"total_points"`
+			TotalPoints     int `json:"total_points"`
+			Minutes         int `json:"minutes"`
+			Goals           int `json:"goals_scored"`
+			Assists         int `json:"assists"`
+			CleanSheets     int `json:"clean_sheets"`
+			GoalsConceded   int `json:"goals_conceded"`
+			OwnGoals        int `json:"own_goals"`
+			PenaltiesSaved  int `json:"penalties_saved"`
+			PenaltiesMissed int `json:"penalties_missed"`
+			YellowCards     int `json:"yellow_cards"`
+			RedCards        int `json:"red_cards"`
+			Saves           int `json:"saves"`
+			Bonus           int `json:"bonus"`
 		} `json:"stats"`
 	} `json:"elements"`
+}
+
+// PlayerStats is what a player did in a gameweek (summed over a double
+// gameweek).
+type PlayerStats struct {
+	Points          int
+	Minutes         int
+	Goals           int
+	Assists         int
+	CleanSheets     int
+	GoalsConceded   int
+	OwnGoals        int
+	PenaltiesSaved  int
+	PenaltiesMissed int
+	YellowCards     int
+	RedCards        int
+	Saves           int
+	Bonus           int
+}
+
+// FetchLiveStats fetches every player's stats so far in a gameweek.
+func (c *Client) FetchLiveStats(event int) (map[int]PlayerStats, error) {
+	var raw apiLive
+	if err := c.getJSON(fmt.Sprintf("/event/%d/live/", event), &raw); err != nil {
+		return nil, err
+	}
+	out := make(map[int]PlayerStats, len(raw.Elements))
+	for _, e := range raw.Elements {
+		s := e.Stats
+		out[e.ID] = PlayerStats{
+			Points: s.TotalPoints, Minutes: s.Minutes, Goals: s.Goals, Assists: s.Assists,
+			CleanSheets: s.CleanSheets, GoalsConceded: s.GoalsConceded, OwnGoals: s.OwnGoals,
+			PenaltiesSaved: s.PenaltiesSaved, PenaltiesMissed: s.PenaltiesMissed,
+			YellowCards: s.YellowCards, RedCards: s.RedCards, Saves: s.Saves, Bonus: s.Bonus,
+		}
+	}
+	return out, nil
+}
+
+// PointsOf extracts each player's points from their stats.
+func PointsOf(stats map[int]PlayerStats) map[int]int {
+	out := make(map[int]int, len(stats))
+	for id, s := range stats {
+		out[id] = s.Points
+	}
+	return out
 }
 
 type apiHistory struct {
@@ -105,15 +163,11 @@ func (c *Client) FetchPicks(entry, event int) (Picks, error) {
 
 // FetchLivePoints fetches every player's points so far in a gameweek.
 func (c *Client) FetchLivePoints(event int) (map[int]int, error) {
-	var raw apiLive
-	if err := c.getJSON(fmt.Sprintf("/event/%d/live/", event), &raw); err != nil {
+	stats, err := c.FetchLiveStats(event)
+	if err != nil {
 		return nil, err
 	}
-	out := make(map[int]int, len(raw.Elements))
-	for _, e := range raw.Elements {
-		out[e.ID] = e.Stats.TotalPoints
-	}
-	return out, nil
+	return PointsOf(stats), nil
 }
 
 // FetchChips fetches the chips a manager has played, as event → chip name.
@@ -125,6 +179,33 @@ func (c *Client) FetchChips(entry int) (map[int]string, error) {
 	out := map[int]string{}
 	for _, ch := range raw.Chips {
 		out[ch.Event] = ch.Name
+	}
+	return out, nil
+}
+
+// Transfer is one player swap a manager made for a gameweek. FPL only shows
+// a gameweek's transfers once its deadline has passed.
+type Transfer struct {
+	Event int
+	In    int // element id
+	Out   int // element id
+}
+
+type apiTransfer struct {
+	Event      int `json:"event"`
+	ElementIn  int `json:"element_in"`
+	ElementOut int `json:"element_out"`
+}
+
+// FetchTransfers fetches every transfer a manager has made this season.
+func (c *Client) FetchTransfers(entry int) ([]Transfer, error) {
+	var raw []apiTransfer
+	if err := c.getJSON(fmt.Sprintf("/entry/%d/transfers/", entry), &raw); err != nil {
+		return nil, err
+	}
+	out := make([]Transfer, 0, len(raw))
+	for _, t := range raw {
+		out = append(out, Transfer{Event: t.Event, In: t.ElementIn, Out: t.ElementOut})
 	}
 	return out, nil
 }

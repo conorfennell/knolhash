@@ -59,24 +59,24 @@ type fplEventView struct {
 	Status   string // see fpl.Event.Status
 	Live     bool   // points are provisional live scores
 	Fixtures []fplFixtureView
-	Summary  string // "Top: … · Bottom two: …" once settled
 }
 
 // fplAwardColumns is the order of the season tally's columns: fame, then
 // shame.
 var fplAwardColumns = []fplAwardColumn{
-	{"🚀", "Chip of the Week", false},
-	{"🍀", "Jammy Win", false},
-	{"💔", "Robbed", true},
-	{"🪑", "Bench of Shame", true},
-	{"🫠", "Captain Calamity", true},
-	{"💸", "Hit That Didn't Pay", true},
-	{"🧯", "Chip Flop", true},
+	{"🚀", "Chip of the Week", "Best score by anyone playing a chip", false},
+	{"🍀", "Jammy Win", "Won their H2H with the week's lowest winning score", false},
+	{"💔", "Robbed", "Lost their H2H with the week's highest losing score", true},
+	{"🪑", "Bench of Shame", "Most points left on the bench", true},
+	{"🫠", "Captain Calamity", "Lowest-scoring captain of the week", true},
+	{"💸", "Hit That Didn't Pay", "Took a transfer hit and lost by no more than the hit", true},
+	{"🧯", "Chip Flop", "Worst score by anyone playing a chip", true},
 }
 
 type fplAwardColumn struct {
 	Icon  string
 	Title string
+	Desc  string
 	Shame bool
 }
 
@@ -118,14 +118,6 @@ type fplAvailabilityView struct {
 	Missing  bool // team couldn't be fetched
 }
 
-type fplNamingView struct {
-	Event  int
-	Winner string
-	Loser  string
-	Score  string
-	Margin int
-}
-
 type fplTemplateData struct {
 	LeagueName      string
 	Standings       []fpl.Standing
@@ -134,8 +126,8 @@ type fplTemplateData struct {
 	Money           []fplMoneyRow
 	CurrentHalf     int
 	AveragePot      string          // AVERAGE pot waiting for a winner, "" when empty
+	ShowHalves      bool            // split the money table by half once the second half starts
 	Past            []*fplEventView // settled gameweeks, newest first
-	NamingRights    *fplNamingView
 	Availability    []fplAvailabilityView
 	TeamsEvent      int                     // gameweek the availability teams are from
 	Icons           map[int][]fplStatusIcon // entry → status icons, as on the World Cup page
@@ -160,6 +152,7 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 			Standings:       data.Standings,
 			Money:           buildFPLMoney(ledger, fpl.MoneyMoves(data), icons),
 			AveragePot:      fplPot(ledger.Pot),
+			ShowHalves:      fplSecondHalfStarted(ledger),
 			Icons:           icons,
 			AwardTally:      buildFPLAwardTally(data, awards, icons),
 			AwardColumns:    fplAwardColumns,
@@ -178,12 +171,6 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 		}
 		if next, ok := data.NextEvent(); ok && (td.Latest == nil || td.Latest.Status != "live") {
 			td.Upcoming = buildFPLEvent(data, ledger, live, icons, next)
-		}
-		if nr, ok := fpl.BiggestMargin(data); ok {
-			td.NamingRights = &fplNamingView{
-				Event: nr.Event, Winner: nr.Winner.Name, Loser: nr.Loser.Name, Margin: nr.Margin,
-				Score: fmt.Sprintf("%d – %d", nr.Winner.Points, nr.Loser.Points),
-			}
 		}
 		td.Availability, td.TeamsEvent = buildFPLAvailability(data, live, icons), live.PicksEvent
 		for i := len(data.Events) - 1; i >= 0; i-- {
@@ -472,23 +459,18 @@ func buildFPLEvent(data fpl.LeagueData, l fpl.Ledger, live fpl.LiveData, icons m
 		}
 		f := fplFixtureView{Home: home, Away: away}
 		if !m.Home.IsAverage() && !m.Away.IsAverage() {
-			f.Rivalry = buildFPLRivalry(fpl.HeadToHead(data, m.Home.Entry, m.Away.Entry), m.Home.Name, m.Away.Name)
+			// Only once they've met; a wall of "first meeting" says nothing.
+			if r := fpl.HeadToHead(data, m.Home.Entry, m.Away.Entry); len(r.Meetings) > 0 {
+				f.Rivalry = buildFPLRivalry(r, m.Home.Name, m.Away.Name)
+			}
 		}
 		ev.Fixtures = append(ev.Fixtures, f)
-	}
-	if settled {
-		ev.Summary = "Top: " + fplNames(data, g.TopScorers) + " · Bottom two: " + fplNames(data, g.BottomTwo)
 	}
 	return ev
 }
 
 func buildFPLRivalry(r fpl.Rivalry, a, b string) *fplRivalryView {
 	v := &fplRivalryView{Title: "⚔️ " + a + " v " + b, Summary: fmt.Sprintf("%d–%d", r.AWins, r.BWins)}
-	if len(r.Meetings) == 0 {
-		v.Summary = "1st"
-		v.Detail = "First meeting this season."
-		return v
-	}
 	lines := []string{fmt.Sprintf("Season: %s %d · %s %d", a, r.AWins, b, r.BWins)}
 	if r.Draws > 0 {
 		lines[0] += fmt.Sprintf(" · %d drawn", r.Draws)
@@ -542,18 +524,6 @@ func fplNameMap(data fpl.LeagueData) map[int]string {
 	return names
 }
 
-func fplNames(data fpl.LeagueData, entries []int) string {
-	names := fplNameMap(data)
-	out := ""
-	for i, e := range entries {
-		if i > 0 {
-			out += ", "
-		}
-		out += names[e]
-	}
-	return out
-}
-
 func fplOutcome(mine, theirs int) string {
 	switch {
 	case mine > theirs:
@@ -562,6 +532,17 @@ func fplOutcome(mine, theirs int) string {
 		return "loss"
 	}
 	return "draw"
+}
+
+// fplSecondHalfStarted reports whether any GW20–38 money exists yet; until
+// then the season total is the first half.
+func fplSecondHalfStarted(l fpl.Ledger) bool {
+	for _, g := range l.Gameweeks {
+		if fpl.Half(g.Event) == 1 {
+			return true
+		}
+	}
+	return false
 }
 
 func fplPot(m fpl.Money) string {

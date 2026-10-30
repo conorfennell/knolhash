@@ -73,15 +73,14 @@
         .tag-cap { background: #e5e7eb; color: #374151; }
         .tag-chip { background: #ede9fe; color: #5b21b6; vertical-align: 0.15em; }
         .fx-live-note { font-size: 0.76rem; color: var(--pico-muted-color); padding-top: 0.3rem; }
-        .fx-summary { font-size: 0.8rem; color: var(--pico-muted-color); padding: 0.4rem 0 0.2rem; border-top: 1px solid var(--pico-muted-border-color); }
+        details.how { margin: 0; padding: 0.3rem 0.9rem 0.5rem; border-top: 1px solid var(--pico-muted-border-color); font-size: 0.78rem; color: var(--pico-muted-color); }
+        details.how > summary { font-size: 0.78rem; font-weight: 700; padding: 0.2rem 0; }
+        details.how p { margin: 0.3rem 0; font-size: 0.78rem; }
         .pot-line { border-top: none; padding-bottom: 0; color: #92400e; }
         .tbl .cur { background: #f5f3ff; }
         .rules { font-size: 0.78rem; color: var(--pico-muted-color); padding: 0.5rem 0.9rem 0.6rem; border-top: 1px solid var(--pico-muted-border-color); margin: 0; }
         details.past { margin-bottom: 0.5rem; }
         details.past > summary { font-weight: 700; font-size: 0.9rem; padding: 0.35rem 0; }
-        .nr { padding: 0.6rem 0.9rem; font-size: 0.92rem; }
-        .nr strong { font-weight: 800; }
-        .nr-sub { font-size: 0.8rem; color: var(--pico-muted-color); margin-top: 0.15rem; }
         .av-mgr { padding: 0.5rem 0; border-bottom: 1px solid var(--pico-muted-border-color); }
         .av-mgr:last-child { border-bottom: none; }
         .av-name { font-weight: 700; font-size: 0.92rem; }
@@ -131,38 +130,33 @@
         {{with .Latest}}{{if ne .Status "live"}}{{template "fpl_event" .}}{{end}}{{end}}
 
         {{if .Money}}
-        {{$half := .CurrentHalf}}
+        {{$half := .CurrentHalf}}{{$split := .ShowHalves}}
         <section class="card section-gap">
             <div class="card-head"><span>Money</span></div>
             <div class="tbl-wrap">
             <table class="tbl">
-                <thead><tr><th class="rank">#</th><th>Manager</th><th class="num{{if eq $half 0}} cur{{end}}">GW1–19</th><th class="num{{if eq $half 1}} cur{{end}}">GW20–38</th><th class="num">Season</th></tr></thead>
+                <thead><tr><th class="rank">#</th><th>Manager</th>{{if $split}}<th class="num{{if eq $half 0}} cur{{end}}">GW1–19</th><th class="num{{if eq $half 1}} cur{{end}}">GW20–38</th><th class="num">Season</th>{{else}}<th class="num">€</th>{{end}}</tr></thead>
                 <tbody>
                 {{range .Money}}
                 <tr>
                     <td class="rank">{{.Rank}}{{template "fpl_move" .Move}}</td>
-                    <td>{{.Name}}{{template "fpl_icons" .Icons}}<span class="who-team">{{.TeamName}}</span></td>
-                    <td class="num{{if eq $half 0}} cur{{end}}">{{index .Halves 0}}</td>
-                    <td class="num{{if eq $half 1}} cur{{end}}">{{index .Halves 1}}</td>
+                    <td>{{.Name}}{{template "fpl_icons" .Icons}}</td>
+                    {{if $split}}<td class="num{{if eq $half 0}} cur{{end}}">{{index .Halves 0}}</td>
+                    <td class="num{{if eq $half 1}} cur{{end}}">{{index .Halves 1}}</td>{{end}}
                     <td class="num pts {{if gt .Sign 0}}pos{{else if lt .Sign 0}}neg{{else}}zero{{end}}">{{.Season}}</td>
                 </tr>
                 {{end}}
                 </tbody>
             </table>
             </div>
-            <p class="rules">👑 league leader · 💰 most money · 🥄 least money · ⭐ last week's top scorer · 🔥 3+ wins in a row · 🧊 3+ losses in a row · ✍️ naming rights · 🚑 starter ruled out</p>
             {{if .AveragePot}}<p class="rules pot-line">🎰 <strong>AVERAGE pot: {{.AveragePot}}</strong> – next to beat AVERAGE wins it.</p>{{end}}
-            <p class="rules">H2H loser pays the winner €5. Lose to AVERAGE and your €5 goes into the AVERAGE pot, won by the next manager to beat AVERAGE. The lowest two places of the week pay €5 each (ties share the places, e.g. €5 / €2.50 / €2.50) and the top scorer takes the €10 (split if tied). Nobody goes below −€50 in a half: H2H is settled first, then the bottom two. Only gameweeks with confirmed bonus points count.</p>
-        </section>
-        {{end}}
-
-        {{with .NamingRights}}
-        <section class="card section-gap">
-            <div class="card-head"><span>Naming rights</span></div>
-            <div class="nr">
-                <strong>{{.Winner}}</strong> holds naming rights to <strong>{{.Loser}}</strong>'s team next year.
-                <div class="nr-sub">Biggest winning margin so far: {{.Margin}} points ({{.Score}}) in Gameweek {{.Event}}.</div>
-            </div>
+            <details class="how">
+                <summary>How the money works</summary>
+                <p>H2H loser pays the winner €5. Lose to AVERAGE and your €5 goes into the AVERAGE pot, won by the next manager to beat AVERAGE.</p>
+                <p>The lowest two places of the week pay €5 each (ties share the places, e.g. €5 / €2.50 / €2.50) and the top scorer takes the €10 (split if tied).</p>
+                <p>Nobody goes below −€50 in a half (GW1–19, GW20–38): H2H is settled first, then the bottom two. Only gameweeks with confirmed bonus points count.</p>
+                <p>Tap any icon or badge to see what it means.</p>
+            </details>
         </section>
         {{end}}
 
@@ -172,7 +166,7 @@
             <div class="card-head"><span>Awards so far</span></div>
             <div class="tbl-wrap">
             <table class="tbl tally">
-                <thead><tr><th>Manager</th>{{range $cols}}<th class="aw {{if .Shame}}aw-shame{{else}}aw-fame{{end}}" title="{{.Title}}">{{.Icon}}</th>{{end}}</tr></thead>
+                <thead><tr><th>Manager</th>{{range $cols}}<th class="aw {{if .Shame}}aw-shame{{else}}aw-fame{{end}}"><button type="button" class="st-badge" data-title="{{.Icon}} {{.Title}}" data-detail="{{.Desc}}" data-shame="{{.Shame}}" aria-label="{{.Title}}: {{.Desc}}">{{.Icon}}</button></th>{{end}}</tr></thead>
                 <tbody>
                 {{range .AwardTally}}
                 <tr>
@@ -183,7 +177,6 @@
                 </tbody>
             </table>
             </div>
-            <p class="rules">{{range $i, $c := $cols}}{{if $i}} · {{end}}{{$c.Icon}} {{$c.Title}}{{end}}</p>
         </section>
         {{end}}
 
@@ -229,7 +222,7 @@
             <div class="card-body">
                 {{range .Availability}}
                 <div class="av-mgr">
-                    <div class="av-name">{{.Name}}{{template "fpl_icons" .Icons}} <span class="fx-team" style="display:inline">· {{.TeamName}}</span></div>
+                    <div class="av-name">{{.Name}}{{template "fpl_icons" .Icons}}</div>
                     <ul class="av-list">
                         {{if .Missing}}<li class="av-news">Couldn't load this team from FPL. It will retry within a minute.</li>{{end}}
                         {{range .Concerns}}
@@ -325,7 +318,6 @@
         <div class="fx-row">
             <div class="fx-side fx-home fx-{{.Home.Outcome}}{{if .Home.IsAverage}} fx-avg{{end}}">
                 <div class="fx-name">{{if .Home.Chip}}<span class="tag tag-chip">{{.Home.Chip}}</span>{{end}}{{.Home.Name}}{{template "fpl_icons" .Home.Icons}}</div>
-                {{if not .Home.IsAverage}}<div class="fx-team">{{.Home.TeamName}}</div>{{end}}
                 {{template "fpl_money" .Home}}
             </div>
             <div class="fx-mid">
@@ -334,14 +326,12 @@
             </div>
             <div class="fx-side fx-away fx-{{.Away.Outcome}}{{if .Away.IsAverage}} fx-avg{{end}}">
                 <div class="fx-name">{{.Away.Name}}{{template "fpl_icons" .Away.Icons}}{{if .Away.Chip}}<span class="tag tag-chip">{{.Away.Chip}}</span>{{end}}</div>
-                {{if not .Away.IsAverage}}<div class="fx-team">{{.Away.TeamName}}</div>{{end}}
                 {{template "fpl_money" .Away}}
             </div>
         </div>
         {{else}}
         <p class="fx-team">No fixtures published yet.</p>
         {{end}}
-        {{if .Summary}}<div class="fx-summary">{{.Summary}}</div>{{end}}
         {{if .Live}}<div class="fx-live-note">~ Live scores update every minute. Provisional: no auto-subs, bonus points may change.</div>{{end}}
     </div>
 </section>

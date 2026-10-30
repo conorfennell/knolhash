@@ -159,33 +159,14 @@ type fplMoneyCell struct {
 	Sign  int
 }
 
-type fplConcernView struct {
-	Player   string
-	Club     string
-	Label    string
-	News     string
-	Bench    bool
-	Severity string // "out" or "doubt"
-}
-
-type fplAvailabilityView struct {
-	Name     string
-	Icons    []fplStatusIcon
-	TeamName string
-	Concerns []fplConcernView
-	Missing  bool // team couldn't be fetched
-}
-
 type fplTemplateData struct {
 	LeagueName      string
 	Standings       []fpl.Standing
 	Upcoming        *fplEventView
 	Latest          *fplEventView
-	Money           map[int]fplMoneyCell // entry → season money
-	AveragePot      string               // AVERAGE pot waiting for a winner, "" when empty
-	Past            []*fplEventView      // settled gameweeks, newest first
-	Availability    []fplAvailabilityView
-	TeamsEvent      int                     // gameweek the availability teams are from
+	Money           map[int]fplMoneyCell    // entry → season money
+	AveragePot      string                  // AVERAGE pot waiting for a winner, "" when empty
+	Past            []*fplEventView         // settled gameweeks, newest first
 	Icons           map[int][]fplStatusIcon // entry → status icons, as on the World Cup page
 	AwardTally      []fplAwardTally
 	AwardColumns    []fplAwardColumn
@@ -229,7 +210,6 @@ func (s *Server) handleGetFPL() http.HandlerFunc {
 			td.Upcoming = buildFPLEvent(data, ledger, live, icons, next)
 			fplApplyMatchups(td.Upcoming, data, live, history)
 		}
-		td.Availability, td.TeamsEvent = buildFPLAvailability(data, live, icons), live.PicksEvent
 		for i := len(data.Events) - 1; i >= 0; i-- {
 			if e := data.Events[i]; e.Settled() && (td.Latest == nil || e.ID != td.Latest.ID) {
 				ev := buildFPLEvent(data, ledger, live, icons, e)
@@ -734,35 +714,6 @@ func fplStreaks(data fpl.LeagueData) map[int]int {
 		}
 	}
 	return streaks
-}
-
-func buildFPLAvailability(data fpl.LeagueData, live fpl.LiveData, icons map[int][]fplStatusIcon) []fplAvailabilityView {
-	var out []fplAvailabilityView
-	for _, m := range data.Managers {
-		v := fplAvailabilityView{Name: m.DisplayName, Icons: icons[m.Entry], TeamName: m.TeamName}
-		picks, ok := live.Picks[m.Entry]
-		if !ok {
-			if live.PicksEvent != 0 {
-				v.Missing = true
-				out = append(out, v)
-			}
-			continue
-		}
-		for _, c := range fpl.Concerns(picks, data.Players) {
-			sev := "doubt"
-			if c.Player.Out() {
-				sev = "out"
-			}
-			v.Concerns = append(v.Concerns, fplConcernView{
-				Player: c.Player.Name, Club: c.Player.Team, Label: c.Player.StatusLabel(),
-				News: c.Player.News, Bench: c.Bench, Severity: sev,
-			})
-		}
-		if len(v.Concerns) > 0 {
-			out = append(out, v)
-		}
-	}
-	return out
 }
 
 func buildFPLMoney(l fpl.Ledger) map[int]fplMoneyCell {

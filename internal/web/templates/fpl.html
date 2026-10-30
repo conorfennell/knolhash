@@ -99,12 +99,6 @@
         .rules { font-size: 0.78rem; color: var(--pico-muted-color); padding: 0.5rem 0.9rem 0.6rem; border-top: 1px solid var(--pico-muted-border-color); margin: 0; }
         details.past { margin-bottom: 0.5rem; }
         details.past > summary { font-weight: 700; font-size: 0.9rem; padding: 0.35rem 0; }
-        .av-mgr { padding: 0.5rem 0; border-bottom: 1px solid var(--pico-muted-border-color); }
-        .av-mgr:last-child { border-bottom: none; }
-        .av-name { font-weight: 700; font-size: 0.92rem; }
-        .av-list { list-style: none; padding: 0; margin: 0.2rem 0 0; }
-        .av-list li { font-size: 0.84rem; margin: 0.1rem 0; list-style: none; }
-        .av-news { color: var(--pico-muted-color); }
         .tag-out { background: #fee2e2; color: #b91c1c; }
         .tag-doubt { background: #fef3c7; color: #92400e; }
         .tag-bench { background: #e5e7eb; color: #374151; }
@@ -303,25 +297,6 @@
         </section>
         {{end}}
 
-        {{if .Availability}}
-        <section class="card section-gap">
-            <div class="card-head"><span>Injuries &amp; suspensions</span><span class="badge badge-done">GW{{.TeamsEvent}} teams</span></div>
-            <div class="card-body">
-                {{range .Availability}}
-                <div class="av-mgr">
-                    <div class="av-name">{{.Name}}{{template "fpl_icons" .Icons}}</div>
-                    <ul class="av-list">
-                        {{if .Missing}}<li class="av-news">Couldn't load this team from FPL. It will retry within a minute.</li>{{end}}
-                        {{range .Concerns}}
-                        <li><span class="tag tag-{{.Severity}}">{{.Label}}</span>{{if .Bench}}<span class="tag tag-bench">Bench</span>{{end}} <strong>{{.Player}}</strong> ({{.Club}}){{if .News}} <span class="av-news">– {{.News}}</span>{{end}}</li>
-                        {{end}}
-                    </ul>
-                </div>
-                {{end}}
-                <p class="fx-team" style="padding-top:0.4rem;margin:0;white-space:normal">Players in each manager's team from the last deadline. Transfers made since won't show until the next deadline passes.</p>
-            </div>
-        </section>
-        {{end}}
 
         <p class="meta">
             {{if .FetchedAt.IsZero}}

@@ -43,34 +43,6 @@ func TestBuildFPLEventLive(t *testing.T) {
 	}
 }
 
-func TestBuildFPLAvailability(t *testing.T) {
-	pct := func(n int) *int { return &n }
-	data := fpl.LeagueData{
-		Managers: []fpl.Manager{{Entry: 1, DisplayName: "Kevin"}, {Entry: 2, DisplayName: "Paul"}, {Entry: 3, DisplayName: "Ian"}},
-		Players: map[int]fpl.Player{
-			10: {Name: "Saka", Team: "ARS", Status: "i", News: "Thigh"},
-			11: {Name: "Rice", Team: "ARS", Status: "d", Chance: pct(75)},
-			12: {Name: "Fit", Status: "a"},
-		},
-	}
-	live := fpl.LiveData{PicksEvent: 8, Picks: map[int]fpl.Picks{
-		1: {Players: []fpl.Pick{{Element: 11, Multiplier: 1}, {Element: 10, Multiplier: 2}}},
-		2: {Players: []fpl.Pick{{Element: 12, Multiplier: 2}}}, // all fit → omitted
-		// 3: picks failed to load
-	}}
-	got := buildFPLAvailability(data, live, nil)
-	if len(got) != 2 {
-		t.Fatalf("availability = %+v, want Kevin and Ian", got)
-	}
-	k := got[0]
-	if k.Name != "Kevin" || len(k.Concerns) != 2 || k.Concerns[0].Player != "Saka" || k.Concerns[0].Severity != "out" || k.Concerns[1].Severity != "doubt" || k.Concerns[1].Label != "75%" {
-		t.Errorf("Kevin = %+v", k)
-	}
-	if got[1].Name != "Ian" || !got[1].Missing {
-		t.Errorf("Ian = %+v, want flagged as missing", got[1])
-	}
-}
-
 func TestBuildFPLEventNotLiveIgnoresLiveScores(t *testing.T) {
 	data := fpl.LeagueData{
 		Events:  []fpl.Event{{ID: 8, IsCurrent: true, Finished: true, DataChecked: true}},
